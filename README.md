@@ -241,7 +241,7 @@ For a hosted Flask deployment, use:
 
 ```text
 Build command: pip install -r requirements.txt
-Start command: gunicorn app:app
+Start command: gunicorn app:app --bind 0.0.0.0:$PORT
 Root directory: backend
 ```
 
