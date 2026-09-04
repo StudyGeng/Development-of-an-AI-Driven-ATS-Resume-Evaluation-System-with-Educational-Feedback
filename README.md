@@ -197,7 +197,19 @@ Add this value to `config/env`, then restart the backend.
 
 ## Email PIN Setup
 
-For email verification, configure SMTP settings in `config/env`.
+For email verification, configure email settings in `config/env`.
+
+For hosted deployment on a free platform that blocks SMTP, use the Resend HTTP API:
+
+```text
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM=UTS CS Career Navigator <onboarding@resend.dev>
+EMAIL_PIN_DEV_MODE=0
+```
+
+The Resend HTTP API sends email through HTTPS, so it does not need SMTP port `587`.
+
+For local SMTP testing, Gmail can also be used.
 
 Gmail example:
 

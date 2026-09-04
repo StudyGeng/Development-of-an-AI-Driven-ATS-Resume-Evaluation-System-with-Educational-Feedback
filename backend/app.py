@@ -14,6 +14,8 @@ from email.message import EmailMessage
 from html import escape as html_escape
 from io import BytesIO
 import smtplib
+import urllib.error
+import urllib.request
 from typing import Any
 
 from database import (
@@ -821,7 +823,43 @@ def email_pin_body(pin: str, purpose: str) -> str:
     )
 
 
+def send_resend_api_email_pin(email: str, pin: str, purpose: str) -> str:
+    api_key = os.getenv("RESEND_API_KEY", "").strip()
+    from_email = os.getenv(
+        "RESEND_FROM",
+        os.getenv("SMTP_FROM", "UTS CS Career Navigator <onboarding@resend.dev>"),
+    ).strip()
+    payload = {
+        "from": from_email,
+        "to": [email],
+        "subject": email_pin_subject(purpose),
+        "text": email_pin_body(pin, purpose),
+    }
+    request = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            if response.status >= 400:
+                raise OSError(f"Resend API error {response.status}: {response.reason}")
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="ignore")
+        raise OSError(f"Resend API error {error.code}: {detail}") from error
+    except urllib.error.URLError as error:
+        raise OSError(f"Resend API request failed: {error.reason}") from error
+    return "resend_api"
+
+
 def send_email_pin(email: str, pin: str, purpose: str) -> str:
+    if os.getenv("RESEND_API_KEY", "").strip():
+        return send_resend_api_email_pin(email, pin, purpose)
+
     smtp_host = os.getenv("SMTP_HOST", "").strip()
     if not smtp_host:
         print(f"[DEV EMAIL PIN] purpose={purpose} email={email} pin={pin}")
@@ -873,8 +911,10 @@ def get_email_delivery_error_message(error: Exception) -> str:
         return "Gmail rejected the SMTP login. Check that SMTP_USERNAME is your Gmail and SMTP_PASSWORD is a valid Google App Password."
     if "domain" in normalized and ("verify" in normalized or "verified" in normalized):
         return "Resend requires a verified sending domain. Verify your domain, then use a From email from that domain."
+    if "resend api" in normalized and ("forbidden" in normalized or "api key" in normalized):
+        return "Resend API rejected the request. Check that RESEND_API_KEY is active and RESEND_FROM is allowed."
     if "authentication" in normalized or "invalid api key" in normalized or "unauthorized" in normalized:
-        return "Email authentication failed. Check that SMTP_PASSWORD is your active Resend API key."
+        return "Email authentication failed. Check that SMTP_PASSWORD or RESEND_API_KEY is active."
     return "Could not send verification email. Check SMTP settings."
 
 
