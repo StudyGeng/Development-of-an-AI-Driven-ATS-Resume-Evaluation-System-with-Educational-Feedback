@@ -1,0 +1,16 @@
+env
+config/env
+EXAMINER_EXPLANATION.md
+docs/
+Resume_template/
+.venv/
+__pycache__/
+*.pyc
+backend_stdout.log
+backend_stderr.log
+uploads/
+results/
+outputs/
+node_modules/
+.DS_Store
+Thumbs.db

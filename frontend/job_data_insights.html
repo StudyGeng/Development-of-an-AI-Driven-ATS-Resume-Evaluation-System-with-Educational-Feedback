@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>UTS CS Career Navigator - Admin Insights</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "background": "#f8f9fa",
+        "surface": "#f8f9fa",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#f3f4f5",
+        "surface-container": "#edeeef",
+        "surface-container-high": "#e7e8e9",
+        "surface-container-highest": "#e1e3e4",
+        "on-surface": "#191c1d",
+        "on-surface-variant": "#43474f",
+        "on-primary": "#ffffff",
+        "primary-container": "#1b3b6f",
+        "on-primary-container": "#8aa7e1",
+        "outline": "#747780",
+        "outline-variant": "#c4c6d1",
+        "primary": "#002555",
+        "secondary": "#0060ac",
+        "secondary-container": "#68abff",
+        "primary-fixed": "#d8e2ff",
+        "tertiary": "#3e1e00",
+        "tertiary-fixed": "#ffdcc3",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6"
+      },
+      borderRadius: {
+        "DEFAULT": "0.125rem",
+        "lg": "0.25rem",
+        "xl": "0.5rem",
+        "full": "0.75rem"
+      },
+      fontFamily: {
+        "headline": ["Manrope"],
+        "body": ["Inter"],
+        "label": ["Inter"]
+      }
+    }
+  }
+}
+</script>
+<script src="app_common.js"></script>
+<style>
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+body {
+  font-family: "Inter", sans-serif;
+  background: #f8f9fa;
+  color: #191c1d;
+}
+h1, h2, h3, .font-headline {
+  font-family: "Manrope", sans-serif;
+}
+.metric-card,
+.data-card {
+  border: 1px solid rgba(116, 119, 128, 0.24);
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 16px 42px rgba(0, 37, 85, 0.07);
+}
+.metric-card {
+  min-height: 8.25rem;
+}
+.icon-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bar-track {
+  height: 0.7rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e7e8e9;
+}
+.bar-fill {
+  height: 100%;
+  min-width: 0.35rem;
+  border-radius: 999px;
+  transition: width 0.28s ease;
+}
+.table-shell {
+  overflow-x: auto;
+}
+th, td {
+  white-space: nowrap;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.modal-backdrop {
+  background: rgba(15, 23, 42, 0.58);
+}
+</style>
+</head>
+<body class="min-h-screen bg-background text-on-surface">
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <a class="text-base sm:text-xl font-bold tracking-tight text-blue-900 dark:text-white font-headline truncate min-w-0 hover:text-secondary transition-colors" href="home_page.html" aria-label="Back to dashboard">UTS CS Career Navigator</a>
+    <div class="hidden md:flex items-center space-x-8">
+      <a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="home_page.html">Dashboard</a>
+      <a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="analysis_result.html">Results</a>
+      <a class="font-headline text-sm font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+      <button class="material-symbols-outlined text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" data-icon="account_circle" type="button">account_circle</button>
+      <button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
+      <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap" type="button">History</button>
+      <button id="refreshBtn" class="h-10 w-10 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" type="button" title="Refresh insights" aria-label="Refresh insights">
+        <span class="material-symbols-outlined text-base">refresh</span>
+      </button>
+      <a class="md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
+        <span class="material-symbols-outlined text-base">home</span>
+      </a>
+    </div>
+  </div>
+  <div class="bg-slate-100 dark:bg-slate-800 h-[1px] w-full"></div>
+</nav>
+
+<main class="pt-24 pb-20">
+  <section class="border-b border-outline-variant bg-white">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <p class="text-sm font-bold uppercase tracking-[0.24em] text-secondary">Admin Dashboard</p>
+      <h1 class="mt-2 font-headline text-3xl font-extrabold text-primary sm:text-4xl">System Insights</h1>
+      <p id="pageMessage" class="mt-3 hidden text-sm font-semibold"></p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div id="adminMetricGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
+  </section>
+
+  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+    <article class="data-card p-5">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Resume Improvement</h2>
+        <span class="material-symbols-outlined text-secondary">trending_up</span>
+      </div>
+      <div id="improvementGrid" class="grid gap-3 sm:grid-cols-2"></div>
+    </article>
+
+    <article class="data-card p-5">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Evaluation Score Bands</h2>
+        <span class="material-symbols-outlined text-secondary">stacked_bar_chart</span>
+      </div>
+      <div id="scoreDistributionBars" class="space-y-4"></div>
+    </article>
+  </section>
+
+  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+    <article class="data-card p-5">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Recent Resume Evaluations</h2>
+        <span id="evaluationTableCount" class="text-sm font-bold text-on-surface-variant"></span>
+      </div>
+      <div class="table-shell">
+        <table class="min-w-full text-left text-sm">
+          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
+            <tr>
+              <th class="px-3 py-3 font-bold">User</th>
+              <th class="px-3 py-3 font-bold">Resume</th>
+              <th class="px-3 py-3 font-bold">Role</th>
+              <th class="px-3 py-3 text-right font-bold">Before</th>
+              <th class="px-3 py-3 text-right font-bold">Est. After</th>
+              <th class="px-3 py-3 text-right font-bold">Gain</th>
+              <th class="px-3 py-3 font-bold">Date</th>
+            </tr>
+          </thead>
+          <tbody id="evaluationTableBody" class="divide-y divide-outline-variant"></tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="data-card p-5">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Top Evaluated Roles</h2>
+        <span class="material-symbols-outlined text-secondary">query_stats</span>
+      </div>
+      <div id="evaluatedRoleBars" class="space-y-4"></div>
+    </article>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
+    <article class="data-card p-5">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Registered Users</h2>
+        <span id="userTableCount" class="text-sm font-bold text-on-surface-variant"></span>
+      </div>
+      <div class="table-shell">
+        <table class="min-w-full text-left text-sm">
+          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
+            <tr>
+              <th class="px-3 py-3 font-bold">Name</th>
+              <th class="px-3 py-3 font-bold">Email</th>
+              <th class="px-3 py-3 text-center font-bold">Role</th>
+              <th class="px-3 py-3 text-right font-bold">Evaluations</th>
+              <th class="px-3 py-3 text-right font-bold">Latest Score</th>
+              <th class="px-3 py-3 font-bold">Last Evaluation</th>
+              <th class="px-3 py-3 text-right font-bold">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody" class="divide-y divide-outline-variant"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-4 pb-4 pt-4 sm:px-6 lg:px-8">
+    <div class="mb-4 flex items-center justify-between gap-3">
+      <h2 class="font-headline text-2xl font-extrabold text-primary">EMASCO/MASCO Dataset Overview</h2>
+    </div>
+    <div id="datasetMetricGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
+  </section>
+
+  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-2 lg:px-8">
+    <article class="data-card p-5">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Requirement Types</h2>
+        <span class="material-symbols-outlined text-secondary">stacked_bar_chart</span>
+      </div>
+      <div id="requirementTypeBars" class="space-y-4"></div>
+    </article>
+
+    <article class="data-card p-5">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Role Families</h2>
+        <span class="material-symbols-outlined text-secondary">account_tree</span>
+      </div>
+      <div id="roleFamilyBars" class="space-y-4"></div>
+    </article>
+  </section>
+
+  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-2 lg:px-8">
+    <article class="data-card p-5">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Top Skill Keywords</h2>
+        <span class="material-symbols-outlined text-secondary">psychology</span>
+      </div>
+      <div id="skillBars" class="space-y-4"></div>
+    </article>
+
+    <article class="data-card p-5">
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Top Text Keywords</h2>
+        <span class="material-symbols-outlined text-secondary">manage_search</span>
+      </div>
+      <div id="keywordBars" class="space-y-4"></div>
+    </article>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
+    <article class="data-card p-5">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Roles With Most Requirements</h2>
+        <span id="roleTableCount" class="text-sm font-bold text-on-surface-variant"></span>
+      </div>
+      <div class="table-shell">
+        <table class="min-w-full text-left text-sm">
+          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
+            <tr>
+              <th class="px-3 py-3 font-bold">Role</th>
+              <th class="px-3 py-3 font-bold">Family</th>
+              <th class="px-3 py-3 text-right font-bold">Requirements</th>
+              <th class="px-3 py-3 font-bold">Top Skills</th>
+            </tr>
+          </thead>
+          <tbody id="roleTableBody" class="divide-y divide-outline-variant"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+</main>
+
+<div id="userEditModal" class="fixed inset-0 z-[70] hidden items-center justify-center modal-backdrop px-4 py-6">
+  <section class="w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl">
+    <div class="mb-5 flex items-start justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.24em] text-secondary">User Account</p>
+        <h2 class="mt-2 font-headline text-2xl font-extrabold text-primary">Edit User</h2>
+      </div>
+      <button id="closeUserModalBtn" class="icon-button text-on-surface-variant hover:bg-surface-container" type="button" aria-label="Close user editor">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form id="userEditForm" class="space-y-4">
+      <input id="editUserIdInput" type="hidden">
+      <div>
+        <label class="mb-2 block text-sm font-bold text-on-surface" for="editFullNameInput">Full name</label>
+        <input id="editFullNameInput" class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" type="text" required>
+      </div>
+      <div>
+        <label class="mb-2 block text-sm font-bold text-on-surface" for="editEmailInput">Email</label>
+        <input id="editEmailInput" class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" type="email" required>
+      </div>
+      <div>
+        <label class="mb-2 block text-sm font-bold text-on-surface" for="editPasswordInput">New password</label>
+        <input id="editPasswordInput" class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" type="password" placeholder="Leave blank to keep current password">
+      </div>
+      <label class="inline-flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm font-bold text-on-surface">
+        <input id="editIsAdminInput" type="checkbox" class="rounded border-outline-variant text-primary focus:ring-primary">
+        Admin account
+      </label>
+      <p id="userEditMessage" class="hidden text-sm font-semibold"></p>
+      <div class="flex flex-wrap justify-end gap-3 pt-2">
+        <button id="cancelUserEditBtn" type="button" class="h-10 rounded-xl bg-surface-container-low px-4 text-sm font-bold text-primary hover:bg-surface-container-high">Cancel</button>
+        <button id="saveUserBtn" type="submit" class="h-10 rounded-xl bg-primary px-5 text-sm font-bold text-on-primary hover:bg-primary-container">Save User</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<script>
+const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
+  ? window.location.origin
+  : "http://127.0.0.1:5000";
+const numberFormatter = new Intl.NumberFormat("en-US");
+const scoreFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+const barColors = ["#002555", "#0060ac", "#0f766e", "#9a3412", "#6d28d9", "#166534", "#7c2d12", "#334155"];
+const openAuthModalBtn = document.getElementById("openAuthModalBtn");
+const openHistoryBtn = document.getElementById("openHistoryBtn");
+const accountStatusBtn = document.getElementById("accountStatusBtn");
+const refreshBtn = document.getElementById("refreshBtn");
+const userEditModal = document.getElementById("userEditModal");
+const userEditForm = document.getElementById("userEditForm");
+const editUserIdInput = document.getElementById("editUserIdInput");
+const editFullNameInput = document.getElementById("editFullNameInput");
+const editEmailInput = document.getElementById("editEmailInput");
+const editPasswordInput = document.getElementById("editPasswordInput");
+const editIsAdminInput = document.getElementById("editIsAdminInput");
+const userEditMessage = document.getElementById("userEditMessage");
+let adminUsers = [];
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatNumber(value) {
+  return numberFormatter.format(Number(value || 0));
+}
+
+function formatScore(value) {
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
+  return scoreFormatter.format(Number(value || 0)) + "/100";
+}
+
+function formatPercent(value) {
+  return scoreFormatter.format(Number(value || 0)) + "%";
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "N/A";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleString();
+}
+
+function getStoredUser() {
+  if (window.CareerNavigatorCommon && typeof window.CareerNavigatorCommon.getAuthUser === "function") {
+    return window.CareerNavigatorCommon.getAuthUser();
+  }
+  try {
+    const raw = localStorage.getItem("authUser");
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function updateHeaderAuthUi() {
+  const currentUser = getStoredUser();
+  if (openAuthModalBtn) {
+    openAuthModalBtn.textContent = currentUser ? "My Profile" : "Log In / Sign Up";
+    openAuthModalBtn.title = currentUser
+      ? "Open profile for " + (currentUser.full_name || "current user")
+      : "Sign in or create account";
+  }
+  if (accountStatusBtn) {
+    accountStatusBtn.classList.toggle("hidden", !currentUser);
+    accountStatusBtn.title = currentUser ? (currentUser.email || "Signed in") : "";
+  }
+}
+
+function showPageMessage(message, type = "info") {
+  const element = document.getElementById("pageMessage");
+  if (!element) {
+    return;
+  }
+  element.textContent = message || "";
+  element.classList.toggle("hidden", !message);
+  element.className = "mt-3 text-sm font-semibold " + (type === "error" ? "text-error" : "text-on-surface-variant");
+}
+
+async function fetchAdminJson(path, options = {}) {
+  const response = await fetch(API_BASE_URL + path, {
+    credentials: "same-origin",
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
+  });
+  if (response.status === 403 || response.status === 401) {
+    window.location.href = "home_page.html?admin_required=1";
+    return null;
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.detail || "Admin request failed.");
+  }
+  return payload;
+}
+
+function renderMetricCards(containerId, metrics) {
+  document.getElementById(containerId).innerHTML = metrics.map((item) => `
+    <article class="metric-card p-5">
+      <div class="flex items-start justify-between gap-4">
+        <p class="text-sm font-bold text-on-surface-variant">${escapeHtml(item.label)}</p>
+        <span class="material-symbols-outlined text-secondary">${escapeHtml(item.icon)}</span>
+      </div>
+      <p class="mt-5 font-headline text-3xl font-extrabold text-primary">${escapeHtml(item.value)}</p>
+    </article>
+  `).join("");
+}
+
+function renderAdminMetrics(summary) {
+  renderMetricCards("adminMetricGrid", [
+    { label: "Registered Users", value: formatNumber(summary.registered_users), icon: "groups" },
+    { label: "Resume Evaluations", value: formatNumber(summary.resume_evaluations), icon: "fact_check" },
+    { label: "Users Evaluated", value: formatNumber(summary.evaluating_users), icon: "person_check" },
+    { label: "Download Records", value: formatNumber(summary.download_records), icon: "download" }
+  ]);
+}
+
+function renderImprovement(summary) {
+  const metrics = [
+    { label: "Avg. Before Score", value: formatScore(summary.average_before_score), icon: "analytics" },
+    { label: "Est. After Score", value: formatScore(summary.estimated_average_after_score), icon: "trending_up" },
+    { label: "Avg. Est. Gain", value: "+" + scoreFormatter.format(Number(summary.average_estimated_gain || 0)), icon: "add_chart" },
+    { label: "Est. Improved", value: `${formatNumber(summary.estimated_improved_evaluations)} (${formatPercent(summary.estimated_improvement_rate)})`, icon: "task_alt" }
+  ];
+  document.getElementById("improvementGrid").innerHTML = metrics.map((item) => `
+    <div class="rounded-xl bg-surface-container-low p-4">
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-xs font-bold uppercase text-on-surface-variant">${escapeHtml(item.label)}</p>
+        <span class="material-symbols-outlined text-secondary text-base">${escapeHtml(item.icon)}</span>
+      </div>
+      <p class="mt-3 font-headline text-2xl font-extrabold text-primary">${escapeHtml(item.value)}</p>
+    </div>
+  `).join("");
+}
+
+function renderDatasetMetrics(summary) {
+  renderMetricCards("datasetMetricGrid", [
+    { label: "Job Roles", value: formatNumber(summary.total_roles), icon: "workspaces" },
+    { label: "Requirements", value: formatNumber(summary.total_requirements), icon: "database" },
+    { label: "Avg. Requirements", value: scoreFormatter.format(Number(summary.average_requirements_per_role || 0)), icon: "monitoring" },
+    { label: "Detected Skills", value: formatNumber(summary.distinct_detected_skill_keywords), icon: "data_object" }
+  ]);
+}
+
+function renderBars(elementId, items, labelKey = "label", valueKey = "value", suffix = "") {
+  const container = document.getElementById(elementId);
+  const cleanItems = Array.isArray(items) ? items.filter(Boolean).slice(0, 15) : [];
+  const maxValue = Math.max(1, ...cleanItems.map((item) => Number(item[valueKey] || 0)));
+  container.innerHTML = cleanItems.map((item, index) => {
+    const label = item[labelKey] || item.label || "";
+    const value = Number(item[valueKey] || item.value || 0);
+    const width = Math.max(2, (value / maxValue) * 100);
+    const color = barColors[index % barColors.length];
+    return `
+      <div>
+        <div class="mb-1 flex items-center justify-between gap-3">
+          <span class="truncate text-sm font-bold text-on-surface">${escapeHtml(label)}</span>
+          <span class="shrink-0 text-sm font-bold text-on-surface-variant">${formatNumber(value)}${suffix}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${width.toFixed(2)}%; background:${color};"></div>
+        </div>
+      </div>
+    `;
+  }).join("") || `<p class="text-sm font-semibold text-on-surface-variant">No data available.</p>`;
+}
+
+function renderEvaluationTable(items) {
+  const rows = Array.isArray(items) ? items.slice(0, 20) : [];
+  document.getElementById("evaluationTableCount").textContent = rows.length ? `${rows.length} shown` : "";
+  document.getElementById("evaluationTableBody").innerHTML = rows.map((item) => `
+    <tr>
+      <td class="px-3 py-3">
+        <div class="font-bold text-primary">${escapeHtml(item.user_name || "Deleted user")}</div>
+        <div class="text-xs text-on-surface-variant">${escapeHtml(item.user_email || "")}</div>
+      </td>
+      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml(item.uploaded_resume_name)}</td>
+      <td class="px-3 py-3 font-bold text-on-surface">${escapeHtml(item.target_role)}</td>
+      <td class="px-3 py-3 text-right font-bold">${formatScore(item.before_score)}</td>
+      <td class="px-3 py-3 text-right font-bold text-primary">${formatScore(item.estimated_after_score)}</td>
+      <td class="px-3 py-3 text-right font-bold text-secondary">+${scoreFormatter.format(Number(item.estimated_gain || 0))}</td>
+      <td class="px-3 py-3 text-on-surface-variant">${formatDate(item.created_at)}</td>
+    </tr>
+  `).join("") || `
+    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="7">No evaluations yet.</td></tr>
+  `;
+}
+
+function renderUserTable(users) {
+  adminUsers = Array.isArray(users) ? users : [];
+  document.getElementById("userTableCount").textContent = adminUsers.length ? `${adminUsers.length} users` : "";
+  document.getElementById("userTableBody").innerHTML = adminUsers.map((user) => `
+    <tr>
+      <td class="px-3 py-3 font-bold text-primary">${escapeHtml(user.full_name)}</td>
+      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml(user.email)}</td>
+      <td class="px-3 py-3 text-center">
+        <span class="pill ${user.is_admin ? "bg-primary-fixed text-primary" : "bg-surface-container text-on-surface-variant"}">${user.is_admin ? "Admin" : "User"}</span>
+      </td>
+      <td class="px-3 py-3 text-right font-bold">${formatNumber(user.evaluation_count)}</td>
+      <td class="px-3 py-3 text-right font-bold">${formatScore(user.latest_score)}</td>
+      <td class="px-3 py-3 text-on-surface-variant">${formatDate(user.last_evaluation_at)}</td>
+      <td class="px-3 py-3">
+        <div class="flex justify-end gap-2">
+          <button class="icon-button bg-surface-container-low text-primary hover:bg-surface-container-high" type="button" data-action="edit-user" data-user-id="${escapeHtml(user.id)}" title="Edit user" aria-label="Edit user">
+            <span class="material-symbols-outlined text-base">edit</span>
+          </button>
+          <button class="icon-button bg-error-container text-error hover:opacity-90" type="button" data-action="delete-user" data-user-id="${escapeHtml(user.id)}" title="Delete user" aria-label="Delete user">
+            <span class="material-symbols-outlined text-base">delete</span>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("") || `
+    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="7">No registered users yet.</td></tr>
+  `;
+}
+
+function renderRoleTable(items) {
+  const rows = Array.isArray(items) ? items.slice(0, 12) : [];
+  document.getElementById("roleTableCount").textContent = rows.length ? `${rows.length} roles shown` : "";
+  document.getElementById("roleTableBody").innerHTML = rows.map((item) => `
+    <tr>
+      <td class="px-3 py-3 font-bold text-primary">${escapeHtml(item.role_name)}</td>
+      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml(item.role_family)}</td>
+      <td class="px-3 py-3 text-right font-bold">${formatNumber(item.requirement_count)}</td>
+      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml((item.top_skills || []).slice(0, 5).join(", ") || "None detected")}</td>
+    </tr>
+  `).join("") || `
+    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="4">No role data available.</td></tr>
+  `;
+}
+
+function openUserEditor(userId) {
+  const user = adminUsers.find((item) => String(item.id) === String(userId));
+  if (!user || !userEditModal) {
+    return;
+  }
+  editUserIdInput.value = user.id;
+  editFullNameInput.value = user.full_name || "";
+  editEmailInput.value = user.email || "";
+  editPasswordInput.value = "";
+  editIsAdminInput.checked = Boolean(user.is_admin);
+  setUserEditMessage("");
+  userEditModal.classList.remove("hidden");
+  userEditModal.classList.add("flex");
+  editFullNameInput.focus();
+}
+
+function closeUserEditor() {
+  if (!userEditModal) {
+    return;
+  }
+  userEditModal.classList.add("hidden");
+  userEditModal.classList.remove("flex");
+}
+
+function setUserEditMessage(message, isError = false) {
+  userEditMessage.textContent = message || "";
+  userEditMessage.classList.toggle("hidden", !message);
+  userEditMessage.className = "text-sm font-semibold " + (isError ? "text-error" : "text-secondary");
+}
+
+async function saveUserChanges(event) {
+  event.preventDefault();
+  const userId = editUserIdInput.value;
+  if (!userId) {
+    return;
+  }
+  const payload = {
+    full_name: editFullNameInput.value.trim(),
+    email: editEmailInput.value.trim().toLowerCase(),
+    is_admin: editIsAdminInput.checked
+  };
+  if (editPasswordInput.value) {
+    payload.new_password = editPasswordInput.value;
+  }
+  try {
+    setUserEditMessage("Saving...");
+    await fetchAdminJson(`/admin/users/${encodeURIComponent(userId)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+    closeUserEditor();
+    await loadInsights();
+    showPageMessage("User updated.", "info");
+  } catch (error) {
+    setUserEditMessage(error.message || "Could not update user.", true);
+  }
+}
+
+async function deleteUser(userId) {
+  const user = adminUsers.find((item) => String(item.id) === String(userId));
+  if (!user) {
+    return;
+  }
+  const confirmed = window.confirm(`Delete user account for ${user.full_name}?`);
+  if (!confirmed) {
+    return;
+  }
+  try {
+    await fetchAdminJson(`/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
+    await loadInsights();
+    showPageMessage("User deleted.", "info");
+  } catch (error) {
+    showPageMessage(error.message || "Could not delete user.", "error");
+  }
+}
+
+async function loadInsights() {
+  refreshBtn.disabled = true;
+  refreshBtn.classList.add("opacity-70");
+  showPageMessage("");
+
+  try {
+    const [adminData, datasetData] = await Promise.all([
+      fetchAdminJson("/admin/dashboard-insights"),
+      fetchAdminJson("/job-data-insights")
+    ]);
+    if (!adminData || !datasetData) {
+      return;
+    }
+
+    renderAdminMetrics(adminData.summary || {});
+    renderImprovement(adminData.summary || {});
+    renderBars("scoreDistributionBars", adminData.score_distribution || []);
+    renderBars("evaluatedRoleBars", adminData.top_evaluated_roles || []);
+    renderEvaluationTable(adminData.recent_evaluations || []);
+    renderUserTable(adminData.users || []);
+
+    renderDatasetMetrics(datasetData.summary || {});
+    renderBars("requirementTypeBars", datasetData.chart_data?.requirement_type_bar || [], "label", "value", "");
+    renderBars("roleFamilyBars", datasetData.chart_data?.role_family_bar || [], "label", "value", "");
+    renderBars("skillBars", datasetData.top_skill_keywords || [], "skill", "role_count", " roles");
+    renderBars("keywordBars", datasetData.top_text_keywords || [], "keyword", "count", "");
+    renderRoleTable(datasetData.top_roles_by_requirements || []);
+  } catch (error) {
+    showPageMessage(error.message || "Could not load admin data.", "error");
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.classList.remove("opacity-70");
+  }
+}
+
+if (openAuthModalBtn) {
+  openAuthModalBtn.addEventListener("click", () => {
+    const currentUser = getStoredUser();
+    window.location.href = currentUser ? "home_page.html?open_profile=1" : "home_page.html?open_auth=1";
+  });
+}
+
+if (openHistoryBtn) {
+  openHistoryBtn.addEventListener("click", () => {
+    window.location.href = "home_page.html?open_history=1";
+  });
+}
+
+document.getElementById("userTableBody").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) {
+    return;
+  }
+  const action = button.getAttribute("data-action");
+  const userId = button.getAttribute("data-user-id");
+  if (action === "edit-user") {
+    openUserEditor(userId);
+  }
+  if (action === "delete-user") {
+    deleteUser(userId);
+  }
+});
+
+document.getElementById("closeUserModalBtn").addEventListener("click", closeUserEditor);
+document.getElementById("cancelUserEditBtn").addEventListener("click", closeUserEditor);
+userEditModal.addEventListener("click", (event) => {
+  if (event.target === userEditModal) {
+    closeUserEditor();
+  }
+});
+userEditForm.addEventListener("submit", saveUserChanges);
+refreshBtn.addEventListener("click", loadInsights);
+updateHeaderAuthUi();
+loadInsights();
+</script>
+</body>
+</html>
