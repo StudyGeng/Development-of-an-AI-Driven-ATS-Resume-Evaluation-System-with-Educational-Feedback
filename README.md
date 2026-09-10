@@ -6,7 +6,8 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 
 ## Main Features
 
-- Resume upload for PDF, PNG, and JPG files
+- Resume upload for text-based PDF files
+- Optional PNG, JPG, and scanned-resume OCR when Tesseract is installed
 - ATS-style resume score and score breakdown
 - CS job-role matching using MySQL job requirements
 - Top 3 recommended role matches
@@ -15,7 +16,7 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 - Improvement suggestions and priority actions
 - ATS resume draft generation
 - PDF export for generated resume and feedback report
-- User registration, login, password reset, and profile update
+- User registration, login, and password reset
 - Email PIN verification
 - User analysis history
 - Admin dashboard for user activity, evaluation records, data cleaning, and job-data insights
@@ -31,7 +32,7 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 - pytesseract
 - ReportLab
 - HTML
-- Tailwind CSS CDN
+- Tailwind CSS (locally compiled production stylesheet)
 - JavaScript
 
 ## Project Structure
@@ -39,19 +40,32 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 ```text
 .
 |-- backend/
+|   |-- admin_helpers.py
+|   |-- analysis_helpers.py
 |   |-- app.py
+|   |-- app_config.py
+|   |-- core_utils.py
 |   |-- database.py
 |   |-- data_cleaning.py
+|   |-- export_helpers.py
 |   |-- job_data_insights.py
+|   |-- job_repository.py
+|   |-- models.py
 |   |-- requirements.txt
+|   |-- security.py
+|   |-- tests/
 |   `-- schema.sql
 |-- frontend/
 |   |-- home_page.html
 |   |-- analysis_result.html
 |   |-- job_data_insights.html
-|   `-- app_common.js
+|   |-- app_common.js
+|   `-- tailwind.input.css
 |-- config/
 |   `-- env.example
+|-- package-lock.json
+|-- package.json
+|-- tailwind.config.js
 |-- README.md
 `-- LICENSE
 ```
@@ -63,6 +77,7 @@ Install these before running the project:
 - Python 3.10 or newer
 - MySQL 8.x
 - Git
+- Node.js 18 or newer and npm (for the Tailwind CSS build)
 - Tesseract OCR, optional, only needed for image/scanned resume OCR
 
 ## Setup
@@ -70,11 +85,22 @@ Install these before running the project:
 ### 1. Clone the project
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/uts-cs-career-navigator.git
-cd uts-cs-career-navigator
+git clone https://github.com/StudyGeng/Development-of-an-AI-Driven-ATS-Resume-Evaluation-System-with-Educational-Feedback.git
+cd Development-of-an-AI-Driven-ATS-Resume-Evaluation-System-with-Educational-Feedback
 ```
 
-### 2. Create a virtual environment
+### 2. Build the production stylesheet
+
+From the project root:
+
+```bash
+npm ci
+npm run build:css
+```
+
+For frontend development, `npm run watch:css` rebuilds the stylesheet when HTML or JavaScript changes.
+
+### 3. Create a virtual environment
 
 Windows:
 
@@ -94,7 +120,7 @@ source ../.venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure the environment file
+### 4. Configure the environment file
 
 Copy the example environment file:
 
@@ -117,14 +143,25 @@ MYSQL_USER=root
 MYSQL_PASSWORD=your_mysql_password
 MYSQL_DATABASE=career_navigator
 PORT=5000
+APP_ENV=development
 FLASK_DEBUG=0
-FLASK_SECRET_KEY=replace_with_a_random_secret
-ADMIN_EMAILS=admin@uts.local
+FLASK_SECRET_KEY=replace_me
+ADMIN_EMAILS=replace_with_your_real_admin_email
 ```
 
 Use `MYSQL_PORT=3306` if your MySQL server uses the default MySQL port.
 
-### 4. Create the MySQL database
+`replace_me` is an intentionally invalid placeholder. Generate a unique secret with Python:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+For local development, paste the generated value after `FLASK_SECRET_KEY=` in the ignored `config/env` file. You can instead omit the key only when `APP_ENV=development`; Flask then creates a temporary key and existing login sessions are lost whenever the process restarts.
+
+For a hosted deployment, set `APP_ENV=production` and save the generated secret as `FLASK_SECRET_KEY` in the hosting provider's environment-variable or secret settings. Never put the real production key in `config/env`, source code, a build command, screenshots, logs, or GitHub. Keep the same secret across application restarts and instances; changing it signs every user out.
+
+### 5. Create the MySQL database
 
 Start MySQL, then run:
 
@@ -137,7 +174,7 @@ The backend can also create the main tables automatically when it starts. Howeve
 - `job_roles`
 - `job_requirements`
 
-### 5. Run the application
+### 6. Run the application
 
 From the `backend` folder:
 
@@ -168,13 +205,15 @@ The Flask backend serves the frontend pages, so use the backend URL instead of o
 
 ### Admin User
 
-1. Add the admin email in `config/env`.
+1. Add the real administrator email in the private `config/env` file (or in the hosting provider's secret settings).
 
 ```text
-ADMIN_EMAILS=admin@uts.local
+ADMIN_EMAILS=replace_with_your_real_admin_email
 ```
 
-2. Log in using that admin email.
+There is no built-in administrator email. Replace the placeholder with the real address in your private environment settings. `ADMIN_EMAILS` accepts a comma-separated list when more than one administrator is needed. Never commit real administrator addresses as source-code defaults.
+
+2. Register or log in using that configured email. The server still reloads the user's current `is_admin` value from the database for every protected administrator request, so a session cookie alone cannot grant administrator access.
 3. Open the admin dashboard:
 
 ```text
@@ -197,17 +236,20 @@ Add this value to `config/env`, then restart the backend.
 
 ## Email PIN Setup
 
-For email verification, configure email settings in `config/env`.
+For email verification, configure a working email provider. A production deployment refuses to start unless `ADMIN_EMAILS` and one complete email provider are configured. It never returns a PIN in an API response or prints one in public logs.
 
 For hosted deployment on a free platform that blocks SMTP, use the Resend HTTP API:
 
 ```text
+APP_ENV=production
 RESEND_API_KEY=your_resend_api_key
-RESEND_FROM=UTS CS Career Navigator <onboarding@resend.dev>
+RESEND_FROM=UTS CS Career Navigator <no-reply@your-verified-domain.example>
 EMAIL_PIN_DEV_MODE=0
 ```
 
 The Resend HTTP API sends email through HTTPS, so it does not need SMTP port `587`.
+
+Resend requires both `RESEND_API_KEY` and `RESEND_FROM`. Do not configure only one of them.
 
 For local SMTP testing, Gmail can also be used.
 
@@ -225,7 +267,38 @@ EMAIL_PIN_DEV_MODE=0
 
 Gmail requires 2-Step Verification and a Gmail App Password.
 
-For local testing, you can leave `SMTP_HOST` blank. The PIN will be printed in the backend terminal.
+SMTP requires both `SMTP_HOST` and `SMTP_FROM`. If the SMTP provider requires authentication, `SMTP_USERNAME` and `SMTP_PASSWORD` must also be provided together; setting only one causes startup to fail. Production also requires `SMTP_USE_TLS=1` so PIN messages are not sent over an unencrypted SMTP connection.
+
+For local development without an email provider, opt in explicitly:
+
+```text
+APP_ENV=development
+EMAIL_PIN_DEV_MODE=1
+```
+
+Only this explicit development configuration may expose `dev_pin` in the local API response. `EMAIL_PIN_DEV_MODE=1` is forbidden in production and must never be added to a hosting provider's environment settings.
+
+PIN requests are rate-limited per email address and source IP. Wrong verification attempts are limited per PIN, while all verification attempts are also limited per source IP. The defaults can be adjusted using:
+
+```text
+EMAIL_PIN_REQUEST_LIMIT_PER_EMAIL=3
+EMAIL_PIN_REQUEST_LIMIT_PER_IP=10
+EMAIL_PIN_REQUEST_WINDOW_MINUTES=15
+EMAIL_PIN_ATTEMPT_LIMIT_PER_IP=20
+EMAIL_PIN_RATE_WINDOW_MINUTES=15
+EMAIL_PIN_MAX_ATTEMPTS=5
+EMAIL_PIN_TTL_MINUTES=10
+```
+
+Keep conservative values in production. Raising these limits makes automated PIN guessing and email abuse easier.
+
+The source-IP limits use the direct client address by default:
+
+```text
+TRUSTED_PROXY_COUNT=0
+```
+
+Leave this at `0` unless the application is deployed behind a trusted reverse proxy. On hosted infrastructure, set it only to the exact number of trusted proxy hops in front of Flask so the application can identify the real client IP safely. A wrong value can make the IP limits ineffective or allow a client-supplied forwarded address to be trusted.
 
 ## Important Database Note
 
@@ -237,13 +310,35 @@ MYSQL_HOST=127.0.0.1
 
 After hosting the Flask app online, `127.0.0.1` means the hosting server, not your laptop. If the hosted app needs to work when your laptop is off, use a cloud MySQL database and set the cloud database connection values in the hosting platform.
 
-For a hosted Flask deployment, use:
+For a hosted Flask deployment, run the commands from the project root so that the CSS and Python application are both built:
 
 ```text
-Build command: pip install -r requirements.txt
-Start command: gunicorn app:app --bind 0.0.0.0:$PORT
-Root directory: backend
+Build command: npm ci && npm run build:css && pip install -r backend/requirements.txt
+Start command: gunicorn --chdir backend app:app --bind 0.0.0.0:$PORT
+Root directory: leave blank (project root)
 ```
+
+Configure these values in the hosting provider before starting the application:
+
+```text
+APP_ENV=production
+FLASK_SECRET_KEY=replace_me
+ADMIN_EMAILS=replace_with_your_real_admin_email
+EMAIL_PIN_DEV_MODE=0
+TRUSTED_PROXY_COUNT=0
+```
+
+The `replace_me` value above is only a safe placeholder and will be rejected. Generate the real value locally:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Paste the output directly into the provider's `FLASK_SECRET_KEY` secret field. Do not add it to any tracked file. Production startup fails when the key is missing, shorter than 32 characters, or still a known placeholder. `APP_ENV` defaults to production when it is absent, so a hosting configuration cannot silently fall back to an insecure development key.
+
+Administrator access is also checked against the current database user record on protected requests. Removing a user's administrator status in the database therefore takes effect without relying only on the value stored in their signed session cookie.
+
+Production startup also validates the email settings: configure both `RESEND_API_KEY` and `RESEND_FROM`, or configure `SMTP_HOST` and `SMTP_FROM` with `SMTP_USERNAME` and `SMTP_PASSWORD` either both present or both omitted. Production rejects `EMAIL_PIN_DEV_MODE=1`.
 
 If the cloud MySQL provider gives a CA certificate, set:
 
@@ -257,7 +352,7 @@ MYSQL_SSL_CA=/path/to/ca.pem
 | --- | --- | --- |
 | GET | `/` | Main dashboard |
 | GET | `/health` | Health check |
-| POST | `/analyze-file` | Upload and analyze resume |
+| POST | `/analyze-file` | Analyze a resume for the signed-in session user |
 | GET | `/job-roles` | List available job roles |
 | GET | `/job-requirements` | Get requirements for a selected role |
 | POST | `/generate-resume` | Generate ATS resume draft |
@@ -266,7 +361,17 @@ MYSQL_SSL_CA=/path/to/ca.pem
 | POST | `/users/register` | Register user |
 | POST | `/users/login` | Log in user |
 | POST | `/users/logout` | Log out user |
+| GET | `/analyses` | Load the signed-in user's analysis history; another email requires live admin access |
+| POST | `/downloads` | Record a download only for an analysis owned by the signed-in user |
 | GET | `/job-data-insights` | Admin-only job-data insights |
+
+## Automated Tests
+
+From the project root, run:
+
+```bash
+python -m unittest discover -s backend/tests -v
+```
 
 ## License
 

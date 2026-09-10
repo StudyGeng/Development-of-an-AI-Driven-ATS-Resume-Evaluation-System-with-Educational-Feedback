@@ -4,53 +4,9 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>UTS CS Career Navigator - Admin Insights</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="/tailwind.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script id="tailwind-config">
-tailwind.config = {
-  darkMode: "class",
-  theme: {
-    extend: {
-      colors: {
-        "background": "#f8f9fa",
-        "surface": "#f8f9fa",
-        "surface-container-lowest": "#ffffff",
-        "surface-container-low": "#f3f4f5",
-        "surface-container": "#edeeef",
-        "surface-container-high": "#e7e8e9",
-        "surface-container-highest": "#e1e3e4",
-        "on-surface": "#191c1d",
-        "on-surface-variant": "#43474f",
-        "on-primary": "#ffffff",
-        "primary-container": "#1b3b6f",
-        "on-primary-container": "#8aa7e1",
-        "outline": "#747780",
-        "outline-variant": "#c4c6d1",
-        "primary": "#002555",
-        "secondary": "#0060ac",
-        "secondary-container": "#68abff",
-        "primary-fixed": "#d8e2ff",
-        "tertiary": "#3e1e00",
-        "tertiary-fixed": "#ffdcc3",
-        "error": "#ba1a1a",
-        "error-container": "#ffdad6"
-      },
-      borderRadius: {
-        "DEFAULT": "0.125rem",
-        "lg": "0.25rem",
-        "xl": "0.5rem",
-        "full": "0.75rem"
-      },
-      fontFamily: {
-        "headline": ["Manrope"],
-        "body": ["Inter"],
-        "label": ["Inter"]
-      }
-    }
-  }
-}
-</script>
 <script src="app_common.js"></script>
 <style>
 .material-symbols-outlined {
@@ -355,14 +311,7 @@ const editIsAdminInput = document.getElementById("editIsAdminInput");
 const userEditMessage = document.getElementById("userEditMessage");
 let adminUsers = [];
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+const escapeHtml = window.CareerNavigatorCommon.escapeHtml;
 
 function formatNumber(value) {
   return numberFormatter.format(Number(value || 0));

@@ -1,5 +1,9 @@
 env
 config/env
+.env
+.env.*
+!.env.example
+config/.env
 EXAMINER_EXPLANATION.md
 docs/
 Resume_template/
@@ -12,5 +16,7 @@ uploads/
 results/
 outputs/
 node_modules/
+.npm-cache/
+frontend/tailwind.css
 .DS_Store
 Thumbs.db

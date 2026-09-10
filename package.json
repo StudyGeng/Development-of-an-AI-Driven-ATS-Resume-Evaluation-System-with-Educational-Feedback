@@ -1,0 +1,13 @@
+{
+  "name": "uts-cs-career-navigator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i ./frontend/tailwind.input.css -o ./frontend/tailwind.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i ./frontend/tailwind.input.css -o ./frontend/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "0.5.10",
+    "tailwindcss": "3.4.17"
+  }
+}

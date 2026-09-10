@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 import re
 import secrets
 import shutil
 import base64
+import ssl
 from collections import Counter
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from difflib import SequenceMatcher
 from email.message import EmailMessage
 from html import escape as html_escape
 from io import BytesIO
@@ -27,18 +28,79 @@ from database import (
 from data_cleaning import (
     build_job_data_cleaning_plan,
     build_job_data_quality_report,
-    clean_importance_weight,
-    clean_job_role_name,
-    clean_job_text,
-    clean_requirement_type,
-    normalize_match_key as normalize_job_data_match_key,
 )
 from job_data_insights import build_job_data_insights
 from flask import Flask, jsonify, redirect, request, send_file, send_from_directory, session
 from flask_cors import CORS
 from pypdf import PdfReader, PdfWriter
-from sklearn.feature_extraction.text import TfidfVectorizer
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
+
+from admin_helpers import (
+    clamp_admin_score,
+    estimate_after_recommendation_score,
+    isoformat_datetime,
+    parse_stored_analysis_json,
+)
+from analysis_helpers import compute_tfidf_score
+from app_config import (
+    ACCURACY_TESTING_AUTO_EXPORT,
+    ACCURACY_TESTING_PENDING_FILE,
+    ACCURACY_TESTING_WORKBOOK,
+    APP_TITLE,
+    CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+    EMAIL_PIN_ATTEMPT_LIMIT_PER_IP,
+    EmailPinConfigurationError,
+    EMAIL_PIN_LENGTH,
+    EMAIL_PIN_MAX_ATTEMPTS,
+    EMAIL_PIN_PURPOSES,
+    EMAIL_PIN_RATE_WINDOW_MINUTES,
+    EMAIL_PIN_REQUEST_LIMIT_PER_EMAIL,
+    EMAIL_PIN_REQUEST_LIMIT_PER_IP,
+    EMAIL_PIN_REQUEST_WINDOW_MINUTES,
+    EMAIL_PIN_TTL_MINUTES,
+    email_pin_dev_mode_requested,
+    FRONTEND_DIR,
+    get_email_pin_delivery_mode,
+    get_app_environment,
+    get_flask_secret_key,
+    IMAGE_EXTENSIONS,
+    is_production_environment,
+    PDF_EXTENSIONS,
+    RESUME_GENERATION_MAX_TEXT_LENGTH,
+    SUPPORTED_RESUME_EXTENSIONS,
+    TRUSTED_PROXY_COUNT,
+)
+from core_utils import (
+    count_resume_words,
+    get_file_extension,
+    normalize_match_text,
+    normalize_text,
+    role_similarity_score,
+)
+from export_helpers import get_link_label, normalize_resume_link, percent_status_label
+from job_repository import (
+    apply_job_data_cleaning_plan,
+    fetch_job_data_for_insights,
+    fetch_job_requirements,
+    fetch_job_roles,
+    fetch_raw_job_data_rows,
+)
+from models import ParsedResume
+from security import (
+    clear_login_session,
+    get_password_validation_error,
+    is_configured_admin_email,
+    is_user_admin,
+    is_valid_email,
+    normalize_email,
+    normalize_pin,
+    normalize_pin_purpose,
+    save_login_session,
+    serialize_user,
+    utc_now_naive,
+    validate_admin_email_configuration,
+)
 
 try:
     from PIL import Image, UnidentifiedImageError  # type: ignore
@@ -52,34 +114,6 @@ except ImportError:  # pragma: no cover - optional OCR dependency
     pytesseract = None  # type: ignore
 
 
-APP_TITLE = "UTS CS Career Navigator Resume Analyzer"
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
-FRONTEND_PAGES = {"home_page.html", "analysis_result.html", "job_data_insights.html"}
-ACCURACY_TESTING_WORKBOOK = os.getenv(
-    "ACCURACY_TESTING_WORKBOOK",
-    os.path.join(BASE_DIR, "outputs", "manual_accuracy_testing", "ats_resume_fyp_testing.xlsx"),
-)
-ACCURACY_TESTING_PENDING_FILE = os.getenv(
-    "ACCURACY_TESTING_PENDING_FILE",
-    os.path.join(BASE_DIR, "outputs", "manual_accuracy_testing", "accuracy_testing_pending.jsonl"),
-)
-ACCURACY_TESTING_AUTO_EXPORT = os.getenv("ACCURACY_TESTING_AUTO_EXPORT", "1").strip().lower() not in {
-    "0",
-    "false",
-    "no",
-    "off",
-}
-RESUME_GENERATION_MAX_TEXT_LENGTH = 12000
-CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD = 20.0
-PDF_EXTENSIONS = {".pdf"}
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
-SUPPORTED_RESUME_EXTENSIONS = PDF_EXTENSIONS | IMAGE_EXTENSIONS
-EMAIL_PIN_LENGTH = 6
-EMAIL_PIN_TTL_MINUTES = 10
-EMAIL_PIN_MAX_ATTEMPTS = 5
-EMAIL_PIN_PURPOSES = {"register", "password_reset"}
-SPECIAL_CHARACTER_PATTERN = re.compile(r"[^A-Za-z0-9]")
 ROLE_RECOMMENDATION_MARGIN = 8.0
 ROLE_FAMILY_ALIASES = {
     "computer programmer": "software_development",
@@ -699,113 +733,77 @@ MALAY_LANGUAGE_MARKERS = {
 }
 
 
+FLASK_SESSION_SECRET_KEY = get_flask_secret_key()
+EMAIL_PIN_DELIVERY_MODE = get_email_pin_delivery_mode()
+validate_admin_email_configuration(require_configured_admin=is_production_environment())
+
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "uts-career-navigator-dev-secret")
+app.secret_key = FLASK_SESSION_SECRET_KEY
 app.config.update(
+    APP_ENV=get_app_environment(),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=is_production_environment(),
 )
+if TRUSTED_PROXY_COUNT:
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=TRUSTED_PROXY_COUNT,
+        x_proto=TRUSTED_PROXY_COUNT,
+    )
 CORS(app, supports_credentials=True)
 
 
-@dataclass
-class ParsedResume:
-    text: str
-    skills: list[str]
-    education: list[str]
-    experience: list[str]
-    excerpt: str
+def get_authenticated_session_user() -> dict[str, Any] | None:
+    """Return the live database user for this session, or clear an invalid session."""
+    try:
+        session_user_id = int(session.get("user_id") or 0)
+    except (TypeError, ValueError):
+        session_user_id = 0
 
+    if session_user_id <= 0:
+        clear_login_session()
+        return None
 
-def normalize_email(email: str) -> str:
-    return normalize_text(email).lower()
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id, email, is_admin FROM users WHERE id = %s",
+            (session_user_id,),
+        )
+        current_user = cursor.fetchone()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
+    if not current_user:
+        clear_login_session()
+        return None
 
-def get_admin_emails() -> set[str]:
-    configured = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "admin@uts.local"))
-    return {
-        normalize_email(email)
-        for email in re.split(r"[,;]", configured)
-        if normalize_email(email)
-    }
-
-
-def is_configured_admin_email(email: str) -> bool:
-    return normalize_email(email) in get_admin_emails()
-
-
-def is_user_admin(user: dict[str, Any] | None) -> bool:
-    if not user:
-        return False
-    return bool(user.get("is_admin")) or is_configured_admin_email(str(user.get("email") or ""))
-
-
-def serialize_user(user: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "id": user["id"],
-        "full_name": user["full_name"],
-        "email": user["email"],
-        "email_verified_at": user.get("email_verified_at"),
-        "created_at": user.get("created_at"),
-        "is_admin": is_user_admin(user),
-    }
-
-
-def save_login_session(user: dict[str, Any]) -> None:
-    session.clear()
-    session["user_id"] = int(user["id"])
-    session["email"] = normalize_email(str(user.get("email") or ""))
-    session["is_admin"] = is_user_admin(user)
-
-
-def clear_login_session() -> None:
-    session.clear()
-
-
-def current_session_is_admin() -> bool:
-    return bool(session.get("is_admin"))
+    current_user["id"] = int(current_user["id"])
+    session["user_id"] = current_user["id"]
+    session["email"] = normalize_email(str(current_user.get("email") or ""))
+    session["is_admin"] = is_user_admin(current_user)
+    return current_user
 
 
 def require_admin_json_response():
-    if current_session_is_admin():
-        return None
-    return jsonify({"detail": "Admin access required"}), 403
+    """Require a live database user with current administrator permission."""
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseError:
+        return jsonify({"detail": "Database error while validating administrator access"}), 500
 
-
-def is_valid_email(email: str) -> bool:
-    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email))
-
-
-def utc_now_naive() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-def normalize_pin(pin: str) -> str:
-    return re.sub(r"\D+", "", str(pin or ""))
-
-
-def normalize_pin_purpose(purpose: str) -> str:
-    normalized = normalize_match_text(purpose).replace(" ", "_")
-    aliases = {
-        "signup": "register",
-        "sign_up": "register",
-        "create_account": "register",
-        "forgot_password": "password_reset",
-        "reset_password": "password_reset",
-    }
-    return aliases.get(normalized, normalized)
-
-
-def get_password_validation_error(password: str) -> str:
-    if len(password) < 8:
-        return "Password must be at least 8 characters."
-    if not re.search(r"[A-Za-z]", password):
-        return "Password must include at least 1 letter."
-    if not re.search(r"\d", password):
-        return "Password must include at least 1 number."
-    if not SPECIAL_CHARACTER_PATTERN.search(password):
-        return "Password must include at least 1 special character, for example !, @, #, or $."
-    return ""
+    if not current_user:
+        return jsonify({"detail": "Authentication required"}), 401
+    if not is_user_admin(current_user):
+        return jsonify({"detail": "Admin access required"}), 403
+    return None
 
 
 def email_pin_subject(purpose: str) -> str:
@@ -823,12 +821,154 @@ def email_pin_body(pin: str, purpose: str) -> str:
     )
 
 
+class EmailPinRateLimitError(Exception):
+    def __init__(self, detail: str, retry_after_seconds: int):
+        super().__init__(detail)
+        self.detail = detail
+        self.retry_after_seconds = max(1, int(retry_after_seconds))
+
+
+def build_email_pin_rate_limit_response(error: EmailPinRateLimitError):
+    response = jsonify(
+        {
+            "detail": error.detail,
+            "retry_after_seconds": error.retry_after_seconds,
+        }
+    )
+    response.status_code = 429
+    response.headers["Retry-After"] = str(error.retry_after_seconds)
+    return response
+
+
+def hash_rate_limit_subject(event_type: str, subject: str) -> str:
+    secret_key = app.secret_key
+    key_bytes = secret_key if isinstance(secret_key, bytes) else str(secret_key).encode("utf-8")
+    message = f"{event_type}:{subject}".encode("utf-8")
+    return hmac.new(key_bytes, message, hashlib.sha256).hexdigest()
+
+
+def get_email_pin_client_ip() -> str:
+    return str(request.remote_addr or "unknown").strip().lower()[:255] or "unknown"
+
+
+def get_rate_limit_retry_after(
+    oldest_event_at: Any,
+    window_minutes: int,
+    now: datetime,
+) -> int:
+    if not isinstance(oldest_event_at, datetime):
+        return max(1, int(window_minutes * 60))
+    if oldest_event_at.tzinfo is not None:
+        oldest_event_at = oldest_event_at.astimezone(timezone.utc).replace(tzinfo=None)
+    reset_at = oldest_event_at + timedelta(minutes=window_minutes)
+    return max(1, int((reset_at - now).total_seconds()) + 1)
+
+
+def enforce_email_pin_rate_limits(
+    event_kind: str,
+    email: str,
+    client_ip: str,
+    purpose: str = "",
+) -> None:
+    """Apply durable, privacy-preserving PIN limits shared by all app workers."""
+    normalized_email = normalize_email(email)
+    normalized_purpose = normalize_pin_purpose(purpose)
+    normalized_ip = str(client_ip or "unknown").strip().lower()[:255] or "unknown"
+
+    if event_kind == "request":
+        limit_specs = [
+            (
+                "pin_request_email",
+                f"{normalized_email}|{normalized_purpose}",
+                EMAIL_PIN_REQUEST_LIMIT_PER_EMAIL,
+                EMAIL_PIN_REQUEST_WINDOW_MINUTES,
+            ),
+            (
+                "pin_request_ip",
+                normalized_ip,
+                EMAIL_PIN_REQUEST_LIMIT_PER_IP,
+                EMAIL_PIN_REQUEST_WINDOW_MINUTES,
+            ),
+        ]
+        detail = "Too many PIN requests. Please wait before requesting another PIN."
+    elif event_kind == "attempt":
+        limit_specs = [
+            (
+                "pin_attempt_ip",
+                normalized_ip,
+                EMAIL_PIN_ATTEMPT_LIMIT_PER_IP,
+                EMAIL_PIN_RATE_WINDOW_MINUTES,
+            )
+        ]
+        detail = "Too many PIN attempts. Please wait before trying again."
+    else:
+        raise ValueError("Unsupported email PIN rate-limit event kind")
+
+    now = utc_now_naive()
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        pending_events: list[tuple[str, str]] = []
+
+        for event_type, subject, limit, window_minutes in limit_specs:
+            subject_hash = hash_rate_limit_subject(event_type, subject)
+            window_start = now - timedelta(minutes=window_minutes)
+            cursor.execute(
+                """
+                SELECT id, created_at
+                FROM auth_rate_limit_events
+                WHERE event_type = %s
+                  AND subject_hash = %s
+                  AND created_at >= %s
+                ORDER BY created_at ASC, id ASC
+                FOR UPDATE
+                """,
+                (event_type, subject_hash, window_start),
+            )
+            recent_events = cursor.fetchall()
+            if len(recent_events) >= limit:
+                retry_after = get_rate_limit_retry_after(
+                    recent_events[0].get("created_at"),
+                    window_minutes,
+                    now,
+                )
+                raise EmailPinRateLimitError(detail, retry_after)
+            pending_events.append((event_type, subject_hash))
+
+        for event_type, subject_hash in pending_events:
+            cursor.execute(
+                """
+                INSERT INTO auth_rate_limit_events (event_type, subject_hash, created_at)
+                VALUES (%s, %s, %s)
+                """,
+                (event_type, subject_hash, now),
+            )
+
+        retention_minutes = max(
+            EMAIL_PIN_REQUEST_WINDOW_MINUTES,
+            EMAIL_PIN_RATE_WINDOW_MINUTES,
+        ) * 2
+        cursor.execute(
+            "DELETE FROM auth_rate_limit_events WHERE created_at < %s",
+            (now - timedelta(minutes=retention_minutes),),
+        )
+        connection.commit()
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+
 def send_resend_api_email_pin(email: str, pin: str, purpose: str) -> str:
     api_key = os.getenv("RESEND_API_KEY", "").strip()
-    from_email = os.getenv(
-        "RESEND_FROM",
-        os.getenv("SMTP_FROM", "UTS CS Career Navigator <onboarding@resend.dev>"),
-    ).strip()
+    from_email = os.getenv("RESEND_FROM", "").strip()
     payload = {
         "from": from_email,
         "to": [email],
@@ -857,18 +997,23 @@ def send_resend_api_email_pin(email: str, pin: str, purpose: str) -> str:
 
 
 def send_email_pin(email: str, pin: str, purpose: str) -> str:
-    if os.getenv("RESEND_API_KEY", "").strip():
+    delivery_mode = get_email_pin_delivery_mode()
+    if delivery_mode == "resend_api":
         return send_resend_api_email_pin(email, pin, purpose)
 
-    smtp_host = os.getenv("SMTP_HOST", "").strip()
-    if not smtp_host:
-        print(f"[DEV EMAIL PIN] purpose={purpose} email={email} pin={pin}")
+    if delivery_mode == "dev":
         return "dev"
 
+    if delivery_mode == "unavailable":
+        raise EmailPinConfigurationError(
+            "Email PIN delivery is not configured. Configure a provider or enable explicit local development mode."
+        )
+
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_username = os.getenv("SMTP_USERNAME", "").strip()
     smtp_password = os.getenv("SMTP_PASSWORD", "")
-    smtp_from = os.getenv("SMTP_FROM", smtp_username or "no-reply@career-navigator.local").strip()
+    smtp_from = os.getenv("SMTP_FROM", "").strip()
     smtp_use_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() not in {"0", "false", "no"}
 
     message = EmailMessage()
@@ -879,7 +1024,7 @@ def send_email_pin(email: str, pin: str, purpose: str) -> str:
 
     with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
         if smtp_use_tls:
-            server.starttls()
+            server.starttls(context=ssl.create_default_context())
         if smtp_username:
             server.login(smtp_username, smtp_password)
         server.send_message(message)
@@ -888,10 +1033,17 @@ def send_email_pin(email: str, pin: str, purpose: str) -> str:
 
 
 def should_return_dev_pin(delivery: str) -> bool:
-    return delivery == "dev" or os.getenv("EMAIL_PIN_DEV_MODE", "").strip().lower() in {"1", "true", "yes"}
+    return (
+        delivery == "dev"
+        and not is_production_environment()
+        and email_pin_dev_mode_requested()
+    )
 
 
 def get_email_delivery_error_message(error: Exception) -> str:
+    if is_production_environment():
+        return "Could not send verification email. Please try again later."
+
     raw_error = ""
     if isinstance(error, smtplib.SMTPResponseException):
         smtp_error = error.smtp_error
@@ -928,34 +1080,69 @@ def email_exists(email: str) -> bool:
     return exists
 
 
-def create_email_pin(email: str, purpose: str) -> tuple[str, datetime]:
+def create_email_pin(email: str, purpose: str) -> tuple[str, datetime, int]:
     pin = f"{secrets.randbelow(10 ** EMAIL_PIN_LENGTH):0{EMAIL_PIN_LENGTH}d}"
     expires_at = utc_now_naive() + timedelta(minutes=EMAIL_PIN_TTL_MINUTES)
     pin_hash = generate_password_hash(pin)
 
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        """
-        UPDATE email_verification_pins
-        SET consumed_at = UTC_TIMESTAMP()
-        WHERE email = %s
-          AND purpose = %s
-          AND consumed_at IS NULL
-        """,
-        (email, purpose),
-    )
-    cursor.execute(
-        """
-        INSERT INTO email_verification_pins (email, purpose, pin_hash, expires_at)
-        VALUES (%s, %s, %s, %s)
-        """,
-        (email, purpose, pin_hash, expires_at),
-    )
-    connection.commit()
-    cursor.close()
-    connection.close()
-    return pin, expires_at
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            UPDATE email_verification_pins
+            SET consumed_at = UTC_TIMESTAMP()
+            WHERE email = %s
+              AND purpose = %s
+              AND consumed_at IS NULL
+            """,
+            (email, purpose),
+        )
+        cursor.execute(
+            """
+            INSERT INTO email_verification_pins (email, purpose, pin_hash, expires_at)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (email, purpose, pin_hash, expires_at),
+        )
+        pin_id = int(cursor.lastrowid)
+        connection.commit()
+        return pin, expires_at, pin_id
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+
+def invalidate_email_pin(pin_id: int) -> bool:
+    """Best-effort invalidation used when delivery fails after PIN creation."""
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+            (int(pin_id),),
+        )
+        connection.commit()
+        return True
+    except DatabaseError:
+        if connection is not None:
+            connection.rollback()
+        return False
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
 
 def consume_email_pin(email: str, purpose: str, pin: str) -> tuple[bool, str]:
@@ -963,267 +1150,97 @@ def consume_email_pin(email: str, purpose: str, pin: str) -> tuple[bool, str]:
     if len(normalized_pin) != EMAIL_PIN_LENGTH:
         return False, f"Enter the {EMAIL_PIN_LENGTH}-digit PIN."
 
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT id, pin_hash, attempts, expires_at
-        FROM email_verification_pins
-        WHERE email = %s
-          AND purpose = %s
-          AND consumed_at IS NULL
-        ORDER BY id DESC
-        LIMIT 1
-        """,
-        (email, purpose),
-    )
-    pin_row = cursor.fetchone()
-
-    if not pin_row:
-        cursor.close()
-        connection.close()
-        return False, "Request a new PIN first."
-
-    pin_id = int(pin_row["id"])
-    attempts = int(pin_row.get("attempts") or 0)
-    expires_at = pin_row["expires_at"]
-
-    if isinstance(expires_at, datetime) and expires_at < utc_now_naive():
-        cursor.execute("UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s", (pin_id,))
-        connection.commit()
-        cursor.close()
-        connection.close()
-        return False, "This PIN has expired. Request a new one."
-
-    if attempts >= EMAIL_PIN_MAX_ATTEMPTS:
-        cursor.execute("UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s", (pin_id,))
-        connection.commit()
-        cursor.close()
-        connection.close()
-        return False, "Too many wrong attempts. Request a new PIN."
-
-    if not check_password_hash(pin_row["pin_hash"], normalized_pin):
-        cursor.execute("UPDATE email_verification_pins SET attempts = attempts + 1 WHERE id = %s", (pin_id,))
-        connection.commit()
-        cursor.close()
-        connection.close()
-        return False, "Invalid PIN."
-
-    cursor.execute("UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s", (pin_id,))
-    connection.commit()
-    cursor.close()
-    connection.close()
-    return True, "PIN verified."
-
-
-def normalize_text(value: str) -> str:
-    return re.sub(r"\s+", " ", value or "").strip()
-
-
-def normalize_match_text(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
-
-
-def role_similarity_score(requested: str, candidate: str) -> float:
-    requested_normalized = normalize_match_text(requested)
-    candidate_normalized = normalize_match_text(candidate)
-    if not requested_normalized or not candidate_normalized:
-        return 0.0
-
-    sequence_score = SequenceMatcher(None, requested_normalized, candidate_normalized).ratio()
-    requested_tokens = set(requested_normalized.split())
-    candidate_tokens = set(candidate_normalized.split())
-    if not requested_tokens or not candidate_tokens:
-        return sequence_score
-
-    token_score = len(requested_tokens & candidate_tokens) / max(len(requested_tokens), len(candidate_tokens))
-    contains_score = 1.0 if requested_normalized in candidate_normalized or candidate_normalized in requested_normalized else 0.0
-    return max(sequence_score, token_score, contains_score)
-
-
-def fetch_job_roles() -> list[dict[str, Any]]:
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT
-            jr.id,
-            jr.role_name,
-            jr.masco_description,
-            COUNT(req.id) AS requirement_count
-        FROM job_roles jr
-        LEFT JOIN job_requirements req
-            ON req.role_id = jr.id
-        GROUP BY jr.id, jr.role_name, jr.masco_description
-        ORDER BY jr.role_name
-        """
-    )
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
-    roles: list[dict[str, Any]] = []
-    seen_role_keys: set[str] = set()
-    for row in rows:
-        role_name = clean_job_role_name(row.get("role_name"))
-        role_key = normalize_job_data_match_key(role_name)
-        if not role_name or not role_key or role_key in seen_role_keys:
-            continue
-        seen_role_keys.add(role_key)
-        roles.append(
-            {
-                "id": row["id"],
-                "role_name": role_name,
-                "masco_description": clean_job_text(row.get("masco_description")),
-                "requirement_count": int(row.get("requirement_count") or 0),
-            }
-        )
-    return roles
-
-
-def fetch_job_requirements(role_id: int) -> list[dict[str, Any]]:
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT
-            id,
-            requirement_type,
-            requirement_text,
-            importance_weight
-        FROM job_requirements
-        WHERE role_id = %s
-        ORDER BY importance_weight DESC, requirement_type, id
-        """,
-        (role_id,),
-    )
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
-    requirements: list[dict[str, Any]] = []
-    seen_requirement_keys: set[tuple[str, str]] = set()
-    for row in rows:
-        requirement_type = clean_requirement_type(row.get("requirement_type"))
-        requirement_text = clean_job_text(row.get("requirement_text"))
-        requirement_key = (requirement_type, normalize_job_data_match_key(requirement_text))
-        if not requirement_text or not requirement_key[1] or requirement_key in seen_requirement_keys:
-            continue
-        seen_requirement_keys.add(requirement_key)
-        requirements.append(
-            {
-                "id": row["id"],
-                "requirement_type": requirement_type,
-                "requirement_text": requirement_text,
-                "importance_weight": clean_importance_weight(row.get("importance_weight")),
-            }
-        )
-    return requirements
-
-
-def fetch_raw_job_data_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT
-            id,
-            role_name,
-            masco_description
-        FROM job_roles
-        ORDER BY id
-        """
-    )
-    role_rows = cursor.fetchall()
-    cursor.execute(
-        """
-        SELECT
-            id,
-            role_id,
-            requirement_type,
-            requirement_text,
-            importance_weight
-        FROM job_requirements
-        ORDER BY role_id, id
-        """
-    )
-    requirement_rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
-    return role_rows, requirement_rows
-
-
-def apply_job_data_cleaning_plan(plan: dict[str, Any]) -> dict[str, Any]:
-    role_updates = plan.get("role_updates", []) or []
-    requirement_updates = plan.get("requirement_updates", []) or []
-    duplicate_requirement_ids = [
-        int(requirement_id)
-        for requirement_id in plan.get("duplicate_requirement_ids", []) or []
-        if requirement_id
-    ]
-
-    connection = get_db_connection()
-    cursor = connection.cursor()
+    connection = None
+    cursor = None
     try:
-        for update in role_updates:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT id, pin_hash, attempts, expires_at
+            FROM email_verification_pins
+            WHERE email = %s
+              AND purpose = %s
+              AND consumed_at IS NULL
+            ORDER BY id DESC
+            LIMIT 1
+            FOR UPDATE
+            """,
+            (email, purpose),
+        )
+        pin_row = cursor.fetchone()
+
+        if not pin_row:
+            connection.rollback()
+            return False, "Request a new PIN first."
+
+        pin_id = int(pin_row["id"])
+        attempts = int(pin_row.get("attempts") or 0)
+        expires_at = pin_row["expires_at"]
+
+        if isinstance(expires_at, datetime):
+            if expires_at.tzinfo is not None:
+                expires_at = expires_at.astimezone(timezone.utc).replace(tzinfo=None)
+            if expires_at < utc_now_naive():
+                cursor.execute(
+                    "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+                    (pin_id,),
+                )
+                connection.commit()
+                return False, "This PIN has expired. Request a new one."
+
+        if attempts >= EMAIL_PIN_MAX_ATTEMPTS:
             cursor.execute(
-                """
-                UPDATE job_roles
-                SET role_name = %s,
-                    masco_description = %s
-                WHERE id = %s
-                """,
-                (
-                    update["role_name"],
-                    update["masco_description"],
-                    int(update["id"]),
-                ),
+                "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+                (pin_id,),
+            )
+            connection.commit()
+            raise EmailPinRateLimitError(
+                "Too many wrong PIN attempts. Request a new PIN later.",
+                EMAIL_PIN_RATE_WINDOW_MINUTES * 60,
             )
 
-        for update in requirement_updates:
-            cursor.execute(
-                """
-                UPDATE job_requirements
-                SET requirement_type = %s,
-                    requirement_text = %s,
-                    importance_weight = %s
-                WHERE id = %s
-                """,
-                (
-                    update["requirement_type"],
-                    update["requirement_text"],
-                    int(update["importance_weight"]),
-                    int(update["id"]),
-                ),
-            )
+        if not check_password_hash(pin_row["pin_hash"], normalized_pin):
+            next_attempts = attempts + 1
+            if next_attempts >= EMAIL_PIN_MAX_ATTEMPTS:
+                cursor.execute(
+                    """
+                    UPDATE email_verification_pins
+                    SET attempts = %s, consumed_at = UTC_TIMESTAMP()
+                    WHERE id = %s
+                    """,
+                    (next_attempts, pin_id),
+                )
+                connection.commit()
+                raise EmailPinRateLimitError(
+                    "Too many wrong PIN attempts. Request a new PIN later.",
+                    EMAIL_PIN_RATE_WINDOW_MINUTES * 60,
+                )
 
-        if duplicate_requirement_ids:
-            placeholders = ", ".join(["%s"] * len(duplicate_requirement_ids))
             cursor.execute(
-                f"DELETE FROM job_requirements WHERE id IN ({placeholders})",
-                tuple(duplicate_requirement_ids),
+                "UPDATE email_verification_pins SET attempts = %s WHERE id = %s",
+                (next_attempts, pin_id),
             )
+            connection.commit()
+            return False, "Invalid PIN."
 
+        cursor.execute(
+            "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+            (pin_id,),
+        )
         connection.commit()
+        return True, "PIN verified."
+    except EmailPinRateLimitError:
+        raise
     except Exception:
-        connection.rollback()
+        if connection is not None:
+            connection.rollback()
         raise
     finally:
-        cursor.close()
-        connection.close()
-
-    return {
-        "role_updates_applied": len(role_updates),
-        "requirement_updates_applied": len(requirement_updates),
-        "duplicate_requirements_removed": len(duplicate_requirement_ids),
-    }
-
-
-def fetch_job_data_for_insights() -> tuple[list[dict[str, Any]], dict[int, list[dict[str, Any]]]]:
-    roles = fetch_job_roles()
-    requirements_by_role: dict[int, list[dict[str, Any]]] = {}
-    for role in roles:
-        role_id = int(role["id"])
-        requirements_by_role[role_id] = fetch_job_requirements(role_id)
-    return roles, requirements_by_role
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
 
 def find_job_role_match(requested_role: str) -> tuple[dict[str, Any] | None, str]:
@@ -1450,10 +1467,6 @@ def rank_database_role_matches(resume_text: str, limit: int | None = None) -> li
     return ranked_matches[: max(0, limit)]
 
 
-def count_resume_words(text: str) -> int:
-    return len(re.findall(r"\b[a-zA-Z][a-zA-Z+.#/-]*\b", text))
-
-
 def choose_pdf_text_candidate(plain_raw_text: str, layout_raw_text: str) -> tuple[str, str, str]:
     plain_text = clean_resume_source_text(plain_raw_text)
     layout_text = clean_resume_source_text(layout_raw_text)
@@ -1523,11 +1536,6 @@ def extract_pdf_text(file_storage) -> tuple[str, dict[str, Any]]:
         "pdf_extraction_mode": extraction_mode,
         "character_spacing_repaired": bool(CHARACTER_SPACED_WORD_PATTERN.search(chosen_raw_text)),
     }
-
-
-def get_file_extension(filename: str) -> str:
-    _, extension = os.path.splitext(filename or "")
-    return extension.lower()
 
 
 def configure_tesseract() -> None:
@@ -2037,22 +2045,6 @@ def rule_based_feedback(resume_profile: ParsedResume, job_keywords: list[str]) -
     return feedback, missing_keywords
 
 
-def compute_tfidf_score(resume_text: str, job_description: str) -> float:
-    documents = [resume_text or "", job_description or ""]
-    if not any(documents):
-        return 0.0
-
-    vectorizer = TfidfVectorizer(stop_words="english")
-    try:
-        matrix = vectorizer.fit_transform(documents)
-    except ValueError:
-        return 0.0
-    resume_vector = matrix[0]
-    job_vector = matrix[1]
-    similarity = float((resume_vector @ job_vector.T).toarray()[0][0])
-    return max(0.0, min(1.0, similarity)) * 100.0
-
-
 def get_requirement_score_weight(requirement: dict[str, Any]) -> float:
     try:
         importance = int(requirement.get("importance_weight") or 3)
@@ -2528,18 +2520,6 @@ def build_role_recommendation(
     }
 
 
-def percent_status_label(value: Any) -> str:
-    try:
-        score = float(value)
-    except (TypeError, ValueError):
-        score = 0.0
-    if score >= 75:
-        return "strong"
-    if score >= 55:
-        return "fair"
-    return "needs_improvement"
-
-
 def build_recommendation_action(
     priority: int,
     category: str,
@@ -2853,53 +2833,48 @@ def build_analysis_payload(
     }
 
 
-def get_user_id_by_email(email: str) -> int | None:
-    normalized_email = normalize_email(email)
-    if not normalized_email:
-        return None
-
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT id FROM users WHERE email = %s", (normalized_email,))
-    user = cursor.fetchone()
-    cursor.close()
-    connection.close()
-    return int(user["id"]) if user else None
-
-
-def persist_analysis(payload: dict[str, Any], job_description: str, target_role: str, user_email: str) -> int:
-    user_id = get_user_id_by_email(user_email)
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        """
-        INSERT INTO resume_analyses (
-            user_id,
-            uploaded_resume_name,
-            target_role,
-            matching_percentage,
-            feedback,
-            job_description,
-            resume_excerpt,
-            analysis_json
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (
-            user_id,
-            payload.get("uploaded_resume_name", "resume.pdf"),
-            target_role or "selected role",
-            payload["compatibility"]["matching_percentage"],
-            payload["feedback"],
-            job_description,
-            payload.get("resume_excerpt", ""),
-            json.dumps(payload),
-        ),
-    )
-    analysis_id = int(cursor.lastrowid)
-    connection.commit()
-    cursor.close()
-    connection.close()
-    return analysis_id
+def persist_analysis(payload: dict[str, Any], job_description: str, target_role: str, user_id: int) -> int:
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO resume_analyses (
+                user_id,
+                uploaded_resume_name,
+                target_role,
+                matching_percentage,
+                feedback,
+                job_description,
+                resume_excerpt,
+                analysis_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                int(user_id),
+                payload.get("uploaded_resume_name", "resume.pdf"),
+                target_role or "selected role",
+                payload["compatibility"]["matching_percentage"],
+                payload["feedback"],
+                job_description,
+                payload.get("resume_excerpt", ""),
+                json.dumps(payload),
+            ),
+        )
+        analysis_id = int(cursor.lastrowid)
+        connection.commit()
+        return analysis_id
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
 
 def get_role_family_prefix(role_name: str) -> str:
@@ -3309,26 +3284,6 @@ def unique_clean_values(values: list[Any], limit: int | None = None) -> list[str
         if limit is not None and len(cleaned_values) >= limit:
             break
     return cleaned_values
-
-
-def normalize_resume_link(value: str) -> str:
-    link = normalize_text(str(value or "")).strip(" ,;)")
-    if not link:
-        return ""
-    if not re.match(r"^https?://", link, re.I):
-        link = "https://" + link
-    return link
-
-
-def get_link_label(link: str) -> str:
-    normalized = normalize_text(link)
-    lowered = normalized.lower()
-    without_scheme = re.sub(r"^https?://", "", normalized, flags=re.I).rstrip("/")
-    if "linkedin.com" in lowered:
-        return "LinkedIn: " + without_scheme
-    if "github.com" in lowered:
-        return "GitHub: " + without_scheme
-    return "Portfolio: " + without_scheme
 
 
 def select_resume_template_profile(target_role: str) -> dict[str, str]:
@@ -3925,10 +3880,6 @@ def extract_education_lines(resume_text: str, education_markers: list[str]) -> l
     if education_markers:
         return ["Education details detected in the original resume. Confirm degree, institution, and graduation date."]
     return []
-
-
-def generated_placeholder(label: str, detail: str) -> str:
-    return f"[Add {label}] {detail}"
 
 
 def is_generated_placeholder(value: str) -> bool:
@@ -5342,24 +5293,48 @@ def build_generated_resume_payload(
     return draft
 
 
-def record_download_history(user_email: str, analysis_id: int | None, downloaded_file_name: str) -> None:
-    user_id = get_user_id_by_email(user_email)
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        """
-        INSERT INTO download_history (
-            user_id,
-            analysis_id,
-            downloaded_file_name,
-            report_type
-        ) VALUES (%s, %s, %s, %s)
-        """,
-        (user_id, analysis_id, downloaded_file_name, "resume_comments"),
-    )
-    connection.commit()
-    cursor.close()
-    connection.close()
+def record_download_history(user_id: int, analysis_id: int | None, downloaded_file_name: str) -> str:
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        if analysis_id is not None:
+            cursor.execute(
+                "SELECT id, user_id FROM resume_analyses WHERE id = %s",
+                (analysis_id,),
+            )
+            analysis = cursor.fetchone()
+            if not analysis:
+                return "not_found"
+
+            owner_id = analysis.get("user_id")
+            if owner_id is None or int(owner_id) != int(user_id):
+                return "forbidden"
+
+        cursor.execute(
+            """
+            INSERT INTO download_history (
+                user_id,
+                analysis_id,
+                downloaded_file_name,
+                report_type
+            ) VALUES (%s, %s, %s, %s)
+            """,
+            (int(user_id), analysis_id, downloaded_file_name, "resume_comments"),
+        )
+        connection.commit()
+        return "saved"
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
 
 @app.post("/auth/pin/send")
@@ -5378,14 +5353,36 @@ def send_auth_pin():
         return jsonify({"detail": "Unsupported PIN purpose"}), 400
 
     try:
+        get_email_pin_delivery_mode()
+    except EmailPinConfigurationError:
+        return jsonify({"detail": "Email verification is temporarily unavailable"}), 503
+
+    try:
+        enforce_email_pin_rate_limits(
+            "request",
+            email,
+            get_email_pin_client_ip(),
+            purpose,
+        )
         user_already_exists = email_exists(email)
         if purpose == "register" and user_already_exists:
             return jsonify({"detail": "This email is already registered"}), 409
         if purpose == "password_reset" and not user_already_exists:
             return jsonify({"detail": "No account was found for this email address"}), 404
 
-        pin, expires_at = create_email_pin(email, purpose)
-        delivery = send_email_pin(email, pin, purpose)
+        pin, _expires_at, pin_id = create_email_pin(email, purpose)
+        try:
+            delivery = send_email_pin(email, pin, purpose)
+        except (EmailPinConfigurationError, OSError, smtplib.SMTPException):
+            invalidate_email_pin(pin_id)
+            raise
+        except Exception as error:
+            invalidate_email_pin(pin_id)
+            raise OSError("Email provider failed while sending a verification PIN") from error
+    except EmailPinRateLimitError as error:
+        return build_email_pin_rate_limit_response(error)
+    except EmailPinConfigurationError:
+        return jsonify({"detail": "Email verification is temporarily unavailable"}), 503
     except DatabaseError:
         return jsonify({"detail": "Database error while creating verification PIN"}), 500
     except (OSError, smtplib.SMTPException) as error:
@@ -5394,9 +5391,7 @@ def send_auth_pin():
     response: dict[str, Any] = {
         "message": "Verification PIN sent",
         "purpose": purpose,
-        "delivery": delivery,
         "expires_in_minutes": EMAIL_PIN_TTL_MINUTES,
-        "expires_at": expires_at.isoformat(),
     }
     if should_return_dev_pin(delivery):
         response["dev_pin"] = pin
@@ -5425,9 +5420,17 @@ def register_user():
     try:
         if email_exists(email):
             return jsonify({"detail": "This email is already registered"}), 409
+        enforce_email_pin_rate_limits(
+            "attempt",
+            email,
+            get_email_pin_client_ip(),
+            "register",
+        )
         pin_ok, pin_detail = consume_email_pin(email, "register", verification_pin)
         if not pin_ok:
             return jsonify({"detail": pin_detail}), 400
+    except EmailPinRateLimitError as error:
+        return build_email_pin_rate_limit_response(error)
     except DatabaseError:
         return jsonify({"detail": "Database error while verifying email PIN"}), 500
 
@@ -5488,6 +5491,12 @@ def reset_user_password():
     try:
         if not email_exists(email):
             return jsonify({"detail": "No account was found for this email address"}), 404
+        enforce_email_pin_rate_limits(
+            "attempt",
+            email,
+            get_email_pin_client_ip(),
+            "password_reset",
+        )
         pin_ok, pin_detail = consume_email_pin(email, "password_reset", verification_pin)
         if not pin_ok:
             return jsonify({"detail": pin_detail}), 400
@@ -5501,6 +5510,8 @@ def reset_user_password():
         connection.commit()
         cursor.close()
         connection.close()
+    except EmailPinRateLimitError as error:
+        return build_email_pin_rate_limit_response(error)
     except DatabaseError:
         return jsonify({"detail": "Database error while resetting password"}), 500
 
@@ -5550,77 +5561,6 @@ def login_user():
 def logout_user():
     clear_login_session()
     return jsonify({"message": "Logged out successfully"})
-
-
-def parse_stored_analysis_json(raw_value: Any) -> dict[str, Any]:
-    if isinstance(raw_value, dict):
-        return raw_value
-    if not raw_value:
-        return {}
-    try:
-        parsed = json.loads(str(raw_value))
-    except (TypeError, ValueError, json.JSONDecodeError):
-        return {}
-    return parsed if isinstance(parsed, dict) else {}
-
-
-def clamp_admin_score(value: Any) -> float:
-    try:
-        return round(max(0.0, min(100.0, float(value or 0))), 2)
-    except (TypeError, ValueError):
-        return 0.0
-
-
-def estimate_after_recommendation_score(base_score: Any, analysis: dict[str, Any]) -> float:
-    score = clamp_admin_score(base_score or analysis.get("matching_percentage"))
-    recommendation_module = (
-        analysis.get("recommendation_module")
-        if isinstance(analysis.get("recommendation_module"), dict)
-        else {}
-    )
-    actions = [
-        action
-        for action in list(recommendation_module.get("priority_actions") or [])
-        if isinstance(action, dict)
-    ]
-    action_gains = {
-        "role_fit": 3.0,
-        "keyword_gap": 8.0,
-        "evidence_gap": 7.0,
-        "experience": 6.0,
-        "ats_quality": 5.0,
-        "education": 4.0,
-        "impact": 4.0,
-    }
-    gain = 0.0
-    seen_categories: set[str] = set()
-    for action in actions:
-        category = str(action.get("category") or "").strip().lower()
-        if category and category not in seen_categories:
-            gain += action_gains.get(category, 3.0)
-            seen_categories.add(category)
-
-    job_analysis = analysis.get("job_description_analysis") if isinstance(analysis.get("job_description_analysis"), dict) else {}
-    missing_keywords = list(job_analysis.get("missing_keywords") or [])
-    compatibility = analysis.get("compatibility") if isinstance(analysis.get("compatibility"), dict) else {}
-
-    if missing_keywords:
-        gain += min(8.0, len(missing_keywords) * 1.1)
-    if clamp_admin_score(compatibility.get("keyword_match")) < 45:
-        gain += 4.0
-    if clamp_admin_score(compatibility.get("role_evidence")) < 60:
-        gain += 4.0
-    if clamp_admin_score(compatibility.get("resume_quality")) < 75:
-        gain += 3.0
-
-    if actions and gain < 6.0:
-        gain = 6.0
-    gain = min(24.0, gain)
-    return round(min(100.0, score + gain), 2)
-
-
-def isoformat_datetime(value: Any) -> str | None:
-    return value.isoformat() if hasattr(value, "isoformat") else None
 
 
 def build_admin_dashboard_payload() -> dict[str, Any]:
@@ -5897,33 +5837,63 @@ def delete_admin_user(user_id: int):
 
 @app.get("/analyses")
 def list_resume_analyses():
-    email = normalize_email(request.args.get("email", ""))
-    user_id = get_user_id_by_email(email)
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseError:
+        return jsonify({"detail": "Database error while loading analysis history"}), 500
 
-    if not user_id:
-        return jsonify({"count": 0, "analyses": []})
+    if not current_user:
+        return jsonify({"detail": "Authentication required"}), 401
 
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT
-            id,
-            uploaded_resume_name,
-            target_role,
-            matching_percentage,
-            feedback,
-            resume_excerpt,
-            created_at
-        FROM resume_analyses
-        WHERE user_id = %s
-        ORDER BY created_at DESC
-        """,
-        (user_id,),
-    )
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
+    requested_email = normalize_email(request.args.get("email", ""))
+    current_email = normalize_email(str(current_user.get("email") or ""))
+    live_is_admin = is_user_admin(current_user)
+    target_user_id = int(current_user["id"])
+
+    if requested_email and requested_email != current_email and not live_is_admin:
+        return jsonify({"detail": "You can only view your own analysis history"}), 403
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        if requested_email and requested_email != current_email:
+            if not is_valid_email(requested_email):
+                return jsonify({"detail": "Please provide a valid email address"}), 400
+
+            cursor.execute("SELECT id FROM users WHERE email = %s", (requested_email,))
+            target_user = cursor.fetchone()
+            if not target_user:
+                return jsonify({"detail": "User not found"}), 404
+            target_user_id = int(target_user["id"])
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                uploaded_resume_name,
+                target_role,
+                matching_percentage,
+                feedback,
+                resume_excerpt,
+                created_at
+            FROM resume_analyses
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            """,
+            (target_user_id,),
+        )
+        rows = cursor.fetchall()
+    except DatabaseError:
+        return jsonify({"detail": "Database error while loading analysis history"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
     analyses = []
     for row in rows:
@@ -5944,23 +5914,47 @@ def list_resume_analyses():
 
 @app.post("/downloads")
 def create_download_history():
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseError:
+        return jsonify({"detail": "Database error while validating session"}), 500
+
+    if not current_user:
+        return jsonify({"detail": "Authentication required"}), 401
+
     payload = request.get_json(silent=True) or {}
-    email = normalize_email(payload.get("email", ""))
-    analysis_id = payload.get("analysis_id")
-    downloaded_file_name = normalize_text(payload.get("downloaded_file_name", "uts-cs-career-navigator-comments.txt"))
+    raw_analysis_id = payload.get("analysis_id")
+    downloaded_file_name = normalize_text(
+        payload.get("downloaded_file_name", "uts-cs-career-navigator-comments.txt")
+    ) or "uts-cs-career-navigator-comments.txt"
 
-    try:
-        safe_analysis_id = int(analysis_id) if analysis_id else None
-    except (TypeError, ValueError):
+    if raw_analysis_id is None or (isinstance(raw_analysis_id, str) and not raw_analysis_id.strip()):
         safe_analysis_id = None
+    elif isinstance(raw_analysis_id, bool):
+        return jsonify({"detail": "analysis_id must be a positive integer or null"}), 400
+    elif isinstance(raw_analysis_id, int):
+        safe_analysis_id = raw_analysis_id
+    elif isinstance(raw_analysis_id, str) and raw_analysis_id.strip().isdigit():
+        safe_analysis_id = int(raw_analysis_id.strip())
+    else:
+        return jsonify({"detail": "analysis_id must be a positive integer or null"}), 400
 
-    if not email:
-        return jsonify({"detail": "email is required"}), 400
+    if safe_analysis_id is not None and safe_analysis_id <= 0:
+        return jsonify({"detail": "analysis_id must be a positive integer or null"}), 400
 
     try:
-        record_download_history(email, safe_analysis_id, downloaded_file_name)
+        outcome = record_download_history(
+            int(current_user["id"]),
+            safe_analysis_id,
+            downloaded_file_name,
+        )
     except DatabaseError:
         return jsonify({"detail": "Database error while saving download history"}), 500
+
+    if outcome == "not_found":
+        return jsonify({"detail": "Analysis not found"}), 404
+    if outcome == "forbidden":
+        return jsonify({"detail": "You cannot record a download for another user's analysis"}), 403
 
     return jsonify({"message": "Download history saved"})
 
@@ -6241,7 +6235,12 @@ def analysis_result_page():
 
 @app.get("/job_data_insights.html")
 def job_data_insights_page():
-    if not current_session_is_admin():
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseError:
+        return jsonify({"detail": "Database error while validating administrator access"}), 500
+
+    if not current_user or not is_user_admin(current_user):
         return redirect("/home_page.html?admin_required=1")
     return serve_frontend_page("job_data_insights.html")
 
@@ -6249,6 +6248,11 @@ def job_data_insights_page():
 @app.get("/app_common.js")
 def app_common_script():
     return serve_frontend_page("app_common.js")
+
+
+@app.get("/tailwind.css")
+def tailwind_stylesheet():
+    return serve_frontend_page("tailwind.css")
 
 
 @app.get("/api")
@@ -6286,6 +6290,16 @@ def api_index():
 
 @app.post("/analyze-file")
 def analyze_file():
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseError:
+        return jsonify({"detail": "Database error while validating session"}), 500
+
+    if not current_user:
+        return jsonify({"detail": "Authentication required"}), 401
+
+    session_user_id = int(current_user["id"])
+
     if "resume_file" not in request.files:
         return jsonify({"detail": "resume_file is required"}), 400
 
@@ -6293,7 +6307,6 @@ def analyze_file():
     job_description = normalize_text(request.form.get("job_description", ""))
     requested_target_role = normalize_text(request.form.get("target_role", ""))
     target_role = requested_target_role or "selected role"
-    user_email = normalize_email(request.form.get("user_email", ""))
 
     if not resume_file.filename:
         return jsonify({"detail": "A resume file must be uploaded"}), 400
@@ -6434,7 +6447,12 @@ def analyze_file():
     analysis["recommendation_module"] = build_part8_recommendation_module(analysis)
 
     try:
-        analysis["analysis_id"] = persist_analysis(analysis, job_description, target_role, user_email)
+        analysis["analysis_id"] = persist_analysis(
+            analysis,
+            job_description,
+            target_role,
+            session_user_id,
+        )
         analysis["history_saved"] = True
     except DatabaseError:
         analysis["analysis_id"] = None

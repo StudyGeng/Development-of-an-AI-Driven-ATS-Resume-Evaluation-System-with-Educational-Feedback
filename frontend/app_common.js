@@ -1,11 +1,5 @@
 (function () {
   const AUTH_USER_KEY = "authUser";
-  const LOCAL_AUTH_USERS_KEY = "localAuthUsers";
-  const INTERNAL_TEST_USER = {
-    full_name: "UTS Internal Tester",
-    email: "test@uts.local",
-    password: "test12345"
-  };
 
   function getAuthUser() {
     try {
@@ -27,37 +21,72 @@
     }
   }
 
-  function getLocalAuthUsers() {
-    try {
-      const raw = localStorage.getItem(LOCAL_AUTH_USERS_KEY);
-      const users = raw ? JSON.parse(raw) : [];
-      return Array.isArray(users) ? users : [];
-    } catch (error) {
-      return [];
+  function getPasswordValidationMessage(password) {
+    if (!password || password.length < 8) {
+      return "Password must be at least 8 characters.";
+    }
+    if (!/[A-Za-z]/.test(password)) {
+      return "Password must include at least 1 letter.";
+    }
+    if (!/\d/.test(password)) {
+      return "Password must include at least 1 number.";
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      return "Password must include at least 1 special character, for example !, @, #, or $.";
+    }
+    return "";
+  }
+
+  function sanitizePinInput(input, clearMixedText = false) {
+    if (!input) {
+      return;
+    }
+    const rawValue = input.value || "";
+    if (clearMixedText && /\D/.test(rawValue)) {
+      input.value = "";
+      return;
+    }
+    const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 6);
+    if (rawValue !== digitsOnly) {
+      input.value = digitsOnly;
     }
   }
 
-  function saveLocalAuthUsers(users) {
-    localStorage.setItem(LOCAL_AUTH_USERS_KEY, JSON.stringify(users));
+  function escapeHtml(value) {
+    return String(value === null || value === undefined ? "" : value).replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;"
+    }[character]));
   }
 
-  function seedLocalAuthUser(authMode) {
-    if (authMode !== "internal") {
+  function clearProfileSensitiveFields(elements) {
+    if (elements.passwordInput) elements.passwordInput.value = "";
+    if (elements.pinInput) elements.pinInput.value = "";
+    if (elements.message) {
+      elements.message.classList.add("hidden");
+      elements.message.textContent = "";
+    }
+  }
+
+  function populateProfileForm(user, elements) {
+    if (!user) {
       return;
     }
-    const users = getLocalAuthUsers();
-    const exists = users.some((user) => (user.email || "").toLowerCase() === INTERNAL_TEST_USER.email);
-    if (exists) {
+    if (elements.nameInput) elements.nameInput.value = user.full_name || "";
+    if (elements.emailInput) elements.emailInput.value = user.email || "";
+    clearProfileSensitiveFields(elements);
+  }
+
+  function setModalOpen(modal, isOpen) {
+    if (!modal) {
       return;
     }
-    users.push({
-      id: Date.now(),
-      full_name: INTERNAL_TEST_USER.full_name,
-      email: INTERNAL_TEST_USER.email,
-      password: INTERNAL_TEST_USER.password,
-      created_at: new Date().toISOString()
-    });
-    saveLocalAuthUsers(users);
+    modal.classList.toggle("hidden", !isOpen);
+    modal.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    document.body.classList.toggle("overflow-hidden", isOpen);
   }
 
   function getHistoryKey() {
@@ -139,17 +168,112 @@
     saveHistory(history.slice(0, 50));
   }
 
+  function createHistoryModal(options) {
+    const modal = options.modal;
+    const list = options.list;
+
+    function close() {
+      if (!modal) {
+        return;
+      }
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    function render() {
+      if (!list) {
+        return;
+      }
+      const items = dedupeHistoryItems(loadHistory());
+      saveHistory(items.slice(0, 50));
+      list.innerHTML = "";
+
+      if (!items.length) {
+        const emptyState = document.createElement("div");
+        emptyState.className = "p-4 rounded-lg border border-outline-variant/60 bg-surface-container-lowest";
+        emptyState.innerHTML = `
+          <div class="font-semibold text-primary">No past evaluations found.</div>
+          <p class="mt-1 text-sm text-on-surface-variant">${escapeHtml(options.emptyDescription || "Open a sample evaluated resume to explore the complete analysis flow.")}</p>
+          <button class="mt-3 px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold" type="button">View Sample Evaluation</button>`;
+        const sampleButton = emptyState.querySelector("button");
+        if (sampleButton) {
+          sampleButton.addEventListener("click", () => {
+            if (typeof options.onEmptyAction === "function") {
+              options.onEmptyAction();
+            }
+            close();
+          });
+        }
+        list.appendChild(emptyState);
+        return;
+      }
+
+      items.forEach((item) => {
+        const element = document.createElement("div");
+        element.className = "p-3 rounded-lg border border-outline-variant/60 flex items-center justify-between";
+        element.innerHTML = `<div>
+          <div class="font-semibold">${escapeHtml(item.uploaded_resume_name)} - ${escapeHtml(item.role || "Role")}</div>
+          <div class="text-xs text-on-surface-variant">Score: ${Number(item.matching_percentage).toFixed(0)}/100 | ${escapeHtml(new Date(item.stored_at).toLocaleString())}</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="viewHistoryBtn px-3 py-1 rounded-lg bg-primary text-on-primary text-sm" type="button">View</button>
+          <button class="deleteHistoryBtn px-3 py-1 rounded-lg bg-surface-container-low text-primary text-sm" type="button">Delete</button>
+        </div>`;
+
+        element.querySelector(".viewHistoryBtn").addEventListener("click", () => {
+          if (typeof options.onView === "function") {
+            options.onView(item);
+          }
+          close();
+        });
+        element.querySelector(".deleteHistoryBtn").addEventListener("click", () => {
+          saveHistory(loadHistory().filter((candidate) => candidate.id !== item.id));
+          render();
+        });
+        list.appendChild(element);
+      });
+    }
+
+    function open() {
+      if (!modal) {
+        return;
+      }
+      render();
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("overflow-hidden");
+    }
+
+    if (options.openButton) options.openButton.addEventListener("click", open);
+    if (options.backdrop) options.backdrop.addEventListener("click", close);
+    if (options.closeButton) options.closeButton.addEventListener("click", close);
+    if (options.doneButton) options.doneButton.addEventListener("click", close);
+    if (options.clearButton) {
+      options.clearButton.addEventListener("click", () => {
+        saveHistory([]);
+        render();
+      });
+    }
+
+    return { open, close, render };
+  }
+
   window.CareerNavigatorCommon = {
     getAuthUser,
     setAuthUser,
-    getLocalAuthUsers,
-    saveLocalAuthUsers,
-    seedLocalAuthUser,
+    getPasswordValidationMessage,
+    sanitizePinInput,
+    escapeHtml,
+    clearProfileSensitiveFields,
+    populateProfileForm,
+    setModalOpen,
     getHistoryKey,
     loadHistory,
     saveHistory,
     getAnalysisHistoryKey,
     dedupeHistoryItems,
-    saveAnalysisToHistory
+    saveAnalysisToHistory,
+    createHistoryModal
   };
 })();

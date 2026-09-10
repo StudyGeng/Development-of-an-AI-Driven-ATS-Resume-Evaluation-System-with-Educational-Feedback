@@ -2,79 +2,9 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>UTS CS Career Navigator - Analysis Report</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "on-primary": "#ffffff",
-                        "tertiary": "#3e1e00",
-                        "secondary-container": "#68abff",
-                        "secondary-fixed-dim": "#a4c9ff",
-                        "primary-container": "#1b3b6f",
-                        "primary-fixed": "#d8e2ff",
-                        "on-tertiary-fixed": "#2f1500",
-                        "inverse-on-surface": "#f0f1f2",
-                        "tertiary-fixed": "#ffdcc3",
-                        "on-error-container": "#93000a",
-                        "surface-dim": "#d9dadb",
-                        "surface-bright": "#f8f9fa",
-                        "on-secondary-fixed": "#001c39",
-                        "tertiary-container": "#5e3000",
-                        "on-secondary-fixed-variant": "#004883",
-                        "on-tertiary-fixed-variant": "#6b3a09",
-                        "on-surface-variant": "#43474f",
-                        "background": "#f8f9fa",
-                        "outline-variant": "#c4c6d1",
-                        "outline": "#747780",
-                        "on-primary-fixed-variant": "#28467b",
-                        "on-primary-fixed": "#001a41",
-                        "surface-container-lowest": "#ffffff",
-                        "on-secondary-container": "#003e73",
-                        "surface-container-highest": "#e1e3e4",
-                        "inverse-primary": "#acc7ff",
-                        "surface": "#f8f9fa",
-                        "on-tertiary": "#ffffff",
-                        "on-surface": "#191c1d",
-                        "surface-container-low": "#f3f4f5",
-                        "surface-container": "#edeeef",
-                        "surface-container-high": "#e7e8e9",
-                        "on-error": "#ffffff",
-                        "secondary": "#0060ac",
-                        "error": "#ba1a1a",
-                        "surface-variant": "#e1e3e4",
-                        "on-secondary": "#ffffff",
-                        "inverse-surface": "#2e3132",
-                        "primary-fixed-dim": "#acc7ff",
-                        "tertiary-fixed-dim": "#ffb77d",
-                        "surface-tint": "#415e94",
-                        "on-primary-container": "#8aa7e1",
-                        "secondary-fixed": "#d4e3ff",
-                        "error-container": "#ffdad6",
-                        "primary": "#002555",
-                        "on-tertiary-container": "#db9860",
-                        "on-background": "#191c1d"
-                    },
-                    "borderRadius": {
-                        "DEFAULT": "0.125rem",
-                        "lg": "0.25rem",
-                        "xl": "0.5rem",
-                        "full": "0.75rem"
-                    },
-                    "fontFamily": {
-                        "headline": ["Manrope"],
-                        "body": ["Inter"],
-                        "label": ["Inter"]
-                    }
-                },
-            },
-        }
-    </script>
+<link rel="stylesheet" href="/tailwind.css">
 <script src="app_common.js"></script>
 <style>
         .material-symbols-outlined {
@@ -841,7 +771,6 @@ Download PDF
     const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
         ? window.location.origin
         : "http://127.0.0.1:5000";
-    const AUTH_MODE = "backend";
     const openPrivacyPolicyBtn = document.getElementById("openPrivacyPolicyBtn");
     const privacyPolicyModal = document.getElementById("privacyPolicyModal");
     const privacyPolicyModalBackdrop = document.getElementById("privacyPolicyModalBackdrop");
@@ -901,18 +830,6 @@ Download PDF
 
     function setAuthUser(user) {
         window.CareerNavigatorCommon.setAuthUser(user, updateAuthUi);
-    }
-
-    function getLocalAuthUsers() {
-        return window.CareerNavigatorCommon.getLocalAuthUsers();
-    }
-
-    function saveLocalAuthUsers(users) {
-        window.CareerNavigatorCommon.saveLocalAuthUsers(users);
-    }
-
-    function seedLocalAuthUser() {
-        window.CareerNavigatorCommon.seedLocalAuthUser(AUTH_MODE);
     }
 
     function getToastMessage(message, isError = false) {
@@ -982,21 +899,7 @@ Download PDF
         }
     }
 
-    function getPasswordValidationMessage(password) {
-        if (!password || password.length < 8) {
-            return "Password must be at least 8 characters.";
-        }
-        if (!/[A-Za-z]/.test(password)) {
-            return "Password must include at least 1 letter.";
-        }
-        if (!/\d/.test(password)) {
-            return "Password must include at least 1 number.";
-        }
-        if (!/[^A-Za-z0-9]/.test(password)) {
-            return "Password must include at least 1 special character, for example !, @, #, or $.";
-        }
-        return "";
-    }
+    const getPasswordValidationMessage = window.CareerNavigatorCommon.getPasswordValidationMessage;
 
     function clearAuthForms(options = {}) {
         const keepLoginEmail = options.keepLoginEmail || "";
@@ -1025,16 +928,11 @@ Download PDF
     }
 
     function clearProfileSensitiveFields() {
-        if (profilePasswordInput) {
-            profilePasswordInput.value = "";
-        }
-        if (profilePasswordPinInput) {
-            profilePasswordPinInput.value = "";
-        }
-        if (profileMessage) {
-            profileMessage.classList.add("hidden");
-            profileMessage.textContent = "";
-        }
+        window.CareerNavigatorCommon.clearProfileSensitiveFields({
+            passwordInput: profilePasswordInput,
+            pinInput: profilePasswordPinInput,
+            message: profileMessage
+        });
     }
 
     function populateProfileForm() {
@@ -1042,13 +940,13 @@ Download PDF
         if (!currentUser) {
             return;
         }
-        if (profileNameInput) {
-            profileNameInput.value = currentUser.full_name || "";
-        }
-        if (profileEmailInput) {
-            profileEmailInput.value = currentUser.email || "";
-        }
-        clearProfileSensitiveFields();
+        window.CareerNavigatorCommon.populateProfileForm(currentUser, {
+            nameInput: profileNameInput,
+            emailInput: profileEmailInput,
+            passwordInput: profilePasswordInput,
+            pinInput: profilePasswordPinInput,
+            message: profileMessage
+        });
     }
 
     function openProfileModal() {
@@ -1056,18 +954,14 @@ Download PDF
             return;
         }
         populateProfileForm();
-        profileModal.classList.remove("hidden");
-        profileModal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("overflow-hidden");
+        window.CareerNavigatorCommon.setModalOpen(profileModal, true);
     }
 
     function closeProfileModal() {
         if (!profileModal) {
             return;
         }
-        profileModal.classList.add("hidden");
-        profileModal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("overflow-hidden");
+        window.CareerNavigatorCommon.setModalOpen(profileModal, false);
     }
 
     async function submitProfileUpdate(event) {
@@ -1094,37 +988,6 @@ Download PDF
         }
         if (newPassword && passwordPin.length !== 6) {
             setProfileMessage("Enter the 6-digit PIN sent to your email before changing password.", true, true);
-            return;
-        }
-
-        if (AUTH_MODE === "internal") {
-            const users = getLocalAuthUsers();
-            const duplicate = users.some((candidate) => (candidate.email || "").toLowerCase() === email && candidate.id !== currentUser.id);
-            if (duplicate) {
-                setProfileMessage("This email is already used by another account.", true, true);
-                return;
-            }
-
-            const userIndex = users.findIndex((candidate) => candidate.id === currentUser.id || (candidate.email || "").toLowerCase() === (currentUser.email || "").toLowerCase());
-            if (userIndex < 0) {
-                setProfileMessage("User record not found.", true, true);
-                return;
-            }
-
-            users[userIndex].full_name = fullName;
-            users[userIndex].email = email;
-            if (newPassword) {
-                users[userIndex].password = newPassword;
-            }
-            saveLocalAuthUsers(users);
-            setAuthUser({
-                id: users[userIndex].id,
-                full_name: users[userIndex].full_name,
-                email: users[userIndex].email,
-                created_at: users[userIndex].created_at
-            });
-            setProfileMessage("Profile updated successfully.", false, true);
-            closeProfileModal();
             return;
         }
 
@@ -1157,9 +1020,7 @@ Download PDF
     }
 
     function logoutUser() {
-        if (AUTH_MODE === "backend") {
-            fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-        }
+        fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
         setAuthUser(null);
         closeProfileModal();
         clearAuthForms();
@@ -1178,20 +1039,7 @@ Download PDF
         }
     }
 
-    function sanitizePinInput(input, clearMixedText = false) {
-        if (!input) {
-            return;
-        }
-        const rawValue = input.value || "";
-        if (clearMixedText && /\D/.test(rawValue)) {
-            input.value = "";
-            return;
-        }
-        const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 6);
-        if (rawValue !== digitsOnly) {
-            input.value = digitsOnly;
-        }
-    }
+    const sanitizePinInput = window.CareerNavigatorCommon.sanitizePinInput;
 
     function clearInvalidPinAutofill() {
         [registerPinInput, resetPinInput, profilePasswordPinInput].forEach((input) => sanitizePinInput(input, true));
@@ -1261,7 +1109,6 @@ Download PDF
         clearAuthForms();
     }
 
-    seedLocalAuthUser();
     updateAuthUi();
 
     // Built-in sample analysis fallback (used when localStorage is not available)
@@ -1385,33 +1232,17 @@ Download PDF
             const email = loginEmailInput ? loginEmailInput.value.trim().toLowerCase() : "";
             const password = loginPasswordInput ? loginPasswordInput.value : "";
 
-            if (AUTH_MODE === "internal") {
-                const users = getLocalAuthUsers();
-                const user = users.find((candidate) => (candidate.email || "").toLowerCase() === email);
-                if (!user || user.password !== password) {
-                    throw new Error("Invalid email or password");
-                }
-                setAuthUser({
-                    id: user.id,
-                    full_name: user.full_name,
-                    email: user.email,
-                    created_at: user.created_at
-                });
-                // Clear any previous analysis when a user logs in on this page
-                try { clearDisplayedAnalysis(); } catch (e) { /* ignore */ }
-            } else {
-                const response = await fetch(API_BASE_URL + "/users/login", {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password })
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Login failed");
-                }
-                setAuthUser(payload.user);
+            const response = await fetch(API_BASE_URL + "/users/login", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.detail || "Login failed");
             }
+            setAuthUser(payload.user);
 
             closeAuthModal();
             setAuthMessage("Logged in successfully.", false, true);
@@ -1496,57 +1327,25 @@ Download PDF
             const password = registerPasswordInput ? registerPasswordInput.value : "";
             const verificationPin = registerPinInput ? registerPinInput.value.trim() : "";
 
-            if (AUTH_MODE === "internal") {
-                if (!fullName || !email || !password) {
-                    throw new Error("full_name, email, and password are required");
-                }
-                const passwordIssue = getPasswordValidationMessage(password);
-                if (passwordIssue) {
-                    throw new Error(passwordIssue);
-                }
-                const users = getLocalAuthUsers();
-                const exists = users.some((candidate) => (candidate.email || "").toLowerCase() === email);
-                if (exists) {
-                    throw new Error("This email is already registered");
-                }
-                const newUser = {
-                    id: Date.now(),
+            const passwordIssue = getPasswordValidationMessage(password);
+            if (passwordIssue) {
+                throw new Error(passwordIssue);
+            }
+            const response = await fetch(API_BASE_URL + "/users/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
                     full_name: fullName,
                     email: email,
                     password: password,
-                    created_at: new Date().toISOString()
-                };
-                users.push(newUser);
-                saveLocalAuthUsers(users);
-                setAuthUser({
-                    id: newUser.id,
-                    full_name: newUser.full_name,
-                    email: newUser.email,
-                    created_at: newUser.created_at
-                });
-                // Clear any previous analysis when a new account is created here
-                try { clearDisplayedAnalysis(); } catch (e) { /* ignore */ }
-            } else {
-                const passwordIssue = getPasswordValidationMessage(password);
-                if (passwordIssue) {
-                    throw new Error(passwordIssue);
-                }
-                const response = await fetch(API_BASE_URL + "/users/register", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        full_name: fullName,
-                        email: email,
-                        password: password,
-                        verification_pin: verificationPin
-                    })
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Sign up failed");
-                }
-                setAuthUser(payload.user);
+                    verification_pin: verificationPin
+                })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.detail || "Sign up failed");
             }
+            setAuthUser(payload.user);
 
             closeAuthModal();
             clearAuthForms();
@@ -1564,11 +1363,7 @@ Download PDF
         if (getAuthUser()) {
             return true;
         }
-        if (AUTH_MODE === "internal") {
-            setAuthMessage("Please sign up or log in first. Test account: test@uts.local / test12345");
-        } else {
-            setAuthMessage("Please sign up or log in first to export your report.");
-        }
+        setAuthMessage("Please sign up or log in first to export your report.");
         openAuthModal("register");
         return false;
     }
@@ -1941,14 +1736,7 @@ Download PDF
         return Number.isFinite(numeric) ? numeric.toFixed(0) + "/100" : "-";
     }
 
-    function escapeHtml(value) {
-        return String(value)
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
-    }
+    const escapeHtml = window.CareerNavigatorCommon.escapeHtml;
 
     function renderPills(id, items, emptyText, colorClass = "bg-secondary-container/20 text-on-secondary-container") {
         const container = document.getElementById(id);
@@ -3210,9 +2998,9 @@ Download PDF
             }
             await fetch(API_BASE_URL + "/downloads", {
                 method: "POST",
+                credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    email: user.email,
                     analysis_id: analysisId || null,
                     downloaded_file_name: fileName
                 })
@@ -3917,27 +3705,6 @@ Download PDF
 
     loadAnalysisResult();
 
-    // --- History storage helpers ---
-    function getHistoryKey() {
-        return window.CareerNavigatorCommon.getHistoryKey();
-    }
-
-    function loadHistory() {
-        return window.CareerNavigatorCommon.loadHistory();
-    }
-
-    function saveHistory(history) {
-        window.CareerNavigatorCommon.saveHistory(history);
-    }
-
-    function getAnalysisHistoryKey(analysis, role) {
-        return window.CareerNavigatorCommon.getAnalysisHistoryKey(analysis, role);
-    }
-
-    function dedupeHistoryItems(items) {
-        return window.CareerNavigatorCommon.dedupeHistoryItems(items);
-    }
-
     function saveAnalysisToHistory(analysis) {
         const role = localStorage.getItem("selectedJobRole") || "";
         window.CareerNavigatorCommon.saveAnalysisToHistory(analysis, role);
@@ -3952,98 +3719,42 @@ Download PDF
     const clearHistoryBtn = document.getElementById("clearHistoryBtn");
     const doneHistoryBtn = document.getElementById("doneHistoryBtn");
 
-    function openHistoryModal() {
-        if (!historyModal) return;
-        renderHistory();
-        historyModal.classList.remove("hidden");
-        historyModal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("overflow-hidden");
-    }
-
-    function closeHistoryModal() {
-        if (!historyModal) return;
-        historyModal.classList.add("hidden");
-        historyModal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("overflow-hidden");
-    }
-
-    function renderHistory() {
-        if (!historyList) return;
-        const items = dedupeHistoryItems(loadHistory());
-        saveHistory(items.slice(0, 50));
-        historyList.innerHTML = "";
-        if (!items.length) {
-            historyList.innerHTML = `
-                <div class="p-4 rounded-lg border border-outline-variant/60 bg-surface-container-lowest">
-                    <div class="font-semibold text-primary">No past evaluations found.</div>
-                    <p class="mt-1 text-sm text-on-surface-variant">Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.</p>
-                    <button class="mt-3 px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold" id="viewSampleHistoryBtn" type="button">View Sample Evaluation</button>
-                </div>`;
-            const sampleHistoryBtn = document.getElementById("viewSampleHistoryBtn");
-            if (sampleHistoryBtn) {
-                sampleHistoryBtn.addEventListener("click", () => {
-                    try {
-                        localStorage.removeItem("analysisResult");
-                        localStorage.removeItem("analysisOwner");
-                        localStorage.setItem("sampleAnalysis", JSON.stringify(SAMPLE_ANALYSIS));
-                        localStorage.setItem("pipelineStatus", "sample_available");
-                        localStorage.setItem("uploadedResumeName", SAMPLE_ANALYSIS.uploaded_resume_name || "sample_resume.pdf");
-                        localStorage.setItem("selectedJobRole", "Sample Role");
-                        localStorage.setItem("selectedJobDescription", "Sample database role requirements for demo.");
-                    } catch (e) { /* ignore */ }
-                    closeHistoryModal();
-                    window.location.href = "analysis_result.html";
-                });
+    window.CareerNavigatorCommon.createHistoryModal({
+        modal: historyModal,
+        backdrop: historyModalBackdrop,
+        closeButton: closeHistoryModalBtn,
+        list: historyList,
+        clearButton: clearHistoryBtn,
+        doneButton: doneHistoryBtn,
+        emptyDescription: "Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.",
+        onEmptyAction: () => {
+            try {
+                localStorage.removeItem("analysisResult");
+                localStorage.removeItem("analysisOwner");
+                localStorage.setItem("sampleAnalysis", JSON.stringify(SAMPLE_ANALYSIS));
+                localStorage.setItem("pipelineStatus", "sample_available");
+                localStorage.setItem("uploadedResumeName", SAMPLE_ANALYSIS.uploaded_resume_name || "sample_resume.pdf");
+                localStorage.setItem("selectedJobRole", "Sample Role");
+                localStorage.setItem("selectedJobDescription", "Sample database role requirements for demo.");
+            } catch (error) {
+                // Sample navigation still works if local storage is unavailable.
             }
-            return;
+            window.location.href = "analysis_result.html";
+        },
+        onView: (entry) => {
+            try {
+                localStorage.setItem("analysisResult", JSON.stringify(entry.full));
+                const user = getAuthUser();
+                if (user && user.email) {
+                    localStorage.setItem("analysisOwner", (user.email || "").toLowerCase());
+                } else {
+                    localStorage.removeItem("analysisOwner");
+                }
+            } catch (error) {
+                // History navigation still works if local storage is unavailable.
+            }
+            window.location.href = "analysis_result.html";
         }
-        items.forEach((it) => {
-            const el = document.createElement("div");
-            el.className = "p-3 rounded-lg border border-outline-variant/60 flex items-center justify-between";
-            el.innerHTML = `<div>
-          <div class=\"font-semibold\">${escapeHtml(it.uploaded_resume_name)} - ${escapeHtml(it.role || 'Role')}</div>
-          <div class=\"text-xs text-on-surface-variant\">Score: ${Number(it.matching_percentage).toFixed(0)}/100 | ${new Date(it.stored_at).toLocaleString()}</div>
-        </div>
-        <div class=\"flex gap-2\">
-          <button class=\"viewHistoryBtn px-3 py-1 rounded-lg bg-primary text-on-primary text-sm\" data-id=\"${it.id}\">View</button>
-          <button class=\"deleteHistoryBtn px-3 py-1 rounded-lg bg-surface-container-low text-primary text-sm\" data-id=\"${it.id}\">Delete</button>
-        </div>`;
-            historyList.appendChild(el);
-        });
-
-        historyList.querySelectorAll('.viewHistoryBtn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = Number(btn.dataset.id);
-                const items = loadHistory();
-                const entry = items.find(x => x.id === id);
-                if (!entry) return;
-                try {
-                    localStorage.setItem('analysisResult', JSON.stringify(entry.full));
-                    const user = getAuthUser();
-                    if (user && user.email) localStorage.setItem('analysisOwner', (user.email||'').toLowerCase()); else localStorage.removeItem('analysisOwner');
-                } catch (e) { /* ignore */ }
-                closeHistoryModal();
-                window.location.href = 'analysis_result.html';
-            });
-        });
-
-        historyList.querySelectorAll('.deleteHistoryBtn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = Number(btn.dataset.id);
-                const items = loadHistory();
-                const filtered = items.filter(x => x.id !== id);
-                saveHistory(filtered);
-                renderHistory();
-            });
-        });
-    }
-
-    function escapeHtml(s) { return String(s||'').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-    if (openHistoryBtn) openHistoryBtn.addEventListener('click', openHistoryModal);
-    if (historyModalBackdrop) historyModalBackdrop.addEventListener('click', closeHistoryModal);
-    if (closeHistoryModalBtn) closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
-    if (doneHistoryBtn) doneHistoryBtn.addEventListener('click', closeHistoryModal);
-    if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', () => { saveHistory([]); renderHistory(); });
+    });
 </script>
 </body></html>

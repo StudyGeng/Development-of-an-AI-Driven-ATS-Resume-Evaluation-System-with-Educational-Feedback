@@ -27,6 +27,15 @@ CREATE TABLE IF NOT EXISTS email_verification_pins (
     INDEX idx_email_pins_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS auth_rate_limit_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(32) NOT NULL,
+    subject_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_auth_rate_subject (event_type, subject_hash, created_at),
+    INDEX idx_auth_rate_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS resume_analyses (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
