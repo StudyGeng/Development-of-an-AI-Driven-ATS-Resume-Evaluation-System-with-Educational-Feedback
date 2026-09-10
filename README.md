@@ -191,6 +191,21 @@ http://127.0.0.1:5000
 
 The Flask backend serves the frontend pages, so use the backend URL instead of opening the HTML files directly.
 
+## Accuracy Evaluation Rules
+
+The application must not be used to judge its own evaluation quality. Accuracy testing is a separate, local-only workflow:
+
+1. Register each test case in the workbook before running it, including a fixed Resume ID, Expected Role, and Source File.
+2. Keep the expected role unchanged after seeing the recommendation.
+3. Let the backend write only the system-output columns: Recommended Role, ATS Score, Keyword Notes, and Explanation Notes.
+4. Have a human tester complete `Score OK?`, `Keywords OK?`, `Explanation OK?`, and `Discussion` using the rubric in the workbook.
+5. Record every failed case and subsequent retest in the Improvement Log.
+6. Report role accuracy only from rows whose status is `Pass` or `Fail`. Incomplete or unreviewed rows are excluded.
+
+Automatic workbook export defaults to off, requires the explicit local setting `ACCURACY_TESTING_AUTO_EXPORT=1`, and is always disabled when `APP_ENV=production`. A hosted deployment therefore does not write evaluation data to a local Excel file.
+
+The number displayed from a small or unfinished sample is a test-set result, not proof of accuracy for all resumes. State the number of valid reviewed cases beside every percentage and do not publish a final accuracy claim until the planned cases and human reviews are complete.
+
 ## How To Use
 
 ### Normal User

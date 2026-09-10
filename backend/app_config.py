@@ -29,18 +29,17 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 ACCURACY_TESTING_WORKBOOK = os.getenv(
     "ACCURACY_TESTING_WORKBOOK",
-    os.path.join(BASE_DIR, "outputs", "manual_accuracy_testing", "ats_resume_fyp_testing.xlsx"),
+    os.path.join(
+        BASE_DIR,
+        "outputs",
+        "accuracy_evaluation_fix",
+        "ats_resume_fyp_testing_review_ready.xlsx",
+    ),
 )
 ACCURACY_TESTING_PENDING_FILE = os.getenv(
     "ACCURACY_TESTING_PENDING_FILE",
-    os.path.join(BASE_DIR, "outputs", "manual_accuracy_testing", "accuracy_testing_pending.jsonl"),
+    os.path.join(BASE_DIR, "outputs", "accuracy_evaluation_fix", "accuracy_testing_pending.jsonl"),
 )
-ACCURACY_TESTING_AUTO_EXPORT = os.getenv("ACCURACY_TESTING_AUTO_EXPORT", "1").strip().lower() not in {
-    "0",
-    "false",
-    "no",
-    "off",
-}
 
 RESUME_GENERATION_MAX_TEXT_LENGTH = 12000
 CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD = 20.0
@@ -99,6 +98,19 @@ def get_app_environment() -> str:
 
 def is_production_environment() -> bool:
     return get_app_environment() not in NON_PRODUCTION_ENVIRONMENTS
+
+
+def get_accuracy_testing_auto_export_enabled() -> bool:
+    """Allow workbook export only through an explicit non-production opt-in."""
+    raw_value = os.getenv("ACCURACY_TESTING_AUTO_EXPORT", "0").strip().lower()
+    if raw_value not in TRUE_ENVIRONMENT_VALUES | FALSE_ENVIRONMENT_VALUES:
+        raise RuntimeError(
+            "ACCURACY_TESTING_AUTO_EXPORT must be a true or false value."
+        )
+    return raw_value in TRUE_ENVIRONMENT_VALUES and not is_production_environment()
+
+
+ACCURACY_TESTING_AUTO_EXPORT = get_accuracy_testing_auto_export_enabled()
 
 
 def email_pin_dev_mode_requested() -> bool:

@@ -44,7 +44,6 @@ from admin_helpers import (
 )
 from analysis_helpers import compute_tfidf_score
 from app_config import (
-    ACCURACY_TESTING_AUTO_EXPORT,
     ACCURACY_TESTING_PENDING_FILE,
     ACCURACY_TESTING_WORKBOOK,
     APP_TITLE,
@@ -61,6 +60,7 @@ from app_config import (
     EMAIL_PIN_TTL_MINUTES,
     email_pin_dev_mode_requested,
     FRONTEND_DIR,
+    get_accuracy_testing_auto_export_enabled,
     get_email_pin_delivery_mode,
     get_app_environment,
     get_flask_secret_key,
@@ -2883,37 +2883,12 @@ def persist_analysis(payload: dict[str, Any], job_description: str, target_role:
             connection.close()
 
 
-def get_role_family_prefix(role_name: str) -> str:
-    normalized_role = normalize_match_text(role_name)
-    if "software" in normalized_role and ("developer" in normalized_role or "engineer" in normalized_role):
-        return "SD"
-    if "data" in normalized_role and "analyst" in normalized_role:
-        return "DA"
-    if (
-        "cyber" in normalized_role
-        or "security" in normalized_role
-        or "cloud" in normalized_role
-        or "database" in normalized_role
-    ):
-        return "CY"
-    return ""
-
-
-def infer_accuracy_resume_id(uploaded_name: str, target_role: str, selected_role: str = "") -> str:
+def infer_accuracy_resume_id(uploaded_name: str) -> str:
+    """Read an explicit test ID from a filename without deriving ground truth."""
     name = normalize_match_text(os.path.splitext(os.path.basename(uploaded_name or ""))[0])
     direct_match = re.search(r"\b(sd|da|cy)\s*0?(\d{1,2})\b", name)
     if direct_match:
         return f"{direct_match.group(1).upper()}{int(direct_match.group(2)):02d}"
-
-    role_text = f"{target_role} {selected_role}"
-    prefix = get_role_family_prefix(role_text)
-    if not prefix:
-        return ""
-
-    number_match = re.search(r"\b(\d{1,2})\b", name)
-    if number_match:
-        return f"{prefix}{int(number_match.group(1)):02d}"
-
     return ""
 
 
@@ -2922,8 +2897,6 @@ def get_analysis_recommended_role(analysis: dict[str, Any]) -> str:
     return normalize_text(
         role_recommendation.get("recommended_role")
         or role_recommendation.get("recommended_database_role")
-        or analysis.get("target_role")
-        or analysis.get("selected_role")
         or ""
     )
 
@@ -2952,38 +2925,56 @@ def find_accuracy_testing_row(workbook, analysis: dict[str, Any]) -> tuple[Any |
         return None, None, "Accuracy Testing sheet was not found."
 
     uploaded_name = str(analysis.get("uploaded_resume_name") or "")
-    target_role = str(analysis.get("target_role") or "")
-    selected_role = str(analysis.get("selected_role") or "")
-    inferred_resume_id = infer_accuracy_resume_id(uploaded_name, target_role, selected_role)
+    uploaded_key = normalize_match_text(os.path.basename(uploaded_name))
+    inferred_resume_id = infer_accuracy_resume_id(uploaded_name)
+
+    source_matches: list[int] = []
+    for row in range(5, min(sheet.max_row, 34) + 1):
+        source_file = normalize_match_text(
+            os.path.basename(str(sheet.cell(row=row, column=15).value or ""))
+        )
+        if uploaded_key and source_file and uploaded_key == source_file:
+            source_matches.append(row)
+
+    if len(source_matches) > 1:
+        return sheet, None, "The uploaded resume is assigned to more than one prepared test case."
+    if source_matches:
+        row = source_matches[0]
+        resume_id = normalize_text(str(sheet.cell(row=row, column=1).value or ""))
+        expected_role = normalize_text(str(sheet.cell(row=row, column=2).value or ""))
+        if not resume_id or not expected_role:
+            return (
+                sheet,
+                None,
+                "The matching test case needs a Resume ID and Expected Role before testing.",
+            )
+        return sheet, row, ""
 
     for row in range(5, min(sheet.max_row, 34) + 1):
         resume_id = normalize_text(str(sheet.cell(row=row, column=1).value or ""))
         if inferred_resume_id and normalize_match_text(resume_id) == normalize_match_text(inferred_resume_id):
+            if not normalize_text(str(sheet.cell(row=row, column=2).value or "")):
+                return sheet, None, "The matching test case needs an Expected Role before testing."
             return sheet, row, ""
 
     if "Resume Dataset" in workbook.sheetnames:
         dataset = workbook["Resume Dataset"]
-        uploaded_key = normalize_match_text(uploaded_name)
         for data_row in range(5, dataset.max_row + 1):
             dataset_resume_id = normalize_text(str(dataset.cell(row=data_row, column=1).value or ""))
-            fake_file_name = normalize_match_text(str(dataset.cell(row=data_row, column=4).value or ""))
+            fake_file_name = normalize_match_text(
+                os.path.basename(str(dataset.cell(row=data_row, column=4).value or ""))
+            )
             if uploaded_key and fake_file_name and uploaded_key == fake_file_name:
                 for row in range(5, min(sheet.max_row, 34) + 1):
                     if normalize_text(str(sheet.cell(row=row, column=1).value or "")) == dataset_resume_id:
+                        if not normalize_text(str(sheet.cell(row=row, column=2).value or "")):
+                            return sheet, None, "The matching test case needs an Expected Role before testing."
                         return sheet, row, ""
 
-    expected_role_key = normalize_match_text(selected_role or target_role)
-    for row in range(5, min(sheet.max_row, 34) + 1):
-        row_expected_role = normalize_match_text(str(sheet.cell(row=row, column=2).value or ""))
-        row_actual_role = normalize_text(str(sheet.cell(row=row, column=3).value or ""))
-        if row_expected_role and expected_role_key and row_expected_role == expected_role_key and not row_actual_role:
-            return sheet, row, ""
-
-    for row in range(5, min(sheet.max_row, 34) + 1):
-        if not normalize_text(str(sheet.cell(row=row, column=1).value or "")):
-            return sheet, row, ""
-
-    return sheet, None, "No empty Accuracy Testing row is available."
+    return sheet, None, (
+        "The uploaded resume is not registered in Accuracy Testing. "
+        "Set its Source File or include its prepared test ID in the filename before running the test."
+    )
 
 
 def compact_accuracy_testing_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
@@ -3047,24 +3038,11 @@ def write_accuracy_testing_analysis_row(workbook, analysis: dict[str, Any]) -> t
         return None, warning
 
     recommended_role = get_analysis_recommended_role(analysis)
-    target_role = normalize_text(str(analysis.get("target_role") or analysis.get("selected_role") or recommended_role))
-    if not normalize_text(str(sheet.cell(row=row, column=1).value or "")):
-        sheet.cell(row=row, column=1).value = infer_accuracy_resume_id(
-            str(analysis.get("uploaded_resume_name") or ""),
-            target_role,
-            str(analysis.get("selected_role") or ""),
-        ) or f"AUTO{row - 4:02d}"
-    if not normalize_text(str(sheet.cell(row=row, column=2).value or "")):
-        sheet.cell(row=row, column=2).value = target_role
+    if not recommended_role:
+        return None, "The analysis did not contain a role recommendation."
 
-    sheet.cell(row=row, column=3).value = recommended_role or target_role
+    sheet.cell(row=row, column=3).value = recommended_role
     sheet.cell(row=row, column=4).value = float(analysis.get("matching_percentage") or 0)
-    if not normalize_text(str(sheet.cell(row=row, column=5).value or "")):
-        sheet.cell(row=row, column=5).value = "Yes"
-    if not normalize_text(str(sheet.cell(row=row, column=6).value or "")):
-        sheet.cell(row=row, column=6).value = "Yes"
-    if not normalize_text(str(sheet.cell(row=row, column=7).value or "")):
-        sheet.cell(row=row, column=7).value = "Yes"
 
     sheet.cell(row=row, column=8).value = build_accuracy_missing_keywords_note(analysis)
     role_recommendation = analysis.get("role_recommendation") or {}
@@ -3075,17 +3053,17 @@ def write_accuracy_testing_analysis_row(workbook, analysis: dict[str, Any]) -> t
         or ""
     )[:500]
 
-    if not normalize_text(str(sheet.cell(row=row, column=14).value or "")):
-        sheet.cell(row=row, column=14).value = (
-            f"Auto-filled from {analysis.get('uploaded_resume_name', 'resume')} "
-            f"at {datetime.now().strftime('%Y-%m-%d %H:%M')}."
-        )
-
     return row, ""
 
 
 def update_accuracy_testing_workbook(analysis: dict[str, Any]) -> dict[str, Any]:
-    if not ACCURACY_TESTING_AUTO_EXPORT:
+    if is_production_environment():
+        return {
+            "accuracy_testing_saved": False,
+            "accuracy_testing_warning": "Accuracy testing auto export is disabled in production.",
+        }
+
+    if not get_accuracy_testing_auto_export_enabled():
         return {"accuracy_testing_saved": False, "accuracy_testing_warning": "Accuracy testing auto export is disabled."}
 
     workbook_path = os.path.abspath(ACCURACY_TESTING_WORKBOOK)
@@ -6245,16 +6223,19 @@ init_mysql_database()
 
 @app.get("/health")
 def health_check():
-    return jsonify(
-        {
-            "status": "ok",
-            "service": APP_TITLE,
-            "accuracy_testing_auto_export": ACCURACY_TESTING_AUTO_EXPORT,
-            "accuracy_testing_workbook": ACCURACY_TESTING_WORKBOOK,
-            "accuracy_testing_workbook_exists": os.path.exists(ACCURACY_TESTING_WORKBOOK),
-            "accuracy_testing_pending_count": len(load_pending_accuracy_testing_analyses()),
-        }
-    )
+    health = {"status": "ok", "service": APP_TITLE}
+    if not is_production_environment():
+        auto_export_enabled = get_accuracy_testing_auto_export_enabled()
+        health["accuracy_testing_auto_export"] = auto_export_enabled
+        if auto_export_enabled:
+            health.update(
+                {
+                    "accuracy_testing_workbook": ACCURACY_TESTING_WORKBOOK,
+                    "accuracy_testing_workbook_exists": os.path.exists(ACCURACY_TESTING_WORKBOOK),
+                    "accuracy_testing_pending_count": len(load_pending_accuracy_testing_analyses()),
+                }
+            )
+    return jsonify(health)
 
 
 def serve_frontend_page(page_name: str):
