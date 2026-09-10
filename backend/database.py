@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 import mysql.connector  # type: ignore
 from dotenv import load_dotenv  # type: ignore
 from mysql.connector import errorcode  # type: ignore
+from mysql.connector.pooling import MySQLConnectionPool  # type: ignore
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +18,10 @@ ROOT_ENV_PATH = PROJECT_ROOT / "env"
 load_dotenv(CONFIG_ENV_PATH if CONFIG_ENV_PATH.exists() else ROOT_ENV_PATH)
 
 DatabaseError = mysql.connector.Error
+MYSQL_POOL_MAX_SIZE = 32
+
+_connection_pool: MySQLConnectionPool | None = None
+_connection_pool_lock = Lock()
 
 
 def get_database_name() -> str:
@@ -44,8 +50,32 @@ def get_mysql_config(include_database: bool = True) -> dict[str, Any]:
     return config
 
 
+def get_mysql_pool_size() -> int:
+    raw_pool_size = os.getenv("MYSQL_POOL_SIZE", "5").strip()
+    try:
+        pool_size = int(raw_pool_size)
+    except ValueError as error:
+        raise RuntimeError("MYSQL_POOL_SIZE must be an integer between 1 and 32") from error
+
+    if not 1 <= pool_size <= MYSQL_POOL_MAX_SIZE:
+        raise RuntimeError("MYSQL_POOL_SIZE must be between 1 and 32")
+    return pool_size
+
+
 def get_db_connection():
-    return mysql.connector.connect(**get_mysql_config())
+    """Borrow a reset-on-return connection from this worker's lazy MySQL pool."""
+    global _connection_pool
+
+    if _connection_pool is None:
+        with _connection_pool_lock:
+            if _connection_pool is None:
+                _connection_pool = MySQLConnectionPool(
+                    pool_name="career_navigator_pool",
+                    pool_size=get_mysql_pool_size(),
+                    pool_reset_session=True,
+                    **get_mysql_config(),
+                )
+    return _connection_pool.get_connection()
 
 
 def is_duplicate_entry_error(error: Exception) -> bool:
@@ -73,6 +103,8 @@ def ensure_column(cursor, database_name: str, table_name: str, column_name: str,
 
 
 def init_mysql_database() -> None:
+    # Validate pool sizing during startup without opening pooled connections yet.
+    get_mysql_pool_size()
     database_name = get_database_name()
     connection = mysql.connector.connect(**get_mysql_config(include_database=False))
     cursor = connection.cursor()

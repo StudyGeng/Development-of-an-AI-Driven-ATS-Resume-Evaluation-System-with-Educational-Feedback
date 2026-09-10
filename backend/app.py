@@ -81,6 +81,7 @@ from core_utils import (
 from export_helpers import get_link_label, normalize_resume_link, percent_status_label
 from job_repository import (
     apply_job_data_cleaning_plan,
+    fetch_job_catalog,
     fetch_job_data_for_insights,
     fetch_job_requirements,
     fetch_job_roles,
@@ -1071,13 +1072,18 @@ def get_email_delivery_error_message(error: Exception) -> str:
 
 
 def email_exists(email: str) -> bool:
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT id FROM users WHERE email = %s LIMIT 1", (email,))
-    exists = cursor.fetchone() is not None
-    cursor.close()
-    connection.close()
-    return exists
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM users WHERE email = %s LIMIT 1", (email,))
+        return cursor.fetchone() is not None
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
 
 def create_email_pin(email: str, purpose: str) -> tuple[str, datetime, int]:
@@ -1410,11 +1416,11 @@ def compute_database_role_confidence_score(
 
 
 def rank_database_role_matches(resume_text: str, limit: int | None = None) -> list[dict[str, Any]]:
-    roles = fetch_job_roles()
+    roles, requirements_by_role = fetch_job_catalog()
     ranked_matches: list[dict[str, Any]] = []
 
     for role in roles:
-        requirements = fetch_job_requirements(int(role["id"]))
+        requirements = requirements_by_role.get(int(role["id"]), [])
         if not requirements:
             continue
 
@@ -5436,6 +5442,8 @@ def register_user():
 
     hashed_password = generate_password_hash(password)
 
+    connection = None
+    cursor = None
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
@@ -5446,17 +5454,23 @@ def register_user():
             """,
             (full_name, email, hashed_password, 1 if is_configured_admin_email(email) else 0),
         )
-        connection.commit()
-
         user_id = cursor.lastrowid
         cursor.execute("SELECT id, full_name, email, email_verified_at, is_admin, created_at FROM users WHERE id = %s", (user_id,))
         created_user = cursor.fetchone()
-        cursor.close()
-        connection.close()
+        if not created_user:
+            raise DatabaseError("Created user could not be reloaded")
+        connection.commit()
     except DatabaseError as error:
+        if connection is not None:
+            connection.rollback()
         if is_duplicate_entry_error(error):
             return jsonify({"detail": "This email is already registered"}), 409
         return jsonify({"detail": "Database error while registering user"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
     save_login_session(created_user)
 
@@ -5488,6 +5502,8 @@ def reset_user_password():
     if password_error:
         return jsonify({"detail": password_error}), 400
 
+    connection = None
+    cursor = None
     try:
         if not email_exists(email):
             return jsonify({"detail": "No account was found for this email address"}), 404
@@ -5508,12 +5524,17 @@ def reset_user_password():
             (generate_password_hash(new_password), email),
         )
         connection.commit()
-        cursor.close()
-        connection.close()
     except EmailPinRateLimitError as error:
         return build_email_pin_rate_limit_response(error)
     except DatabaseError:
+        if connection is not None:
+            connection.rollback()
         return jsonify({"detail": "Database error while resetting password"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
     return jsonify({"message": "Password reset successfully. You can now log in."})
 
@@ -5527,26 +5548,34 @@ def login_user():
     if not email or not password:
         return jsonify({"detail": "email and password are required"}), 400
 
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT id, full_name, email, password_hash, email_verified_at, is_admin, created_at FROM users WHERE email = %s",
-        (email,),
-    )
-    user = cursor.fetchone()
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id, full_name, email, password_hash, email_verified_at, is_admin, created_at FROM users WHERE email = %s",
+            (email,),
+        )
+        user = cursor.fetchone()
 
-    if not user or not check_password_hash(user["password_hash"], password):
-        cursor.close()
-        connection.close()
-        return jsonify({"detail": "Invalid email or password"}), 401
+        if not user or not check_password_hash(user["password_hash"], password):
+            return jsonify({"detail": "Invalid email or password"}), 401
 
-    if is_configured_admin_email(user["email"]) and not user.get("is_admin"):
-        cursor.execute("UPDATE users SET is_admin = 1 WHERE id = %s", (user["id"],))
-        connection.commit()
-        user["is_admin"] = 1
+        if is_configured_admin_email(user["email"]) and not user.get("is_admin"):
+            cursor.execute("UPDATE users SET is_admin = 1 WHERE id = %s", (user["id"],))
+            connection.commit()
+            user["is_admin"] = 1
+    except DatabaseError:
+        if connection is not None:
+            connection.rollback()
+        return jsonify({"detail": "Database error while logging in"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
-    cursor.close()
-    connection.close()
     save_login_session(user)
 
     return jsonify(
@@ -5564,39 +5593,45 @@ def logout_user():
 
 
 def build_admin_dashboard_payload() -> dict[str, Any]:
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT id, full_name, email, email_verified_at, is_admin, created_at
-        FROM users
-        ORDER BY created_at DESC
-        """
-    )
-    user_rows = cursor.fetchall()
-    cursor.execute(
-        """
-        SELECT
-            ra.id,
-            ra.user_id,
-            ra.uploaded_resume_name,
-            ra.target_role,
-            ra.matching_percentage,
-            ra.analysis_json,
-            ra.created_at,
-            u.full_name,
-            u.email
-        FROM resume_analyses ra
-        LEFT JOIN users u ON u.id = ra.user_id
-        ORDER BY ra.created_at DESC
-        LIMIT 250
-        """
-    )
-    analysis_rows = cursor.fetchall()
-    cursor.execute("SELECT COUNT(*) AS count FROM download_history")
-    download_row = cursor.fetchone() or {}
-    cursor.close()
-    connection.close()
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT id, full_name, email, email_verified_at, is_admin, created_at
+            FROM users
+            ORDER BY created_at DESC
+            """
+        )
+        user_rows = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT
+                ra.id,
+                ra.user_id,
+                ra.uploaded_resume_name,
+                ra.target_role,
+                ra.matching_percentage,
+                ra.analysis_json,
+                ra.created_at,
+                u.full_name,
+                u.email
+            FROM resume_analyses ra
+            LEFT JOIN users u ON u.id = ra.user_id
+            ORDER BY ra.created_at DESC
+            LIMIT 250
+            """
+        )
+        analysis_rows = cursor.fetchall()
+        cursor.execute("SELECT COUNT(*) AS count FROM download_history")
+        download_row = cursor.fetchone() or {}
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
     user_stats: dict[int, dict[str, Any]] = {}
     role_counter: Counter[str] = Counter()
@@ -5711,12 +5746,18 @@ def list_users():
     if admin_error:
         return admin_error
 
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT id, full_name, email, email_verified_at, is_admin, created_at FROM users ORDER BY created_at DESC")
-    rows = cursor.fetchall()
-    cursor.close()
-    connection.close()
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT id, full_name, email, email_verified_at, is_admin, created_at FROM users ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
     users = [serialize_user(row) for row in rows]
     return jsonify({"count": len(users), "users": users})
@@ -5780,29 +5821,33 @@ def update_admin_user(user_id: int):
     if not updates:
         return jsonify({"detail": "No user fields were provided"}), 400
 
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
+    connection = None
+    cursor = None
     try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
         cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
         if not cursor.fetchone():
-            cursor.close()
-            connection.close()
             return jsonify({"detail": "User not found"}), 404
         values.append(user_id)
         cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = %s", tuple(values))
-        connection.commit()
         cursor.execute("SELECT id, full_name, email, email_verified_at, is_admin, created_at FROM users WHERE id = %s", (user_id,))
         updated_user = cursor.fetchone()
+        if not updated_user:
+            raise DatabaseError("Updated user could not be reloaded")
+        connection.commit()
     except DatabaseError as error:
-        connection.rollback()
-        cursor.close()
-        connection.close()
+        if connection is not None:
+            connection.rollback()
         if is_duplicate_entry_error(error):
             return jsonify({"detail": "This email is already registered"}), 409
         return jsonify({"detail": "Database error while updating user"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
-    cursor.close()
-    connection.close()
     return jsonify({"message": "User updated", "user": serialize_user(updated_user)})
 
 
@@ -5814,24 +5859,26 @@ def delete_admin_user(user_id: int):
     if int(session.get("user_id") or 0) == user_id:
         return jsonify({"detail": "You cannot delete the admin account you are currently using"}), 400
 
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
+    connection = None
+    cursor = None
     try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
         cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
         if not cursor.fetchone():
-            cursor.close()
-            connection.close()
             return jsonify({"detail": "User not found"}), 404
         cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
         connection.commit()
     except DatabaseError:
-        connection.rollback()
-        cursor.close()
-        connection.close()
+        if connection is not None:
+            connection.rollback()
         return jsonify({"detail": "Database error while deleting user"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
-    cursor.close()
-    connection.close()
     return jsonify({"message": "User deleted"})
 
 

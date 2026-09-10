@@ -142,6 +142,7 @@ MYSQL_PORT=3307
 MYSQL_USER=root
 MYSQL_PASSWORD=your_mysql_password
 MYSQL_DATABASE=career_navigator
+MYSQL_POOL_SIZE=5
 PORT=5000
 APP_ENV=development
 FLASK_DEBUG=0
@@ -149,7 +150,7 @@ FLASK_SECRET_KEY=replace_me
 ADMIN_EMAILS=replace_with_your_real_admin_email
 ```
 
-Use `MYSQL_PORT=3306` if your MySQL server uses the default MySQL port.
+Use `MYSQL_PORT=3306` if your MySQL server uses the default MySQL port. `MYSQL_POOL_SIZE` controls the connections reserved by each application worker and must be between 1 and 32; keep `worker count x MYSQL_POOL_SIZE` below the cloud database connection limit.
 
 `replace_me` is an intentionally invalid placeholder. Generate a unique secret with Python:
 
@@ -310,6 +311,8 @@ MYSQL_HOST=127.0.0.1
 
 After hosting the Flask app online, `127.0.0.1` means the hosting server, not your laptop. If the hosted app needs to work when your laptop is off, use a cloud MySQL database and set the cloud database connection values in the hosting platform.
 
+The application loads the public job catalogue with two queries, groups requirements by role in memory, and reuses a process-local snapshot for later analyses. A successful administrator job-data cleaning operation invalidates that snapshot immediately. The documented one-worker Gunicorn command keeps this behavior consistent; if you later add multiple workers, restart all workers after catalogue changes or add a shared cache-version signal so every worker refreshes. Seed imports or direct SQL changes made while the app is running also require an app restart. Each worker owns its own MySQL connection pool.
+
 For a hosted Flask deployment, run the commands from the project root so that the CSS and Python application are both built:
 
 ```text
@@ -326,6 +329,7 @@ FLASK_SECRET_KEY=replace_me
 ADMIN_EMAILS=replace_with_your_real_admin_email
 EMAIL_PIN_DEV_MODE=0
 TRUSTED_PROXY_COUNT=0
+MYSQL_POOL_SIZE=5
 ```
 
 The `replace_me` value above is only a safe placeholder and will be rejected. Generate the real value locally:
