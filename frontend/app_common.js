@@ -1,5 +1,92 @@
 (function () {
   const AUTH_USER_KEY = "authUser";
+  const UNSAFE_HTTP_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+  const nativeFetch = window.fetch.bind(window);
+  let csrfToken = null;
+  let csrfTokenRequest = null;
+
+  function getRequestUrl(input) {
+    if (typeof input === "string" || input instanceof URL) {
+      return new URL(input, window.location.href);
+    }
+    if (typeof Request !== "undefined" && input instanceof Request) {
+      return new URL(input.url, window.location.href);
+    }
+    return null;
+  }
+
+  function isSameOriginRequest(input) {
+    const requestUrl = getRequestUrl(input);
+    return Boolean(requestUrl && requestUrl.origin === window.location.origin);
+  }
+
+  function getRequestMethod(input, options) {
+    if (options && options.method) {
+      return String(options.method).toUpperCase();
+    }
+    if (typeof Request !== "undefined" && input instanceof Request) {
+      return input.method.toUpperCase();
+    }
+    return "GET";
+  }
+
+  async function loadCsrfToken() {
+    if (csrfToken) {
+      return csrfToken;
+    }
+    if (!csrfTokenRequest) {
+      csrfTokenRequest = nativeFetch("/auth/csrf-token", {
+        credentials: "same-origin",
+        cache: "no-store"
+      })
+        .then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload.csrf_token) {
+            throw new Error(payload.detail || "Could not establish a secure browser session.");
+          }
+          csrfToken = payload.csrf_token;
+          return csrfToken;
+        })
+        .finally(() => {
+          csrfTokenRequest = null;
+        });
+    }
+    return csrfTokenRequest;
+  }
+
+  async function fetchWithCsrfToken(input, options = {}) {
+    const token = await loadCsrfToken();
+    const inheritedHeaders = typeof Request !== "undefined" && input instanceof Request
+      ? input.headers
+      : undefined;
+    const headers = new Headers(options.headers || inheritedHeaders || {});
+    headers.set("X-CSRF-Token", token);
+    return nativeFetch(input, { ...options, headers });
+  }
+
+  async function secureFetch(input, options = {}) {
+    const method = getRequestMethod(input, options);
+    if (!UNSAFE_HTTP_METHODS.has(method) || !isSameOriginRequest(input)) {
+      return nativeFetch(input, options);
+    }
+
+    let response = await fetchWithCsrfToken(input, options);
+    if (response.status !== 403) {
+      return response;
+    }
+
+    const payload = await response.clone().json().catch(() => ({}));
+    if (payload.detail !== "CSRF validation failed.") {
+      return response;
+    }
+
+    // Login and logout rotate the signed session cookie, which also rotates its CSRF token.
+    csrfToken = null;
+    response = await fetchWithCsrfToken(input, options);
+    return response;
+  }
+
+  window.fetch = secureFetch;
 
   function getAuthUser() {
     try {

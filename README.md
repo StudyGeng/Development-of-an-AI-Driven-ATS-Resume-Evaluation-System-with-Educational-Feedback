@@ -316,6 +316,31 @@ TRUSTED_PROXY_COUNT=0
 
 Leave this at `0` unless the application is deployed behind a trusted reverse proxy. On hosted infrastructure, set it only to the exact number of trusted proxy hops in front of Flask so the application can identify the real client IP safely. A wrong value can make the IP limits ineffective or allow a client-supplied forwarded address to be trusted.
 
+## Browser and Upload Security
+
+The website is designed to serve the frontend and API from the same origin. Cross-origin browser requests are disabled by default. If you deliberately host a separate frontend, set an exact HTTPS origin—never `*`—in the hosting environment:
+
+```text
+CORS_ALLOWED_ORIGINS=https://frontend.your-domain.example
+```
+
+Every state-changing browser request requires a same-origin check and a per-session CSRF token. The supplied frontend obtains and sends this token automatically. An external integration must first call `GET /auth/csrf-token` with its session cookie, then send the returned value in the `X-CSRF-Token` header.
+
+The default resume upload limit is 10 MB. Flask also limits multipart form memory and the number of form parts. Login and resume-analysis requests are rate-limited per source IP; login is also limited per email address:
+
+```text
+MAX_RESUME_UPLOAD_BYTES=10485760
+MAX_FORM_MEMORY_BYTES=500000
+MAX_FORM_PARTS=32
+LOGIN_REQUEST_LIMIT_PER_IP=10
+LOGIN_REQUEST_LIMIT_PER_EMAIL=10
+LOGIN_RATE_WINDOW_MINUTES=15
+ANALYSIS_REQUEST_LIMIT_PER_IP=20
+ANALYSIS_RATE_WINDOW_MINUTES=15
+```
+
+All responses receive a Content Security Policy, clickjacking protection, MIME-sniffing protection, referrer policy, permissions policy, and cross-origin isolation headers. Production HTTPS responses also receive HSTS. Ensure `TRUSTED_PROXY_COUNT` is correct when HTTPS is terminated by a reverse proxy, otherwise Flask cannot safely recognize the original HTTPS request.
+
 ## Important Database Note
 
 When running locally, this setting means the app connects to MySQL on your own computer:

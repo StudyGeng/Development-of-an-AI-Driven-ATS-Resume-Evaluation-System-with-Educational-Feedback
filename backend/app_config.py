@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import secrets
+from urllib.parse import urlsplit
 
 
 def get_bounded_integer_environment(
@@ -21,6 +22,33 @@ def get_bounded_integer_environment(
     if value < minimum or value > maximum:
         raise RuntimeError(f"{name} must be between {minimum} and {maximum}.")
     return value
+
+
+def get_allowed_cors_origins() -> tuple[str, ...]:
+    """Parse an explicit allow-list; cross-origin browser access is off by default."""
+    raw_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+    if not raw_origins:
+        return ()
+
+    origins: list[str] = []
+    for raw_origin in raw_origins.split(","):
+        origin = raw_origin.strip().rstrip("/")
+        parsed = urlsplit(origin)
+        if (
+            not origin
+            or origin == "*"
+            or parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise RuntimeError(
+                "CORS_ALLOWED_ORIGINS must contain comma-separated http(s) origins without paths."
+            )
+        if origin not in origins:
+            origins.append(origin)
+    return tuple(origins)
 
 
 APP_TITLE = "UTS CS Career Navigator Resume Analyzer"
@@ -65,6 +93,28 @@ EMAIL_PIN_ATTEMPT_LIMIT_PER_IP = get_bounded_integer_environment(
 EMAIL_PIN_RATE_WINDOW_MINUTES = get_bounded_integer_environment(
     "EMAIL_PIN_RATE_WINDOW_MINUTES", 15, 1, 1440
 )
+LOGIN_REQUEST_LIMIT_PER_IP = get_bounded_integer_environment(
+    "LOGIN_REQUEST_LIMIT_PER_IP", 10, 1, 1000
+)
+LOGIN_REQUEST_LIMIT_PER_EMAIL = get_bounded_integer_environment(
+    "LOGIN_REQUEST_LIMIT_PER_EMAIL", 10, 1, 1000
+)
+LOGIN_RATE_WINDOW_MINUTES = get_bounded_integer_environment(
+    "LOGIN_RATE_WINDOW_MINUTES", 15, 1, 1440
+)
+ANALYSIS_REQUEST_LIMIT_PER_IP = get_bounded_integer_environment(
+    "ANALYSIS_REQUEST_LIMIT_PER_IP", 20, 1, 1000
+)
+ANALYSIS_RATE_WINDOW_MINUTES = get_bounded_integer_environment(
+    "ANALYSIS_RATE_WINDOW_MINUTES", 15, 1, 1440
+)
+MAX_RESUME_UPLOAD_BYTES = get_bounded_integer_environment(
+    "MAX_RESUME_UPLOAD_BYTES", 10 * 1024 * 1024, 1024 * 1024, 50 * 1024 * 1024
+)
+MAX_FORM_MEMORY_BYTES = get_bounded_integer_environment(
+    "MAX_FORM_MEMORY_BYTES", 500_000, 64 * 1024, 2 * 1024 * 1024
+)
+MAX_FORM_PARTS = get_bounded_integer_environment("MAX_FORM_PARTS", 32, 1, 1000)
 EMAIL_PIN_PURPOSES = {"register", "password_reset"}
 TRUSTED_PROXY_COUNT = get_bounded_integer_environment("TRUSTED_PROXY_COUNT", 0, 0, 10)
 SPECIAL_CHARACTER_PATTERN = re.compile(r"[^A-Za-z0-9]")
@@ -98,6 +148,9 @@ def get_app_environment() -> str:
 
 def is_production_environment() -> bool:
     return get_app_environment() not in NON_PRODUCTION_ENVIRONMENTS
+
+
+CORS_ALLOWED_ORIGINS = get_allowed_cors_origins()
 
 
 def get_accuracy_testing_auto_export_enabled() -> bool:

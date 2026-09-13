@@ -17,6 +17,7 @@ from io import BytesIO
 import smtplib
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from typing import Any
 
 from database import (
@@ -31,9 +32,9 @@ from data_cleaning import (
 )
 from job_data_insights import build_job_data_insights
 from flask import Flask, jsonify, redirect, request, send_file, send_from_directory, session
-from flask_cors import CORS
 from pypdf import PdfReader, PdfWriter
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from admin_helpers import (
@@ -46,7 +47,10 @@ from analysis_helpers import compute_tfidf_score
 from app_config import (
     ACCURACY_TESTING_PENDING_FILE,
     ACCURACY_TESTING_WORKBOOK,
+    ANALYSIS_RATE_WINDOW_MINUTES,
+    ANALYSIS_REQUEST_LIMIT_PER_IP,
     APP_TITLE,
+    CORS_ALLOWED_ORIGINS,
     CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
     EMAIL_PIN_ATTEMPT_LIMIT_PER_IP,
     EmailPinConfigurationError,
@@ -66,6 +70,12 @@ from app_config import (
     get_flask_secret_key,
     IMAGE_EXTENSIONS,
     is_production_environment,
+    LOGIN_RATE_WINDOW_MINUTES,
+    LOGIN_REQUEST_LIMIT_PER_EMAIL,
+    LOGIN_REQUEST_LIMIT_PER_IP,
+    MAX_FORM_MEMORY_BYTES,
+    MAX_FORM_PARTS,
+    MAX_RESUME_UPLOAD_BYTES,
     PDF_EXTENSIONS,
     RESUME_GENERATION_MAX_TEXT_LENGTH,
     SUPPORTED_RESUME_EXTENSIONS,
@@ -745,6 +755,12 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=is_production_environment(),
+    MAX_CONTENT_LENGTH=MAX_RESUME_UPLOAD_BYTES,
+    MAX_FORM_MEMORY_SIZE=MAX_FORM_MEMORY_BYTES,
+    MAX_FORM_PARTS=MAX_FORM_PARTS,
+    CSRF_PROTECTION_ENABLED=True,
+    ENFORCE_CSRF_IN_TESTS=False,
+    ENFORCE_RATE_LIMITS_IN_TESTS=False,
 )
 if TRUSTED_PROXY_COUNT:
     app.wsgi_app = ProxyFix(
@@ -752,7 +768,142 @@ if TRUSTED_PROXY_COUNT:
         x_for=TRUSTED_PROXY_COUNT,
         x_proto=TRUSTED_PROXY_COUNT,
     )
-CORS(app, supports_credentials=True)
+
+
+CSRF_SESSION_KEY = "csrf_token"
+SAFE_HTTP_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+CONTENT_SECURITY_POLICY = "; ".join(
+    (
+        "default-src 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: blob: https://lh3.googleusercontent.com",
+        "connect-src 'self'",
+        "worker-src 'self' blob: https://cdnjs.cloudflare.com",
+    )
+)
+
+
+def normalize_origin(value: str) -> str:
+    """Return a scheme-and-host origin without trusting paths or malformed values."""
+    try:
+        parsed = urlsplit(str(value or "").strip())
+    except ValueError:
+        return ""
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+
+
+def request_same_origin() -> str:
+    return normalize_origin(request.host_url)
+
+
+def is_trusted_browser_origin(origin: str) -> bool:
+    normalized_origin = normalize_origin(origin)
+    if not normalized_origin:
+        return False
+    allowed_origins = {normalize_origin(value) for value in CORS_ALLOWED_ORIGINS}
+    return normalized_origin == request_same_origin() or normalized_origin in allowed_origins
+
+
+def csrf_protection_is_enabled() -> bool:
+    if not app.config.get("CSRF_PROTECTION_ENABLED", True):
+        return False
+    return not (
+        app.config.get("TESTING")
+        and not app.config.get("ENFORCE_CSRF_IN_TESTS", False)
+    )
+
+
+def get_or_create_csrf_token() -> str:
+    token = session.get(CSRF_SESSION_KEY)
+    if isinstance(token, str) and len(token) >= 32:
+        return token
+    token = secrets.token_urlsafe(32)
+    session[CSRF_SESSION_KEY] = token
+    return token
+
+
+@app.before_request
+def enforce_csrf_protection():
+    """Require an origin check and per-session token for every state-changing request."""
+    if request.method in SAFE_HTTP_METHODS or not csrf_protection_is_enabled():
+        return None
+
+    origin = request.headers.get("Origin", "")
+    referer = request.headers.get("Referer", "")
+    if not is_trusted_browser_origin(origin or referer):
+        return jsonify({"detail": "CSRF validation failed."}), 403
+
+    expected_token = session.get(CSRF_SESSION_KEY)
+    supplied_token = request.headers.get("X-CSRF-Token", "")
+    if (
+        not isinstance(expected_token, str)
+        or not supplied_token
+        or not hmac.compare_digest(expected_token, supplied_token)
+    ):
+        return jsonify({"detail": "CSRF validation failed."}), 403
+    return None
+
+
+@app.get("/auth/csrf-token")
+def get_csrf_token():
+    response = jsonify({"csrf_token": get_or_create_csrf_token()})
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_request_entity_too_large(_error):
+    maximum_megabytes = MAX_RESUME_UPLOAD_BYTES / (1024 * 1024)
+    return (
+        jsonify({"detail": f"Upload must not exceed {maximum_megabytes:g} MB."}),
+        413,
+    )
+
+
+@app.after_request
+def apply_browser_security_headers(response):
+    """Apply a single, auditable browser-security policy to every response."""
+    response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+    )
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+
+    if is_production_environment() and request.is_secure:
+        response.headers.setdefault(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains",
+        )
+
+    origin = request.headers.get("Origin", "")
+    if normalize_origin(origin) in {normalize_origin(value) for value in CORS_ALLOWED_ORIGINS}:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-CSRF-Token"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Max-Age"] = "600"
+        vary_values = [
+            value.strip()
+            for value in response.headers.get("Vary", "").split(",")
+            if value.strip()
+        ]
+        if "Origin" not in vary_values:
+            vary_values.append("Origin")
+        response.headers["Vary"] = ", ".join(vary_values)
+    return response
 
 
 def get_authenticated_session_user() -> dict[str, Any] | None:
@@ -822,14 +973,18 @@ def email_pin_body(pin: str, purpose: str) -> str:
     )
 
 
-class EmailPinRateLimitError(Exception):
+class RequestRateLimitError(Exception):
     def __init__(self, detail: str, retry_after_seconds: int):
         super().__init__(detail)
         self.detail = detail
         self.retry_after_seconds = max(1, int(retry_after_seconds))
 
 
-def build_email_pin_rate_limit_response(error: EmailPinRateLimitError):
+class EmailPinRateLimitError(RequestRateLimitError):
+    """Retained for the PIN workflow's public error contract."""
+
+
+def build_rate_limit_response(error: RequestRateLimitError):
     response = jsonify(
         {
             "detail": error.detail,
@@ -841,6 +996,10 @@ def build_email_pin_rate_limit_response(error: EmailPinRateLimitError):
     return response
 
 
+def build_email_pin_rate_limit_response(error: EmailPinRateLimitError):
+    return build_rate_limit_response(error)
+
+
 def hash_rate_limit_subject(event_type: str, subject: str) -> str:
     secret_key = app.secret_key
     key_bytes = secret_key if isinstance(secret_key, bytes) else str(secret_key).encode("utf-8")
@@ -848,8 +1007,12 @@ def hash_rate_limit_subject(event_type: str, subject: str) -> str:
     return hmac.new(key_bytes, message, hashlib.sha256).hexdigest()
 
 
-def get_email_pin_client_ip() -> str:
+def get_request_client_ip() -> str:
     return str(request.remote_addr or "unknown").strip().lower()[:255] or "unknown"
+
+
+def get_email_pin_client_ip() -> str:
+    return get_request_client_ip()
 
 
 def get_rate_limit_retry_after(
@@ -863,6 +1026,71 @@ def get_rate_limit_retry_after(
         oldest_event_at = oldest_event_at.astimezone(timezone.utc).replace(tzinfo=None)
     reset_at = oldest_event_at + timedelta(minutes=window_minutes)
     return max(1, int((reset_at - now).total_seconds()) + 1)
+
+
+def enforce_rate_limit_specs(
+    limit_specs: list[tuple[str, str, int, int]],
+    detail: str,
+    error_type: type[RequestRateLimitError] = RequestRateLimitError,
+) -> None:
+    """Store hashed rate-limit events so limits survive worker restarts and scale out."""
+    now = utc_now_naive()
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        pending_events: list[tuple[str, str]] = []
+
+        for event_type, subject, limit, window_minutes in limit_specs:
+            subject_hash = hash_rate_limit_subject(event_type, subject)
+            window_start = now - timedelta(minutes=window_minutes)
+            cursor.execute(
+                """
+                SELECT id, created_at
+                FROM auth_rate_limit_events
+                WHERE event_type = %s
+                  AND subject_hash = %s
+                  AND created_at >= %s
+                ORDER BY created_at ASC, id ASC
+                FOR UPDATE
+                """,
+                (event_type, subject_hash, window_start),
+            )
+            recent_events = cursor.fetchall()
+            if len(recent_events) >= limit:
+                retry_after = get_rate_limit_retry_after(
+                    recent_events[0].get("created_at"),
+                    window_minutes,
+                    now,
+                )
+                raise error_type(detail, retry_after)
+            pending_events.append((event_type, subject_hash))
+
+        for event_type, subject_hash in pending_events:
+            cursor.execute(
+                """
+                INSERT INTO auth_rate_limit_events (event_type, subject_hash, created_at)
+                VALUES (%s, %s, %s)
+                """,
+                (event_type, subject_hash, now),
+            )
+
+        retention_minutes = max(window_minutes for _, _, _, window_minutes in limit_specs) * 2
+        cursor.execute(
+            "DELETE FROM auth_rate_limit_events WHERE created_at < %s",
+            (now - timedelta(minutes=retention_minutes),),
+        )
+        connection.commit()
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
 
 
 def enforce_email_pin_rate_limits(
@@ -905,66 +1133,51 @@ def enforce_email_pin_rate_limits(
     else:
         raise ValueError("Unsupported email PIN rate-limit event kind")
 
-    now = utc_now_naive()
-    connection = None
-    cursor = None
-    try:
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-        pending_events: list[tuple[str, str]] = []
+    enforce_rate_limit_specs(limit_specs, detail, EmailPinRateLimitError)
 
-        for event_type, subject, limit, window_minutes in limit_specs:
-            subject_hash = hash_rate_limit_subject(event_type, subject)
-            window_start = now - timedelta(minutes=window_minutes)
-            cursor.execute(
-                """
-                SELECT id, created_at
-                FROM auth_rate_limit_events
-                WHERE event_type = %s
-                  AND subject_hash = %s
-                  AND created_at >= %s
-                ORDER BY created_at ASC, id ASC
-                FOR UPDATE
-                """,
-                (event_type, subject_hash, window_start),
+
+def enforce_login_rate_limits(email: str, client_ip: str) -> None:
+    normalized_email = normalize_email(email)
+    normalized_ip = str(client_ip or "unknown").strip().lower()[:255] or "unknown"
+    enforce_rate_limit_specs(
+        [
+            (
+                "login_request_ip",
+                normalized_ip,
+                LOGIN_REQUEST_LIMIT_PER_IP,
+                LOGIN_RATE_WINDOW_MINUTES,
+            ),
+            (
+                "login_request_email",
+                normalized_email,
+                LOGIN_REQUEST_LIMIT_PER_EMAIL,
+                LOGIN_RATE_WINDOW_MINUTES,
+            ),
+        ],
+        "Too many login attempts. Please wait before trying again.",
+    )
+
+
+def enforce_analysis_rate_limit(client_ip: str) -> None:
+    normalized_ip = str(client_ip or "unknown").strip().lower()[:255] or "unknown"
+    enforce_rate_limit_specs(
+        [
+            (
+                "analysis_request_ip",
+                normalized_ip,
+                ANALYSIS_REQUEST_LIMIT_PER_IP,
+                ANALYSIS_RATE_WINDOW_MINUTES,
             )
-            recent_events = cursor.fetchall()
-            if len(recent_events) >= limit:
-                retry_after = get_rate_limit_retry_after(
-                    recent_events[0].get("created_at"),
-                    window_minutes,
-                    now,
-                )
-                raise EmailPinRateLimitError(detail, retry_after)
-            pending_events.append((event_type, subject_hash))
+        ],
+        "Too many resume analyses. Please wait before trying again.",
+    )
 
-        for event_type, subject_hash in pending_events:
-            cursor.execute(
-                """
-                INSERT INTO auth_rate_limit_events (event_type, subject_hash, created_at)
-                VALUES (%s, %s, %s)
-                """,
-                (event_type, subject_hash, now),
-            )
 
-        retention_minutes = max(
-            EMAIL_PIN_REQUEST_WINDOW_MINUTES,
-            EMAIL_PIN_RATE_WINDOW_MINUTES,
-        ) * 2
-        cursor.execute(
-            "DELETE FROM auth_rate_limit_events WHERE created_at < %s",
-            (now - timedelta(minutes=retention_minutes),),
-        )
-        connection.commit()
-    except Exception:
-        if connection is not None:
-            connection.rollback()
-        raise
-    finally:
-        if cursor is not None:
-            cursor.close()
-        if connection is not None:
-            connection.close()
+def should_enforce_extra_rate_limits() -> bool:
+    return not (
+        app.config.get("TESTING")
+        and not app.config.get("ENFORCE_RATE_LIMITS_IN_TESTS", False)
+    )
 
 
 def send_resend_api_email_pin(email: str, pin: str, purpose: str) -> str:
@@ -5523,6 +5736,12 @@ def login_user():
     email = normalize_email(payload.get("email", ""))
     password = payload.get("password", "")
 
+    if should_enforce_extra_rate_limits():
+        try:
+            enforce_login_rate_limits(email, get_request_client_ip())
+        except RequestRateLimitError as error:
+            return build_rate_limit_response(error)
+
     if not email or not password:
         return jsonify({"detail": "email and password are required"}), 400
 
@@ -6327,6 +6546,12 @@ def analyze_file():
         return jsonify({"detail": "Authentication required"}), 401
 
     session_user_id = int(current_user["id"])
+
+    if should_enforce_extra_rate_limits():
+        try:
+            enforce_analysis_rate_limit(get_request_client_ip())
+        except RequestRateLimitError as error:
+            return build_rate_limit_response(error)
 
     if "resume_file" not in request.files:
         return jsonify({"detail": "resume_file is required"}), 400
