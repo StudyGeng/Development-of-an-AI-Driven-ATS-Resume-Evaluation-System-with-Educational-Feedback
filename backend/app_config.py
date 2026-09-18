@@ -60,13 +60,13 @@ ACCURACY_TESTING_WORKBOOK = os.getenv(
     os.path.join(
         BASE_DIR,
         "outputs",
-        "accuracy_evaluation_fix",
-        "ats_resume_fyp_testing_review_ready.xlsx",
+        "accuracy_evaluation",
+        "ats_resume_fyp_testing.xlsx",
     ),
 )
 ACCURACY_TESTING_PENDING_FILE = os.getenv(
     "ACCURACY_TESTING_PENDING_FILE",
-    os.path.join(BASE_DIR, "outputs", "accuracy_evaluation_fix", "accuracy_testing_pending.jsonl"),
+    os.path.join(BASE_DIR, "outputs", "accuracy_evaluation", "accuracy_testing_pending.jsonl"),
 )
 
 RESUME_GENERATION_MAX_TEXT_LENGTH = 12000
