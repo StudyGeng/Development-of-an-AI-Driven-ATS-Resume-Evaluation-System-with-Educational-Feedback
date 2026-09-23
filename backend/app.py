@@ -78,6 +78,7 @@ from app_config import (
     MAX_RESUME_UPLOAD_BYTES,
     PDF_EXTENSIONS,
     RESUME_GENERATION_MAX_TEXT_LENGTH,
+    SESSION_LIFETIME_DAYS,
     SUPPORTED_RESUME_EXTENSIONS,
     TRUSTED_PROXY_COUNT,
 )
@@ -88,7 +89,12 @@ from core_utils import (
     normalize_text,
     role_similarity_score,
 )
-from export_helpers import get_link_label, normalize_resume_link, percent_status_label
+from export_helpers import (
+    get_link_label,
+    normalize_provider_resume_link,
+    normalize_resume_link,
+    percent_status_label,
+)
 from job_repository import (
     apply_job_data_cleaning_plan,
     fetch_job_catalog,
@@ -755,6 +761,8 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=is_production_environment(),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=SESSION_LIFETIME_DAYS),
+    SESSION_REFRESH_EACH_REQUEST=True,
     MAX_CONTENT_LENGTH=MAX_RESUME_UPLOAD_BYTES,
     MAX_FORM_MEMORY_SIZE=MAX_FORM_MEMORY_BYTES,
     MAX_FORM_PARTS=MAX_FORM_PARTS,
@@ -923,7 +931,11 @@ def get_authenticated_session_user() -> dict[str, Any] | None:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
-            "SELECT id, email, is_admin FROM users WHERE id = %s",
+            """
+            SELECT id, full_name, email, email_verified_at, is_admin, created_at
+            FROM users
+            WHERE id = %s
+            """,
             (session_user_id,),
         )
         current_user = cursor.fetchone()
@@ -938,6 +950,9 @@ def get_authenticated_session_user() -> dict[str, Any] | None:
         return None
 
     current_user["id"] = int(current_user["id"])
+    # Upgrade older valid browser-session cookies to the persistent policy and
+    # refresh their bounded expiry while the account remains active.
+    session.permanent = True
     session["user_id"] = current_user["id"]
     session["email"] = normalize_email(str(current_user.get("email") or ""))
     session["is_admin"] = is_user_admin(current_user)
@@ -1936,6 +1951,31 @@ def count_language_markers(text: str, markers: set[str]) -> int:
     return sum(1 for token in tokens if token in markers)
 
 
+def has_measurable_impact(text: str) -> bool:
+    """Detect a real result signal without treating years or the word 'users' as metrics."""
+
+    value = normalize_text(text)
+    if not value:
+        return False
+    if re.search(r"(?:\d+(?:\.\d+)?\s*%|[$€£]\s*\d|\b\d+\+)", value):
+        return True
+    if re.search(
+        r"\b(?!19\d{2}\b|20\d{2}\b)\d+(?:,\d{3})*(?:\.\d+)?\s*"
+        r"(?:users?|customers?|clients?|records?|transactions?|requests?|projects?|"
+        r"hours?|days?|weeks?|months?|minutes?|seconds?)\b",
+        value,
+        re.I,
+    ):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:reduced|increased|improved|boosted|decreased|saved|grew|accelerated|optimized)\b",
+            value,
+            re.I,
+        )
+    )
+
+
 def count_text_extraction_spacing_glitches(text: str) -> int:
     candidates = re.findall(
         r"\b(?:[a-z]{3,}[A-Z][A-Za-z]{2,}|\d{2,}[A-Za-z]{3,}|[A-Za-z]{3,}\d{2,})\b",
@@ -2134,7 +2174,11 @@ def analyze_resume_quality(
             0,
         )
 
-    quantified_evidence = len(re.findall(r"(\d+(?:\.\d+)?%|\d+\+|\$|users?|revenue|reduced|increased|improved|optimized|enabled|delivered)", resume_text, re.I))
+    quantified_evidence = sum(
+        1
+        for sentence in extract_sentences(resume_text)
+        if has_measurable_impact(sentence)
+    )
     if quantified_evidence < 3:
         add(
             "Impact",
@@ -2595,13 +2639,13 @@ def build_top_role_match_items(
         score = float(match.get("confidence_score") or fit_result.get("combined_score") or 0)
 
         if score >= 75:
-            confidence_label = "Strong fit"
+            confidence_label = "Strong evidence"
         elif score >= 55:
-            confidence_label = "Good fit"
+            confidence_label = "Good evidence"
         elif score >= 35:
-            confidence_label = "Possible fit"
+            confidence_label = "Moderate evidence"
         else:
-            confidence_label = "Weak evidence"
+            confidence_label = "Limited evidence"
 
         if matched_keywords:
             reason = "Strong evidence: " + ", ".join(matched_keywords[:5]) + "."
@@ -2717,6 +2761,25 @@ def build_role_recommendation(
     else:
         reason_summary = "The system could not compare this resume with a database role."
 
+    ranked_scores = [
+        score
+        for score in (
+            clean_score(
+                match.get("confidence_score")
+                or (match.get("fit_result") or {}).get("combined_score")
+            )
+            for match in (top_role_matches or [])[:2]
+        )
+        if score is not None
+    ]
+    top_score_gap = round(abs(ranked_scores[0] - ranked_scores[1]), 2) if len(ranked_scores) == 2 else None
+    is_close_match = bool(top_score_gap is not None and top_score_gap < 3.0)
+    if is_close_match:
+        reason_summary += (
+            f" The top two roles are separated by only {top_score_gap:.2f} points, so this is a close evidence match; "
+            "review both role descriptions instead of treating the first result as certain."
+        )
+
     return {
         "selected_role": selected_label,
         "selected_database_role": selected_database_role,
@@ -2727,6 +2790,8 @@ def build_role_recommendation(
         "selected_score": selected_score,
         "detected_score": detected_score,
         "recommended_score": recommended_score,
+        "top_score_gap": top_score_gap,
+        "is_close_match": is_close_match,
         "matched_resume_signals": matched_signals,
         "recommended_missing_keywords": (recommended_fit or {}).get("missing_keywords", []),
         "selected_missing_keywords": selected_missing,
@@ -3427,6 +3492,17 @@ def repair_character_spaced_pdf_text(value: str) -> str:
     """Recover words from PDFs that extract text as `R e s u m e`."""
 
     def collapse_line(line: str) -> str:
+        compact_tokens = [token for token in re.split(r"[ \t]+", line.strip()) if token]
+        if (
+            3 <= len(compact_tokens) <= 24
+            and not re.search(r"[ \t]{2,}", line)
+            and all(token.isalpha() and len(token) <= 2 for token in compact_tokens)
+            and sum(1 for token in compact_tokens if len(token) == 1) >= (len(compact_tokens) + 1) // 2
+        ):
+            # Some two-column PDF templates expose headings and wrapped word
+            # fragments as `E d u c at i on` or `s e r v i c e s`, without the
+            # double spaces that the normal character-spacing repair relies on.
+            return "".join(compact_tokens)
         if not CHARACTER_SPACED_WORD_PATTERN.search(line):
             return line
         if not re.search(r"[ \t]{2,}", line):
@@ -3451,6 +3527,9 @@ def repair_character_spaced_pdf_text(value: str) -> str:
         repaired = re.sub(rf"\b{re.escape(spaced_word)}\b", replacement, repaired, flags=re.I)
     repaired = re.sub(r"\bAsa\b", "As a", repaired)
     repaired = re.sub(r"\bso\s+ware\b", "software", repaired, flags=re.I)
+    repaired = re.sub(r"(?<!\w)\.\s+NET\b", ".NET", repaired, flags=re.I)
+    repaired = re.sub(r"\bC\s*\+\s*\+\b", "C++", repaired, flags=re.I)
+    repaired = re.sub(r"\bM\s*4\s+FOOD\b", "M4FOOD", repaired, flags=re.I)
     repaired = re.sub(r"(?<=\w)\s*@\s*(?=\w)", "@", repaired)
     repaired = re.sub(r"(?<=\w)\s*\.\s*(?=(?:com|net|org|edu|io|dev|me)\b)", ".", repaired, flags=re.I)
     repaired = re.sub(r"\s+/\s+", " / ", repaired)
@@ -3460,6 +3539,12 @@ def repair_character_spaced_pdf_text(value: str) -> str:
 def clean_resume_source_text(value: str) -> str:
     cleaned = repair_character_spaced_pdf_text(str(value or ""))
     cleaned = sanitize_resume_text_artifacts(cleaned)
+    cleaned = re.sub(r"\bM\s*4\s+FOOD\b", "M4FOOD", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bA\s+I\b", "AI", cleaned)
+    cleaned = re.sub(r"(?<=[A-Za-z])\s+-\s+(?=[A-Za-z])", "-", cleaned)
+    cleaned = re.sub(r"\s+:\s*", ": ", cleaned)
+    cleaned = re.sub(r"\(\s+", "(", cleaned)
+    cleaned = re.sub(r"\s+\)", ")", cleaned)
     cleaned = re.sub(r"\r\n?", "\n", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
@@ -3529,8 +3614,52 @@ def get_resume_generation_role(analysis: dict[str, Any], requested_role: str = "
 
 def infer_resume_name_from_text(text: str) -> str:
     lines = [normalize_text(line) for line in clean_resume_source_text(text).splitlines()]
-    ignored_terms = set(CORE_RESUME_SECTION_MARKERS + CONTACT_MARKERS + ["email", "phone", "mobile", "resume", "curriculum vitae"])
+    ignored_terms = set(
+        CORE_RESUME_SECTION_MARKERS
+        + CONTACT_MARKERS
+        + [
+            "academic projects",
+            "activities",
+            "contact",
+            "email",
+            "language",
+            "mobile",
+            "phone",
+            "profile",
+            "resume",
+            "tech stack",
+            "technical stack",
+            "curriculum vitae",
+        ]
+    )
     role_terms = {"developer", "engineer", "analyst", "manager", "intern", "student", "assistant", "support"}
+
+    # Multi-column PDFs often expose a name as two adjacent all-capital lines,
+    # for example `CHENG` then `QING HONG`. Join those lines before evaluating
+    # ordinary one-line candidates, and never treat a section heading as a name.
+    uppercase_name_parts: list[str] = []
+    for line_index, raw_line in enumerate(lines[:20]):
+        normalized = normalize_match_text(raw_line)
+        words = re.findall(r"[A-Za-z][A-Za-z'-]*", raw_line)
+        is_heading = any(normalized == term or normalized.startswith(term + " ") for term in ignored_terms)
+        is_uppercase_name_part = (
+            bool(words)
+            and len(words) <= 3
+            and not is_heading
+            and not re.search(r"\d|@|https?://", raw_line, re.I)
+            and all(word.upper() == word for word in words)
+            and not (set(normalized.split()) & role_terms)
+        )
+        if is_uppercase_name_part:
+            uppercase_name_parts.extend(words)
+            if 2 <= len(uppercase_name_parts) <= 5:
+                next_index = line_index + 1
+                next_line = lines[next_index] if next_index < len(lines) else ""
+                next_words = re.findall(r"[A-Za-z][A-Za-z'-]*", next_line)
+                if not next_words or not all(word.upper() == word for word in next_words):
+                    return " ".join(uppercase_name_parts).title()
+        else:
+            uppercase_name_parts = []
 
     for raw_line in lines[:14]:
         line = re.sub(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", "", raw_line)
@@ -3547,7 +3676,7 @@ def infer_resume_name_from_text(text: str) -> str:
         if not line:
             continue
         normalized = normalize_match_text(line)
-        if not normalized or any(term in normalized for term in ignored_terms):
+        if not normalized or any(normalized == term or normalized.startswith(term + " ") for term in ignored_terms):
             continue
         words = [word for word in re.split(r"\s+", line) if word]
         if 2 <= len(words) <= 5 and not (set(normalized.split()) & role_terms):
@@ -3586,6 +3715,11 @@ def extract_resume_phone(text: str) -> str:
 
 def extract_resume_email(text: str) -> str:
     candidates = re.findall(r"[\w.+-]+@[\w-]+(?:\s*\.\s*[\w-]+)+", text)
+    for line in str(text or "").splitlines():
+        if "@" not in line:
+            continue
+        compact_line = re.sub(r"\s+", "", line)
+        candidates.extend(re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", compact_line))
     emails: list[tuple[str, str, int]] = []
     for index, candidate in enumerate(candidates):
         cleaned = re.sub(r"\s+", "", candidate).strip(".,;:()[]{}<>")
@@ -3620,9 +3754,17 @@ def extract_resume_contact(
     text = clean_resume_source_text(resume_text)
     email = extract_resume_email(text)
     phone = extract_resume_phone(text)
+    link_scan_text = text
+    compact_link_lines = [
+        re.sub(r"\s+", "", line)
+        for line in text.splitlines()
+        if re.search(r"h\s*t\s*t\s*p|linkedin|github", line, re.I)
+    ]
+    if compact_link_lines:
+        link_scan_text += "\n" + "\n".join(compact_link_lines)
     extracted_links = re.findall(
-        r"(?:https?://)?(?:www\.)?(?:linkedin\.com|github\.com|[\w.-]+\.(?:dev|io|me|com)/)[^\s,;)]*",
-        text,
+        r"(?:https?://)?(?:www\.)?(?:linkedin\.com|github\.com|[\w.-]+\.(?:app|dev|io|me|com)/)[^\s,;)]*",
+        link_scan_text,
         re.I,
     )
     links = unique_clean_values(
@@ -3632,10 +3774,10 @@ def extract_resume_contact(
 
     provided_name = normalize_text(candidate_name)
     resume_name = infer_resume_name_from_text(text)
-    if resume_name and (not provided_name or len(provided_name.split()) < 2):
-        inferred_name = resume_name
-    else:
-        inferred_name = provided_name or resume_name
+    # The uploaded resume is the source of truth for the candidate identity.
+    # The signed-in profile name is only a fallback when the document does not
+    # expose a credible name (users may legitimately analyse another resume).
+    inferred_name = resume_name or provided_name
 
     return {
         "name": inferred_name or "Candidate Name",
@@ -3838,7 +3980,7 @@ def clean_education_subject(value: str) -> str:
 def extract_structured_education_lines(resume_text: str) -> list[str]:
     scan_text = normalize_education_scan_text(resume_text)
     degree_pattern = re.compile(
-        r"\b(Bachelor|Master|PhD|Diploma)\s+(of|in)\s+([A-Za-z &/]{3,90}?)(?:\s*\(\s*((?:19|20)\d{2})\s*-\s*((?:19|20)\d{2})\s*\)|(?=\s+(?:Bachelor|Master|PhD|Diploma|University|Politeknik|Polytechnic|College|School|Contact|Responsibility|I have|$)))",
+        r"\b(Bachelor|Master|PhD|Diploma)\s+(of|in)\s+([A-Za-z &/]{3,90}?)(?:\s*\(\s*((?:19|20)\d{2})\s*-\s*((?:19|20)\d{2}|Present)\s*\)|(?=\s+(?:Bachelor|Master|PhD|Diploma|University|Politeknik|Polytechnic|College|School|Contact|Responsibility|I have|$)))",
         re.I,
     )
     structured: list[tuple[int, str]] = []
@@ -3853,13 +3995,14 @@ def extract_structured_education_lines(resume_text: str) -> list[str]:
         start_year = match.group(4) or ""
         end_year = match.group(5) or ""
         if not start_year or not end_year:
-            nearby = scan_text[match.end() : match.end() + 80]
-            year_match = re.search(r"((?:19|20)\d{2})\s*-\s*((?:19|20)\d{2})", nearby)
+            nearby = scan_text[match.end() : match.end() + 260]
+            year_match = re.search(r"((?:19|20)\d{2})\s*-\s*((?:19|20)\d{2}|Present)", nearby, re.I)
             if year_match:
                 start_year, end_year = year_match.group(1), year_match.group(2)
 
-        context = scan_text[max(0, match.start() - 280) : match.start()]
-        institution = find_education_institution(context)
+        before_context = scan_text[max(0, match.start() - 280) : match.start()]
+        after_context = scan_text[match.end() : match.end() + 260]
+        institution = find_education_institution(after_context) or find_education_institution(before_context)
         signature = (degree_type.lower(), normalize_match_text(subject), f"{start_year}-{end_year}")
         if signature in seen:
             continue
@@ -3873,6 +4016,20 @@ def extract_structured_education_lines(resume_text: str) -> list[str]:
         sort_year = int(start_year) if start_year.isdigit() else 0
         structured.append((sort_year, clean_resume_sentence(line)))
 
+    stpm_match = re.search(r"\bSijil\s+Tinggi\s+Persekolahan\s+Malaysia\s*\(\s*STPM\s*\)", scan_text, re.I)
+    if stpm_match:
+        source_lines = [normalize_text(line) for line in clean_resume_source_text(resume_text).splitlines()]
+        school = next((line for line in source_lines if re.match(r"^SMK\b", line, re.I)), "")
+        preceding = scan_text[max(0, stpm_match.start() - 220) : stpm_match.start()]
+        date_matches = re.findall(r"((?:19|20)\d{2})\s*-\s*((?:19|20)\d{2}|Present)", preceding, re.I)
+        start_year, end_year = date_matches[-1] if date_matches else ("", "")
+        line = "Sijil Tinggi Persekolahan Malaysia (STPM)"
+        if school:
+            line += " - " + school
+        if start_year and end_year:
+            line += f" ({start_year} - {end_year})"
+        structured.append((int(start_year) if start_year.isdigit() else 0, clean_resume_sentence(line)))
+
     structured.sort(key=lambda item: item[0], reverse=True)
     return unique_clean_values([line for _, line in structured], 3)
 
@@ -3881,7 +4038,21 @@ def is_resume_section_heading(line: str) -> bool:
     normalized = normalize_match_text(line)
     if not normalized:
         return False
-    headings = set(CORE_RESUME_SECTION_MARKERS + ["contact", "my contact", "professional summary"])
+    headings = set(
+        CORE_RESUME_SECTION_MARKERS
+        + [
+            "academic projects",
+            "activities",
+            "contact",
+            "language",
+            "my contact",
+            "portfolio",
+            "professional summary",
+            "profile",
+            "tech stack",
+            "technical stack",
+        ]
+    )
     return len(line) <= 60 and any(normalized == heading or normalized.startswith(heading + " ") for heading in headings)
 
 
@@ -3890,7 +4061,7 @@ def split_resume_statement_parts(text: str) -> list[str]:
     parts: list[str] = []
     buffer = ""
     starts_new_statement = re.compile(
-        r"^(?:responsibilit(?:y|ies)|project|achievement|experience|work|internship|employment|authored|built|contributed|created|designed|developed|established|fixed|implemented|improved|performed|provided|repaired|resolved|tested|updated|worked)\b",
+        r"^(?:responsibilit(?:y|ies)|project|achievement|experience|work|internship|employment|bachelor|master|phd|diploma|university|applied|applies|authored|built|configured|contributed|created|designed|designing|developed|developing|ensured|established|fixed|implemented|improved|integrated|integrates|maintained|managed|performed|provided|repaired|resolved|supported|tested|updated|worked)\b",
         re.I,
     )
 
@@ -3940,6 +4111,8 @@ def extract_resume_evidence_sentences(resume_text: str, keywords: list[str], lim
         "achieved",
         "analyzed",
         "administered",
+        "applied",
+        "applies",
         "assisted",
         "built",
         "configured",
@@ -3950,9 +4123,14 @@ def extract_resume_evidence_sentences(resume_text: str, keywords: list[str], lim
         "deployed",
         "deploy",
         "designed",
+        "designing",
         "developed",
+        "developing",
+        "ensured",
         "implemented",
         "improved",
+        "integrated",
+        "integrates",
         "led",
         "managed",
         "monitored",
@@ -3989,6 +4167,18 @@ def extract_resume_evidence_sentences(resume_text: str, keywords: list[str], lim
 
         normalized_sentence = normalize_match_text(sentence)
         sentence_tokens = set(normalized_sentence.split())
+        if normalized_sentence.startswith(
+            (
+                "computer science student",
+                "latest cgpa",
+                "possesses ",
+                "profile ",
+                "skilled in ",
+                "student currently ",
+                "the ability to ",
+            )
+        ):
+            continue
         if is_skill_inventory_sentence(sentence, sentence_tokens, action_terms):
             continue
         if sentence_tokens & education_terms and not (sentence_tokens & action_terms):
@@ -3998,7 +4188,7 @@ def extract_resume_evidence_sentences(resume_text: str, keywords: list[str], lim
         has_metric = bool(re.search(r"\d+(?:\.\d+)?%|\d+\+|\b\d{2,}\b|users?|accuracy|reduced|increased|improved", sentence, re.I))
         has_technical_context = any(
             normalized_phrase_in_text(marker, normalized_sentence)
-            for marker in ("project", "intern", "system", "application", "website", "webapp", "software", "database", "network", "networks", "api", "program", "code", "technical")
+            for marker in ("project", "intern", "system", "application", "app", "chatbot", "platform", "web", "website", "webapp", "software", "database", "network", "networks", "api", "program", "code", "technical")
         )
         if not has_action and re.search(r"\b(?:present|(?:19|20)\d{2}|[01]?\d\s*/\s*(?:19|20)\d{2})\b", sentence, re.I):
             if any(normalized_phrase_in_text(term, normalized_sentence) for term in ("developer", "engineer", "analyst", "assistant", "intern", "support")):
@@ -4129,9 +4319,159 @@ def is_project_like_sentence(sentence: str) -> bool:
     return any(normalized_phrase_in_text(term, normalized) for term in project_terms)
 
 
+def extract_project_title_lines(resume_text: str, limit: int = 6) -> list[str]:
+    """Extract explicit project titles without confusing metadata for titles."""
+
+    title_markers = ("app", "application", "chatbot", "platform", "project", "system", "website")
+    action_starts = (
+        "applied ",
+        "applies ",
+        "built ",
+        "created ",
+        "designed ",
+        "designing ",
+        "developed ",
+        "developing ",
+        "implemented ",
+        "integrated ",
+        "integrates ",
+    )
+    titles: list[str] = []
+    for raw_line in clean_resume_source_text(resume_text).splitlines():
+        line = normalize_text(raw_line).split("|", 1)[0].strip(" |,-")
+        normalized = normalize_match_text(line)
+        if not normalized or len(line) > 120 or len(line.split()) > 16:
+            continue
+        if is_resume_section_heading(line) or normalized.startswith(action_starts):
+            continue
+        if normalized.startswith(("individual project", "role ", "team assignment", "technologies ")):
+            continue
+        if "course project" in normalized or not any(normalized_phrase_in_text(marker, normalized) for marker in title_markers):
+            continue
+        if normalized.startswith("final year project "):
+            line = re.sub(r"^Final\s+Year\s+Project\s*:\s*", "Final Year Project: ", line, flags=re.I)
+        titles.append(line.rstrip("."))
+    return unique_clean_values(titles, limit)
+
+
+def build_project_entries(resume_text: str, evidence_bullets: list[str], limit: int = 6) -> list[str]:
+    """Keep every explicit project and attach the closest truthful source evidence."""
+
+    titles = extract_project_title_lines(resume_text, limit)
+    if not titles:
+        return unique_clean_values(
+            [bullet for bullet in evidence_bullets if is_project_like_sentence(bullet)],
+            limit,
+        )
+
+    stop_words = {
+        "a",
+        "ai",
+        "and",
+        "app",
+        "application",
+        "based",
+        "final",
+        "for",
+        "information",
+        "project",
+        "system",
+        "the",
+        "web",
+        "year",
+    }
+
+    def project_terms(value: str) -> set[str]:
+        normalized = normalize_match_text(value)
+        normalized = normalized.replace("website", "web").replace("chat bot", "chatbot")
+        return {
+            token
+            for token in normalized.split()
+            if len(token) >= 3 and token not in stop_words
+        }
+
+    action_terms = {
+        "applied",
+        "built",
+        "created",
+        "designed",
+        "developed",
+        "implemented",
+        "integrated",
+        "managed",
+        "optimized",
+        "tested",
+    }
+    unused_evidence = list(evidence_bullets)
+    normalized_titles = [normalize_match_text(title) for title in titles]
+    clean_evidence: list[str] = []
+    for bullet in unused_evidence:
+        normalized_bullet = normalize_match_text(bullet)
+        matching_titles = [title for title in normalized_titles if title and title in normalized_bullet]
+        bullet_tokens = set(normalized_bullet.split())
+        if matching_titles and not (bullet_tokens & action_terms):
+            # A title/technology inventory is metadata, not a project outcome.
+            continue
+        clean_evidence.append(bullet)
+    unused_evidence = clean_evidence
+    entries: list[str] = []
+    for title in titles:
+        title_terms = project_terms(title)
+        ranked: list[tuple[int, int, str]] = []
+        for index, bullet in enumerate(unused_evidence):
+            bullet_terms = project_terms(bullet)
+            overlap = len(title_terms & bullet_terms)
+            score = overlap * 4
+            if "chatbot" in title_terms and any(term in bullet_terms for term in ("chatbot", "conversation", "gemini", "nlp")):
+                score += 5
+            if "residential" in title_terms and any(term in bullet_terms for term in ("apartment", "database", "houses", "platform")):
+                score += 5
+            if any(term in title_terms for term in ("donation", "food", "m4food")) and any(term in bullet_terms for term in ("bakeries", "food", "mobile", "surplus")):
+                score += 5
+            if "land" in title_terms and any(term in bullet_terms for term in ("crop", "environmental", "land", "soil", "suitability")):
+                score += 5
+            if score > 0:
+                ranked.append((score, -index, bullet))
+        if ranked:
+            _, _, best_bullet = max(ranked)
+            unused_evidence.remove(best_bullet)
+            title_pattern = re.escape(title).replace(r"\ ", r"\s+")
+            best_bullet = re.sub(
+                rf"^\s*{title_pattern}\s*(?:[|:\-]\s*)?",
+                "",
+                best_bullet,
+                count=1,
+                flags=re.I,
+            ) or best_bullet
+            best_bullet = re.split(r"\b(?:Technologies|Role)\s*:\s*", best_bullet, maxsplit=1, flags=re.I)[0]
+            best_bullet = clean_resume_sentence(best_bullet)
+            entries.append(f"{title} - {best_bullet}")
+        else:
+            entries.append(title + ".")
+
+    return unique_clean_values(entries, limit)
+
+
+def has_explicit_experience_section(resume_text: str) -> bool:
+    experience_headings = {
+        "employment",
+        "employment history",
+        "experience",
+        "internship",
+        "professional experience",
+        "work experience",
+        "work history",
+    }
+    for raw_line in clean_resume_source_text(resume_text).splitlines():
+        normalized = normalize_match_text(raw_line)
+        if normalized in experience_headings:
+            return True
+    return False
+
+
 def has_achievement_signal(sentence: str) -> bool:
     normalized = normalize_match_text(sentence)
-    if re.search(r"\d+(?:\.\d+)?%|\d+\+|\b\d{2,}\b|users?|customers?|accuracy|traffic|reduced|increased|improved|boosted|decreased", sentence, re.I):
+    if has_measurable_impact(sentence):
         return True
     return any(
         normalized_phrase_in_text(term, normalized)
@@ -4143,12 +4483,12 @@ def split_project_and_experience_bullets(evidence_bullets: list[str]) -> tuple[l
     projects: list[str] = []
     experience: list[str] = []
     for bullet in evidence_bullets:
-        if is_project_like_sentence(bullet) and len(projects) < 3:
+        if is_project_like_sentence(bullet) and len(projects) < 6:
             projects.append(bullet)
         elif len(experience) < 4:
             experience.append(bullet)
 
-    return unique_clean_values(experience, 4), unique_clean_values(projects, 3)
+    return unique_clean_values(experience, 4), unique_clean_values(projects, 6)
 
 
 def extract_certification_lines(resume_text: str, limit: int = 3) -> list[str]:
@@ -4230,10 +4570,22 @@ def build_limited_info_notes(completeness: dict[str, Any]) -> list[str]:
     ]
 
 
-def build_generated_summary(target_role: str, skills: list[str], matched_signals: list[str], experience_markers: list[str]) -> str:
+def build_generated_summary(
+    target_role: str,
+    skills: list[str],
+    matched_signals: list[str],
+    project_count: int = 0,
+    has_professional_experience: bool = False,
+) -> str:
     top_skills = unique_clean_values(skills + matched_signals, 6)
     skill_text = ", ".join(top_skills[:5]) if top_skills else "computer science fundamentals"
-    evidence_text = ", ".join(unique_clean_values(experience_markers, 3)) if experience_markers else "academic and project work"
+    evidence_parts: list[str] = []
+    if has_professional_experience:
+        evidence_parts.append("professional experience")
+    if project_count:
+        project_label = "documented project" if project_count == 1 else "documented projects"
+        evidence_parts.append(f"{project_count} {project_label}")
+    evidence_text = " and ".join(evidence_parts) or "academic and project work"
     return (
         f"Computer Science candidate targeting {target_role} roles with resume evidence in {skill_text}. "
         f"Background includes {evidence_text}, with focus on clear documentation, practical implementation, "
@@ -4246,8 +4598,17 @@ def format_resume_keyword(value: str) -> str:
     normalized = normalize_match_text(keyword)
     compact = re.sub(r"[^a-z0-9+#]+", "", keyword.lower())
     direct_labels = {
+        ".net": ".NET",
+        ".net maui": ".NET MAUI",
+        "netmaui": ".NET MAUI",
         "c#": "C#",
         "c++": "C++",
+        "gemini api": "Google Gemini API",
+        "geminiapi": "Google Gemini API",
+        "google gemini api": "Google Gemini API",
+        "googlegeminiapi": "Google Gemini API",
+        "google maps api": "Google Maps API",
+        "googlemapsapi": "Google Maps API",
         "node.js": "Node.js",
         "express.js": "Express.js",
         "restapi": "REST APIs",
@@ -4261,7 +4622,8 @@ def format_resume_keyword(value: str) -> str:
         return direct_labels[compact]
     labels = {
         "android studio": "Android Studio",
-        "api": "REST APIs",
+        "api": "API Integration",
+        "api integration": "API Integration",
         "aws": "AWS",
         "azure": "Azure",
         "c": "C",
@@ -4288,15 +4650,18 @@ def format_resume_keyword(value: str) -> str:
         "json": "JSON",
         "kubernetes": "Kubernetes",
         "linux": "Linux",
+        "machine learning": "Machine Learning",
         "mongodb": "MongoDB",
         "mysql": "MySQL",
         "node": "Node.js",
         "node js": "Node.js",
+        "nlp": "NLP",
         "object oriented programming": "OOP",
         "oop": "OOP",
         "oracle": "Oracle",
         "postman": "Postman",
         "postgresql": "PostgreSQL",
+        "prompt engineering": "Prompt Engineering",
         "problem solving": "Problem Solving",
         "python": "Python",
         "qa": "QA Testing",
@@ -4308,6 +4673,7 @@ def format_resume_keyword(value: str) -> str:
         "sdlc": "SDLC",
         "software test": "Software Testing",
         "sql": "SQL",
+        "sqlite": "SQLite",
         "spring": "Spring Boot",
         "spring boot": "Spring Boot",
         "supabase": "Supabase",
@@ -4333,10 +4699,11 @@ def format_resume_keyword(value: str) -> str:
 def categorize_resume_skills(skills: list[str]) -> list[dict[str, Any]]:
     group_rules: list[tuple[str, set[str]]] = [
         ("Languages", {"java", "python", "javascript", "typescript", "sql", "c", "c#", "c++", "php", "ruby", "go", "kotlin", "swift", "dart"}),
-        ("Frontend", {"html", "css", "javascript", "typescript", "react", "angular", "vue", "tailwind css", "bootstrap", "ui", "ux"}),
-        ("Backend", {"node js", "express js", "spring boot", "rest apis", "rest api", "api", "flask", "django", "fastapi", "net", "asp net", "laravel", "php"}),
-        ("Databases", {"mysql", "supabase", "firebase", "postgresql", "mongodb", "oracle", "sql server", "database administration"}),
-        ("Tools", {"git", "github", "postman", "android studio", "visual studio code", "docker", "kubernetes", "jenkins", "linux", "aws", "azure", "google cloud", "gcp", "excel", "tableau", "power bi"}),
+        ("Frontend / Mobile", {"net maui", "html", "css", "javascript", "typescript", "react", "angular", "vue", "tailwind css", "bootstrap", "ui", "ux"}),
+        ("Backend / APIs", {"node js", "express js", "spring boot", "rest apis", "rest api", "api", "api integration", "google gemini api", "flask", "django", "fastapi", "net", "asp net", "laravel", "php"}),
+        ("Databases", {"mysql", "supabase", "firebase", "postgresql", "mongodb", "oracle", "sqlite", "sql server", "database administration"}),
+        ("AI / Data", {"machine learning", "nlp", "data analysis", "prompt engineering"}),
+        ("Tools", {"git", "github", "google maps api", "postman", "android studio", "visual studio code", "docker", "kubernetes", "jenkins", "linux", "aws", "azure", "google cloud", "gcp", "excel", "tableau", "power bi"}),
         ("Concepts", {"oop", "object oriented programming", "full stack development", "fullstack", "software development", "software testing", "qa testing", "troubleshooting", "sdlc", "agile", "scrum", "ci cd", "system design", "problem solving"}),
     ]
     low_value_terms = {
@@ -4360,10 +4727,11 @@ def categorize_resume_skills(skills: list[str]) -> list[dict[str, Any]]:
     groups = [{"label": label, "items": []} for label, _ in group_rules]
     preferred_order = {
         "Languages": ["Java", "Python", "JavaScript", "SQL", "TypeScript", "C#", "C++", "PHP", "Go", "Ruby", "Kotlin", "Swift", "Dart"],
-        "Frontend": ["HTML", "CSS", "JavaScript", "TypeScript", "React", "Angular", "Vue", "Tailwind CSS", "Bootstrap", "UI", "UX"],
-        "Backend": ["Node.js", "Express.js", "Spring Boot", "REST APIs", "Flask", "Django", "FastAPI", ".NET", "ASP.NET", "Laravel"],
-        "Databases": ["MySQL", "Supabase", "Firebase", "PostgreSQL", "MongoDB", "Oracle", "SQL Server"],
-        "Tools": ["Git", "GitHub", "Postman", "Android Studio", "Visual Studio Code", "Docker", "Kubernetes", "Jenkins", "Linux", "AWS", "Azure", "Google Cloud", "Excel", "Tableau", "Power BI"],
+        "Frontend / Mobile": [".NET MAUI", "HTML", "CSS", "JavaScript", "TypeScript", "React", "Angular", "Vue", "Tailwind CSS", "Bootstrap", "UI", "UX"],
+        "Backend / APIs": ["Node.js", "Express.js", "Spring Boot", "API Integration", "Google Gemini API", "REST APIs", "Flask", "Django", "FastAPI", ".NET", "ASP.NET", "Laravel"],
+        "Databases": ["MySQL", "Supabase", "SQLite", "Firebase", "PostgreSQL", "MongoDB", "Oracle", "SQL Server"],
+        "AI / Data": ["Machine Learning", "NLP", "Data Analysis", "Prompt Engineering"],
+        "Tools": ["Git", "GitHub", "Google Maps API", "Postman", "Android Studio", "Visual Studio Code", "Docker", "Kubernetes", "Jenkins", "Linux", "AWS", "Azure", "Google Cloud", "Excel", "Tableau", "Power BI"],
         "Concepts": ["OOP", "Full-Stack Development", "Software Testing", "Troubleshooting", "SDLC", "Agile", "Scrum", "CI/CD", "System Design", "Problem Solving"],
     }
 
@@ -4394,6 +4762,43 @@ def categorize_resume_skills(skills: list[str]) -> list[dict[str, Any]]:
         if items:
             clean_groups.append({"label": group["label"], "items": items})
     return clean_groups
+
+
+def extract_source_resume_skills(resume_text: str) -> list[str]:
+    """Preserve explicit technologies that the broad analysis vocabulary can miss."""
+
+    text = clean_resume_source_text(resume_text)
+    skill_patterns: list[tuple[str, str]] = [
+        (".NET MAUI", r"(?<!\w)\.\s*net\s+maui\b"),
+        ("C++", r"(?<!\w)c\s*\+\s*\+(?!\w)"),
+        ("GitHub", r"\bgithub\b"),
+        ("Google Gemini API", r"\bgoogle\s+gemini\s+api\b"),
+        ("Google Maps API", r"\bgoogle\s+maps\s+api\b"),
+        ("SQLite", r"\bsqlite\b"),
+        ("Prompt Engineering", r"\bprompt\s+engineering\b"),
+        ("Machine Learning", r"\bmachine\s+learning\b"),
+        ("NLP", r"\bnlp\b"),
+        ("Data Analysis", r"\bdata\s+analysis\b"),
+    ]
+    return [label for label, pattern in skill_patterns if re.search(pattern, text, re.I)]
+
+
+def split_generated_education_item(value: str) -> tuple[str, str, str]:
+    """Split a stored education line into ATS-safe display lines."""
+
+    text = normalize_text(value).rstrip(".")
+    date_match = re.search(
+        r"\s*\(((?:19|20)\d{2}\s*-\s*(?:(?:19|20)\d{2}|Present))\)$",
+        text,
+        re.I,
+    )
+    dates = date_match.group(1) if date_match else ""
+    if date_match:
+        text = text[: date_match.start()].rstrip()
+    credential, separator, institution = text.partition(" - ")
+    if not separator:
+        return text, "", dates
+    return credential.strip(), institution.strip(), dates
 
 
 def build_generated_resume_plain_text(draft: dict[str, Any]) -> str:
@@ -4429,7 +4834,15 @@ def build_generated_resume_plain_text(draft: dict[str, Any]) -> str:
         if not items:
             continue
         lines.extend(["", section_heading.upper()])
-        lines.extend(f"- {line}" for line in items)
+        if section_key == "education":
+            for item in items:
+                credential, institution, dates = split_generated_education_item(str(item))
+                lines.append(f"- {credential}")
+                detail = " | ".join(value for value in (institution, dates) if value)
+                if detail:
+                    lines.append(f"  {detail}")
+        else:
+            lines.extend(f"- {line}" for line in items)
     return "\n".join(line for line in lines if line is not None).strip() + "\n"
 
 
@@ -4446,7 +4859,18 @@ def build_generated_resume_html(draft: dict[str, Any]) -> str:
         items = real_resume_items(list(sections.get(section_key) or []))
         if not items:
             return ""
-        rendered_items = "".join(f"<li>{html_escape(str(item))}</li>" for item in items)
+        if section_key == "education":
+            rendered_items = ""
+            for item in items:
+                credential, institution, dates = split_generated_education_item(str(item))
+                detail = " | ".join(value for value in (institution, dates) if value)
+                detail_html = f"<span>{html_escape(detail)}</span>" if detail else ""
+                rendered_items += (
+                    "<li class=\"education-item\">"
+                    f"<strong>{html_escape(credential)}</strong>{detail_html}</li>"
+                )
+        else:
+            rendered_items = "".join(f"<li>{html_escape(str(item))}</li>" for item in items)
         return f"<h2>{html_escape(heading)}</h2><ul>{rendered_items}</ul>"
 
     skill_group_html = "".join(
@@ -4473,6 +4897,7 @@ def build_generated_resume_html(draft: dict[str, Any]) -> str:
         "p{margin:0 0 7px}.skill-row{display:grid;grid-template-columns:1.25in 1fr;gap:10px;margin:3px 0;font-size:10.5pt}"
         ".skill-row strong{color:#111}.skill-row span{color:#111}"
         "ul{margin:0 0 0 18px;padding:0;list-style-position:outside}li{margin:4px 0;font-size:10.5pt;break-inside:avoid}"
+        ".education-item strong,.education-item span{display:block}.education-item span{margin-top:1px}"
         ".summary{font-size:10.8pt;color:#111}"
         "@media print{.page{max-width:none;margin:0;padding:0}.header{margin-bottom:10px}}"
         "</style></head><body><main class=\"page\">"
@@ -4651,7 +5076,15 @@ def build_generated_resume_pdf_buffer(draft: dict[str, Any]) -> BytesIO:
             continue
         story.extend(heading(section_heading))
         for item in items:
-            story.append(Paragraph("- " + html_escape(str(item)), styles["bullet"]))
+            if section_key == "education":
+                credential, institution, dates = split_generated_education_item(str(item))
+                detail = " | ".join(value for value in (institution, dates) if value)
+                content = "- <b>" + html_escape(credential) + "</b>"
+                if detail:
+                    content += "<br/><font size=\"8.8\">" + html_escape(detail) + "</font>"
+                story.append(Paragraph(content, styles["bullet"]))
+            else:
+                story.append(Paragraph("- " + html_escape(str(item)), styles["bullet"]))
 
     document.build(story)
     buffer.seek(0)
@@ -5025,7 +5458,7 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
         ["ATS format quality", clean_report_text(resume_quality.get("risk_level"), "Not available", 80) + " risk"],
     ]
 
-    top_rows = [["Rank", "Database role", "Fit", "Status", "Evidence"]]
+    top_rows = [["Rank", "Database role", "Evidence score", "Status", "Evidence"]]
     for index, item in enumerate(top_role_items(), start=1):
         raw_score = item.get("score", item.get("confidence_score"))
         role_score = score_label(raw_score)
@@ -5033,7 +5466,7 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
             [
                 label
                 for label in [
-                    "Final used" if item.get("is_final_recommended") else "",
+                    "Used for ATS score" if item.get("is_final_recommended") else "",
                     "Selected" if item.get("is_selected_database_role") else "",
                 ]
                 if label
@@ -5118,6 +5551,13 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
             story.append(paragraph("- " + action_text, "body", max_length=390))
 
     add_section(story, "Top 3 Role Matches")
+    story.append(
+        paragraph(
+            "Evidence-match scores compare resume text with database requirements; they are not hiring probabilities or validated model accuracy.",
+            "muted",
+            max_length=220,
+        )
+    )
     story.append(report_table(top_rows, [0.45 * inch, 1.55 * inch, 1.15 * inch, 0.9 * inch, 3.0 * inch], has_header=True))
 
     add_section(story, "Score Components")
@@ -5354,7 +5794,11 @@ def build_generated_resume_payload(
     job_analysis = safe_analysis.get("job_description_analysis") or {}
     resume_quality = safe_analysis.get("resume_quality") or {}
 
-    existing_skills = unique_clean_values(list(resume_summary.get("skills") or []), 14)
+    source_skills = extract_source_resume_skills(resume_source)
+    existing_skills = unique_clean_values(
+        list(resume_summary.get("skills") or []) + source_skills,
+        24,
+    )
     matched_signals = unique_clean_values(
         list(role_recommendation.get("matched_resume_signals") or [])
         + list(job_analysis.get("matched_keywords") or []),
@@ -5368,29 +5812,35 @@ def build_generated_resume_payload(
     strategy_keyword_targets = unique_clean_values(list(resume_generation_strategy.get("keyword_targets") or []), 8)
     missing_keywords = unique_clean_values(missing_keywords + strategy_keyword_targets, 10)
     important_keywords = unique_clean_values(list(job_analysis.get("important_keywords") or []), 14)
-    skills = unique_clean_values(existing_skills + matched_signals, 18)
+    skills = unique_clean_values(existing_skills + matched_signals, 28)
     if not skills:
         skills = ["Programming fundamentals", "Problem solving", "Technical documentation"]
-    display_skills = unique_clean_values([format_resume_keyword(skill) for skill in skills], 18)
+    display_skills = unique_clean_values([format_resume_keyword(skill) for skill in skills], 28)
+    if ".NET MAUI" in display_skills:
+        display_skills = [skill for skill in display_skills if skill != ".NET"]
     display_matched_signals = unique_clean_values([format_resume_keyword(signal) for signal in matched_signals], 12)
     display_missing_keywords = unique_clean_values([format_resume_keyword(keyword) for keyword in missing_keywords], 10)
 
     contact = extract_resume_contact(resume_source, candidate_name, contact_links)
     filename_name = infer_resume_name_from_filename(str(safe_analysis.get("uploaded_resume_name") or ""))
     current_contact_name = normalize_text(str(contact.get("name") or ""))
-    if filename_name and (
-        not current_contact_name
-        or current_contact_name == "Candidate Name"
-        or len(filename_name.split()) > len(current_contact_name.split())
-    ):
+    if filename_name and (not current_contact_name or current_contact_name == "Candidate Name"):
         contact["name"] = filename_name
     education_lines = extract_education_lines(resume_source, list(resume_summary.get("education_markers") or []))
     evidence_bullets = extract_resume_evidence_sentences(
         resume_source,
         skills + matched_signals + important_keywords,
-        10,
+        24,
     )
-    experience_bullets, project_bullets = split_project_and_experience_bullets(evidence_bullets)
+    experience_bullets, fallback_project_bullets = split_project_and_experience_bullets(evidence_bullets)
+    project_bullets = build_project_entries(
+        resume_source,
+        evidence_bullets or fallback_project_bullets,
+        6,
+    )
+    has_professional_experience = has_explicit_experience_section(resume_source)
+    if not has_professional_experience:
+        experience_bullets = []
     certification_lines = extract_certification_lines(resume_source)
     achievement_lines = extract_achievement_lines(resume_source, evidence_bullets)
     project_keys = {normalize_match_text(project) for project in project_bullets}
@@ -5421,12 +5871,13 @@ def build_generated_resume_payload(
             role,
             display_skills,
             display_matched_signals,
-            list(resume_summary.get("experience_markers") or []),
+            len(project_bullets),
+            has_professional_experience,
         ),
         "technical_skills": display_skills,
         "skill_groups": categorize_resume_skills(display_skills),
         "experience_bullets": experience_bullets[:6],
-        "projects": project_bullets[:3],
+        "projects": project_bullets[:6],
         "certifications": certification_lines[:3],
         "achievements": achievement_lines[:3],
         "education": education_lines,
@@ -5787,6 +6238,29 @@ def login_user():
 def logout_user():
     clear_login_session()
     return jsonify({"message": "Logged out successfully"})
+
+
+@app.get("/auth/session")
+def get_current_auth_session():
+    """Reconcile browser UI state with the signed server session."""
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseError:
+        return jsonify({"detail": "Database error while validating session"}), 500
+
+    if not current_user:
+        response = jsonify({"authenticated": False, "user": None})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    response = jsonify(
+        {
+            "authenticated": True,
+            "user": serialize_user(current_user),
+        }
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def build_admin_dashboard_payload() -> dict[str, Any]:
@@ -6203,6 +6677,19 @@ def create_download_history():
     return jsonify({"message": "Download history saved"})
 
 
+def get_generated_resume_contact_links(payload: dict[str, Any]) -> list[str]:
+    raw_contact_links = payload.get("contact_links") if isinstance(payload.get("contact_links"), list) else []
+    return unique_clean_values(
+        [
+            normalize_provider_resume_link(str(payload.get("linkedin_url") or ""), "linkedin.com"),
+            normalize_provider_resume_link(str(payload.get("github_url") or ""), "github.com"),
+            normalize_resume_link(str(payload.get("portfolio_url") or "")),
+            *[normalize_resume_link(str(link or "")) for link in raw_contact_links],
+        ],
+        5,
+    )
+
+
 @app.post("/generate-resume")
 def generate_ats_resume():
     payload = request.get_json(silent=True) or {}
@@ -6217,11 +6704,7 @@ def generate_ats_resume():
     )
     target_role = normalize_text(str(payload.get("target_role") or ""))
     candidate_name = normalize_text(str(payload.get("candidate_name") or ""))
-    raw_contact_links = payload.get("contact_links") if isinstance(payload.get("contact_links"), list) else []
-    contact_links = unique_clean_values(
-        [payload.get("linkedin_url"), payload.get("github_url"), payload.get("portfolio_url"), *raw_contact_links],
-        5,
-    )
+    contact_links = get_generated_resume_contact_links(payload)
 
     if not analysis and not resume_text:
         return jsonify({"detail": "analysis or resume_text is required"}), 400
@@ -6253,11 +6736,7 @@ def generate_ats_resume_pdf():
         )
         target_role = normalize_text(str(payload.get("target_role") or ""))
         candidate_name = normalize_text(str(payload.get("candidate_name") or ""))
-        raw_contact_links = payload.get("contact_links") if isinstance(payload.get("contact_links"), list) else []
-        contact_links = unique_clean_values(
-            [payload.get("linkedin_url"), payload.get("github_url"), payload.get("portfolio_url"), *raw_contact_links],
-            5,
-        )
+        contact_links = get_generated_resume_contact_links(payload)
         if not analysis and not resume_text:
             return jsonify({"detail": "generated_resume, analysis, or resume_text is required"}), 400
         draft = build_generated_resume_payload(
@@ -6515,6 +6994,7 @@ def api_index():
                 "POST /users/register",
                 "POST /users/login",
                 "POST /users/logout",
+                "GET /auth/session",
                 "POST /users/password-reset",
                 "GET /users",
                 "GET /admin/dashboard-insights",

@@ -147,6 +147,7 @@ PORT=5000
 APP_ENV=development
 FLASK_DEBUG=0
 FLASK_SECRET_KEY=replace_me
+SESSION_LIFETIME_DAYS=7
 ADMIN_EMAILS=replace_with_your_real_admin_email
 ```
 
@@ -161,6 +162,8 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 For local development, paste the generated value after `FLASK_SECRET_KEY=` in the ignored `config/env` file. You can instead omit the key only when `APP_ENV=development`; Flask then creates a temporary key and existing login sessions are lost whenever the process restarts.
 
 For a hosted deployment, set `APP_ENV=production` and save the generated secret as `FLASK_SECRET_KEY` in the hosting provider's environment-variable or secret settings. Never put the real production key in `config/env`, source code, a build command, screenshots, logs, or GitHub. Keep the same secret across application restarts and instances; changing it signs every user out.
+
+Successful logins use an expiring persistent cookie, so closing and reopening the browser does not immediately sign the user out. `SESSION_LIFETIME_DAYS` defaults to 7 and accepts values from 1 to 30. The frontend validates the signed cookie against the live user record whenever a page opens; a deleted account or expired/invalid cookie is therefore removed from the browser UI instead of leaving a misleading remembered login.
 
 ### 5. Create the MySQL database
 
@@ -366,6 +369,7 @@ Configure these values in the hosting provider before starting the application:
 ```text
 APP_ENV=production
 FLASK_SECRET_KEY=replace_me
+SESSION_LIFETIME_DAYS=7
 ADMIN_EMAILS=replace_with_your_real_admin_email
 EMAIL_PIN_DEV_MODE=0
 TRUSTED_PROXY_COUNT=0
@@ -405,6 +409,7 @@ MYSQL_SSL_CA=/path/to/ca.pem
 | POST | `/users/register` | Register user |
 | POST | `/users/login` | Log in user |
 | POST | `/users/logout` | Log out user |
+| GET | `/auth/session` | Validate and restore the current signed browser session |
 | GET | `/analyses` | Load the signed-in user's analysis history; another email requires live admin access |
 | POST | `/downloads` | Record a download only for an analysis owned by the signed-in user |
 | GET | `/job-data-insights` | Admin-only job-data insights |

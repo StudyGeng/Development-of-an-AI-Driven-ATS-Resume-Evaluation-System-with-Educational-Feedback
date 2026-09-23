@@ -362,6 +362,8 @@ function updateHeaderAuthUi() {
   }
 }
 
+window.addEventListener("career-navigator-auth-changed", updateHeaderAuthUi);
+
 function showPageMessage(message, type = "info") {
   const element = document.getElementById("pageMessage");
   if (!element) {

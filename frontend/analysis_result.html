@@ -317,6 +317,7 @@
 <div>
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">Top Database Matches</p>
 <h3 class="text-xl font-bold text-primary" id="topRoleMatchesTitle" style="">Top 3 Role Matches</h3>
+<p class="text-xs text-on-surface-variant mt-1">These are evidence-match scores from resume text and database requirements, not hiring probabilities or validated model accuracy.</p>
 </div>
 <span class="self-start px-3 py-1 rounded-full bg-surface-container-high text-primary text-xs font-bold" id="topRoleMatchesBadge">Resume evidence ranking</span>
 </div>
@@ -887,6 +888,8 @@ Download PDF
         });
     }
 
+    window.addEventListener("career-navigator-auth-changed", updateAuthUi);
+
     function setProfileMessage(message, isError = false, showPopup = false) {
         if (!profileMessage) {
             return;
@@ -1191,7 +1194,7 @@ Download PDF
                     rank: 1,
                     role: "Computer Programmer",
                     score: 87,
-                    confidence_label: "Strong fit",
+                    confidence_label: "Strong evidence",
                     matched_keywords: ["systems", "design", "kubernetes", "docker"],
                     missing_keywords: [],
                     is_selected_database_role: true,
@@ -1202,7 +1205,7 @@ Download PDF
                     rank: 2,
                     role: "Software Developer",
                     score: 79,
-                    confidence_label: "Strong fit",
+                    confidence_label: "Strong evidence",
                     matched_keywords: ["software", "development", "testing", "deployment"],
                     missing_keywords: ["debugging", "api"],
                     is_selected_database_role: false,
@@ -1213,7 +1216,7 @@ Download PDF
                     rank: 3,
                     role: "DevOps Engineer",
                     score: 68,
-                    confidence_label: "Good fit",
+                    confidence_label: "Good evidence",
                     matched_keywords: ["kubernetes", "docker", "cloud"],
                     missing_keywords: ["ci/cd", "monitoring"],
                     is_selected_database_role: false,
@@ -1805,7 +1808,7 @@ Download PDF
                 ? "bg-primary text-on-primary"
                 : "bg-surface-container-high text-primary";
             const badges = [
-                isFinal ? '<span class="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[11px] font-bold">Final used</span>' : "",
+                isFinal ? '<span class="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[11px] font-bold">Used for ATS score</span>' : "",
                 isSelected ? '<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-[11px] font-bold">Selected</span>' : ""
             ].filter(Boolean).join("");
             const matchedMarkup = matchedKeywords.length
@@ -2669,7 +2672,7 @@ Download PDF
             const rawScore = Number(item.score);
             const score = Number.isFinite(rawScore) ? Math.round(clampPercent(rawScore)) + "/100" : "Pending";
             const labels = [
-                item.is_final_recommended ? "Final used" : "",
+                item.is_final_recommended ? "Used for ATS score" : "",
                 item.is_selected_database_role ? "Selected" : ""
             ].filter(Boolean).join(", ") || "Compared";
             const matched = Array.isArray(item.matched_keywords) && item.matched_keywords.length
@@ -2819,7 +2822,7 @@ Download PDF
             "<section><p class=\"section-title\">Score Explanation<\/p><h2>" + escapeHtml((report.scoreExplanation && report.scoreExplanation.label) || "Score meaning") + "<\/h2><div class=\"note\">" + escapeHtml((report.scoreExplanation && report.scoreExplanation.text) || "The final readiness score combines role match, resume evidence, and ATS format quality.") + "<\/div><p class=\"note\" style=\"margin-top:12px\">" + escapeHtml((report.scoreExplanation && (report.scoreExplanation.detail || report.scoreExplanation.formula)) || "Formula details were not available.") + "<\/p><\/section>" +
             "<section><p class=\"section-title\">Role Fit Explanation<\/p><div class=\"note\">" + escapeHtml(report.roleReason || "Selected role and recommendation are aligned.") + "<\/div><\/section>" +
             "<section><p class=\"section-title\">Priority Improvement Plan<\/p><ul>" + buildRecommendationActionRows(report.recommendationPlan, report.structuredFeedback) + "<\/ul><\/section>" +
-            "<section><p class=\"section-title\">Top 3 Role Matches<\/p><table><tr><th>Rank<\/th><th>Database role<\/th><th>Fit<\/th><th>Status<\/th><th>Evidence<\/th><\/tr>" + buildTopRoleRows(report.topRoleMatches) + "<\/table><\/section>" +
+            "<section><p class=\"section-title\">Top 3 Role Matches<\/p><div class=\"note\">Evidence-match scores compare resume text with database requirements; they are not hiring probabilities or validated model accuracy.<\/div><table><tr><th>Rank<\/th><th>Database role<\/th><th>Evidence score<\/th><th>Status<\/th><th>Evidence<\/th><\/tr>" + buildTopRoleRows(report.topRoleMatches) + "<\/table><\/section>" +
             "<section><p class=\"section-title\">Score Components<\/p><table>" + componentRows + "<\/table><p class=\"note\">Only the final readiness score is numeric. Component results are shown as status labels to avoid confusing users with multiple percentages.<\/p><\/section>" +
             "<section><p class=\"section-title\">ATS Quality Criteria<\/p><table class=\"quality\"><tr><th>Criteria<\/th><th>Status<\/th><th>Finding<\/th><th>Suggested fix<\/th><\/tr>" + buildQualityRows(report.qualityCriteria) + "<\/table><\/section>" +
             "<section><p class=\"section-title\">Resume Review Snapshot<\/p><h2>Resume Bad Habits<\/h2><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview, report.qualityCriteria) + "<\/section>" +
@@ -3290,6 +3293,7 @@ Download PDF
         const detectedRole = roleRecommendation.detected_database_role || "";
         const roleReason = roleRecommendation.reason_summary || "";
         const roleIsDifferent = Boolean(roleRecommendation.is_different_from_selected);
+        const roleMatchIsClose = Boolean(roleRecommendation.is_close_match);
         const uploadedResumeName = result.uploaded_resume_name || localStorage.getItem("uploadedResumeName") || "No resume selected.";
         const resumeSummary = result.resume_summary || {};
         const jobAnalysis = result.job_description_analysis || {};
@@ -3414,7 +3418,10 @@ Download PDF
                 (roleReason || "The selected role and recommended database role are aligned for this resume.") +
                     (roleIsDifferent ? " The role comparison only chooses the closest database role; the final readiness score also includes resume evidence and ATS format quality." : "")
             );
-            setText("roleDecisionBadge", roleIsDifferent ? "Better database fit found" : "Selected role confirmed");
+            setText(
+                "roleDecisionBadge",
+                roleMatchIsClose ? "Close role evidence" : (roleIsDifferent ? "Better database fit found" : "Selected role confirmed")
+            );
             setText("topRoleMatchesTitle", "Top 3 Role Matches");
             setText("topRoleMatchesBadge", "Resume evidence ranking");
         }

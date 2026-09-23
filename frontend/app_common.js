@@ -4,6 +4,8 @@
   const nativeFetch = window.fetch.bind(window);
   let csrfToken = null;
   let csrfTokenRequest = null;
+  let authStateVersion = 0;
+  let authSessionRequest = null;
 
   function getRequestUrl(input) {
     if (typeof input === "string" || input instanceof URL) {
@@ -98,6 +100,7 @@
   }
 
   function setAuthUser(user, onChange) {
+    authStateVersion += 1;
     if (user) {
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
     } else {
@@ -106,6 +109,43 @@
     if (typeof onChange === "function") {
       onChange();
     }
+    window.dispatchEvent(new CustomEvent("career-navigator-auth-changed", {
+      detail: { user: user || null }
+    }));
+  }
+
+  function syncAuthUserFromServer() {
+    if (!window.location.protocol.startsWith("http")) {
+      return Promise.resolve(getAuthUser());
+    }
+    if (authSessionRequest) {
+      return authSessionRequest;
+    }
+
+    const startingVersion = authStateVersion;
+    authSessionRequest = nativeFetch("/auth/session", {
+      credentials: "same-origin",
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload.detail || "Could not validate the current session.");
+        }
+
+        // Do not overwrite a login/logout that completed while this GET was in flight.
+        if (startingVersion !== authStateVersion) {
+          return getAuthUser();
+        }
+        const user = payload.authenticated && payload.user ? payload.user : null;
+        setAuthUser(user);
+        return user;
+      })
+      .catch(() => getAuthUser())
+      .finally(() => {
+        authSessionRequest = null;
+      });
+    return authSessionRequest;
   }
 
   function getPasswordValidationMessage(password) {
@@ -349,6 +389,7 @@
   window.CareerNavigatorCommon = {
     getAuthUser,
     setAuthUser,
+    syncAuthUserFromServer,
     getPasswordValidationMessage,
     sanitizePinInput,
     escapeHtml,
@@ -363,4 +404,8 @@
     saveAnalysisToHistory,
     createHistoryModal
   };
+
+  // Start reconciliation as early as possible. Pages also listen for the
+  // change event so their controls update when the request finishes.
+  syncAuthUserFromServer();
 })();

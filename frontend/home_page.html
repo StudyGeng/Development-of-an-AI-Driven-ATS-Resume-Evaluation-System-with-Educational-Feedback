@@ -1192,6 +1192,8 @@
     }
   }
 
+  window.addEventListener("career-navigator-auth-changed", updateAuthUi);
+
   function setEvaluationStatus(message, isError = false) {
     if (evaluationStatusText) {
       evaluationStatusText.textContent = message;
@@ -2297,6 +2299,12 @@
 
         if (!response.ok) {
           const errorPayload = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            setAuthUser(null);
+            pendingAuthAction = "openEvaluation";
+            openAuthModal("login");
+            throw new Error("Your login session expired. Please log in once to continue.");
+          }
           throw new Error(errorPayload.detail || "Analysis failed");
         }
 

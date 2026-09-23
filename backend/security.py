@@ -67,6 +67,9 @@ def serialize_user(user: dict[str, Any]) -> dict[str, Any]:
 
 def save_login_session(user: dict[str, Any]) -> None:
     session.clear()
+    # A permanent signed session survives closing and reopening the browser.
+    # Flask still expires it according to PERMANENT_SESSION_LIFETIME.
+    session.permanent = True
     session["user_id"] = int(user["id"])
     session["email"] = normalize_email(str(user.get("email") or ""))
     session["is_admin"] = is_user_admin(user)

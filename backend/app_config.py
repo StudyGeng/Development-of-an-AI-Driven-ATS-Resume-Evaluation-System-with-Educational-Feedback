@@ -108,6 +108,9 @@ ANALYSIS_REQUEST_LIMIT_PER_IP = get_bounded_integer_environment(
 ANALYSIS_RATE_WINDOW_MINUTES = get_bounded_integer_environment(
     "ANALYSIS_RATE_WINDOW_MINUTES", 15, 1, 1440
 )
+SESSION_LIFETIME_DAYS = get_bounded_integer_environment(
+    "SESSION_LIFETIME_DAYS", 7, 1, 30
+)
 MAX_RESUME_UPLOAD_BYTES = get_bounded_integer_environment(
     "MAX_RESUME_UPLOAD_BYTES", 10 * 1024 * 1024, 1024 * 1024, 50 * 1024 * 1024
 )
