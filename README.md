@@ -7,7 +7,7 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 ## Main Features
 
 - Resume upload for text-based PDF files
-- Optional PNG, JPG, and scanned-resume OCR when Tesseract is installed
+- Optional PNG/JPG resume-image OCR when Tesseract is installed
 - ATS-style resume score and score breakdown
 - CS job-role matching using MySQL job requirements
 - Top 3 recommended role matches
@@ -43,6 +43,10 @@ The current matcher is a transparent hybrid NLP and rule-based system. It does n
 2. The resume and requirements are normalized using skill aliases, word-form rules, and a curated set of related terms.
 3. TF-IDF measures lexical text similarity between the resume and each requirement/job description.
 4. Weighted requirement coverage, role-family evidence, title evidence, experience, education, and ATS-format checks are combined into the displayed scores.
+
+Repeated keywords do not earn repeated requirement points, and TF-IDF uses binary term frequency so keyword stuffing cannot raise the lexical score simply by copying the same word many times. Clearly negated claims such as `no experience with Python` are not accepted as positive skill evidence. When a dated work entry can be parsed confidently, title relevance uses the most recent title instead of an older role elsewhere in the resume.
+
+Employment date ranges are currently advisory metadata. The application can report the total non-overlapping months it recognized, but it does not filter a candidate by duration because the job database has no structured `minimum_experience_months` field. Skill evidence is also not yet awarded with a universal “2 points in experience, 1 point in skills” rule; adding that rule safely requires reliable section-level parsing and evaluation against human-labelled resumes.
 
 This design is explainable, but TF-IDF mainly recognizes shared wording. The curated related-term rules help with known alternatives, while unseen paraphrases, negated claims, and keyword stuffing can still be scored incorrectly. Do not describe the current implementation as an LLM or a trained predictive model.
 
@@ -91,7 +95,7 @@ Install these before running the project:
 - MySQL 8.x
 - Git
 - Node.js 18 or newer and npm (for the Tailwind CSS build)
-- Tesseract OCR, optional, only needed for image/scanned resume OCR
+- Tesseract OCR, optional, only needed for PNG/JPG resume-image OCR
 
 ## Setup
 
@@ -256,7 +260,7 @@ The admin dashboard includes user activity, resume evaluation records, job-data 
 
 ## Optional OCR Setup
 
-Text-based PDF resumes work without OCR. For PNG, JPG, JPEG, or scanned resumes, install Tesseract OCR.
+Text-based PDF resumes work without OCR. For PNG, JPG, or JPEG resume images, install Tesseract OCR. Scanned or image-only PDF files do not currently receive OCR fallback; export them as a text-based PDF or convert the pages to a supported image format first.
 
 Windows example:
 

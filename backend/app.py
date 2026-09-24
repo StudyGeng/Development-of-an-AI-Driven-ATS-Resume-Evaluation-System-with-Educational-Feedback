@@ -231,6 +231,14 @@ ROLE_TITLE_MATCH_ALIASES = {
         "information security manager",
         "security manager",
     },
+    "computer services manager": {
+        "computer services manager",
+        "information technology manager",
+        "it manager",
+        "ict manager",
+        "technology manager",
+        "systems manager",
+    },
     "data security specialist": {
         "data security specialist",
         "information security specialist",
@@ -315,6 +323,15 @@ ROLE_TITLE_MATCH_ALIASES = {
         "software developer",
         "software engineer",
         "application developer",
+    },
+    "software tester": {
+        "software tester",
+        "software test engineer",
+        "qa engineer",
+        "qa tester",
+        "quality assurance engineer",
+        "quality assurance tester",
+        "test engineer",
     },
     "software designer": {
         "software designer",
@@ -588,10 +605,12 @@ DEFAULT_SKILL_DICTIONARY = [
     "c++",
     "ci/cd",
     "cloud computing",
+    "computer programming",
     "cissp",
     "cybersecurity",
     "data structures",
     "data protection",
+    "data management",
     "debugging",
     "digital forensics",
     "deployment",
@@ -665,6 +684,17 @@ DEFAULT_SKILL_DICTIONARY = [
     "statistics",
     "communication",
     "leadership",
+    "team leadership",
+    "business analysis",
+    "project management",
+    "technical writing",
+    "troubleshooting",
+    "wireshark",
+    "ansible",
+    "solarwinds",
+    "trello",
+    "budgeting",
+    "negotiation",
     "problem solving",
     "research",
     "tensorflow",
@@ -1612,32 +1642,274 @@ def resolve_database_job_description(requested_role: str) -> dict[str, Any] | No
     }
 
 
-def compute_role_title_match_score(resume_text: str, role_name: str) -> float:
-    normalized_resume = f" {normalize_match_text(resume_text)} "
+EMPLOYMENT_DATE_RANGE_PATTERN = re.compile(
+    r"(?P<start>(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+|"
+    r"(?:0?[1-9]|1[0-2])[/.-])?(?:19|20)\d{2})\s*"
+    r"(?:-|\u2013|\u2014|to)\s*"
+    r"(?P<end>present|current|now|(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|"
+    r"jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+|"
+    r"(?:0?[1-9]|1[0-2])[/.-])?(?:19|20)\d{2})",
+    re.I,
+)
+JOB_TITLE_MARKER_PATTERN = re.compile(
+    r"\b(?:admin|administrator|analyst|architect|assistant|consultant|coordinator|developer|director|"
+    r"designer|engineer|executive|intern|lead|manager|officer|programmer|scientist|specialist|"
+    r"support|technician|tester)\b",
+    re.I,
+)
+NON_JOB_TITLE_PATTERN = re.compile(
+    r"\b(?:bachelor|certificate|certification|college|degree|diploma|education|master|phd|"
+    r"polytechnic|school|university)\b",
+    re.I,
+)
+GENERIC_JOB_TITLE_TOKENS = {
+    "admin",
+    "administrator",
+    "analyst",
+    "architect",
+    "assistant",
+    "consultant",
+    "coordinator",
+    "developer",
+    "director",
+    "designer",
+    "engineer",
+    "executive",
+    "intern",
+    "junior",
+    "lead",
+    "manager",
+    "officer",
+    "programmer",
+    "senior",
+    "specialist",
+    "support",
+    "technician",
+    "tester",
+}
+
+
+def is_plausible_job_title(value: str) -> bool:
+    title = normalize_text(value).strip(" |,-\u2013\u2014")
+    if not title or len(title) > 100 or len(title.split()) > 12:
+        return False
+    if "@" in title or re.search(r"https?://|www\.|\d{5,}", title, re.I):
+        return False
+    if NON_JOB_TITLE_PATTERN.search(title):
+        return False
+    return bool(JOB_TITLE_MARKER_PATTERN.search(title))
+
+
+def clean_employment_title(value: str) -> str:
+    title = normalize_text(value).strip(" |,-\u2013\u2014")
+    for candidate in re.split(r"\s+(?:at|@)\s+|[|,]", title, maxsplit=1, flags=re.I):
+        cleaned = normalize_text(candidate).strip(" |,-\u2013\u2014")
+        if is_plausible_job_title(cleaned):
+            return cleaned
+    return title
+
+
+def parse_resume_date_point(value: str, *, end_value: bool = False) -> tuple[int, int] | None:
+    normalized = normalize_text(value).lower()
+    if normalized in {"present", "current", "now"}:
+        today = datetime.now(timezone.utc)
+        return today.year, today.month
+
+    year_match = re.search(r"(?:19|20)\d{2}", normalized)
+    if not year_match:
+        return None
+    year = int(year_match.group(0))
+    numeric_month = re.match(r"(0?[1-9]|1[0-2])[/.-]", normalized)
+    if numeric_month:
+        month = int(numeric_month.group(1))
+    else:
+        month_names = {
+            "jan": 1,
+            "feb": 2,
+            "mar": 3,
+            "apr": 4,
+            "may": 5,
+            "jun": 6,
+            "jul": 7,
+            "aug": 8,
+            "sep": 9,
+            "oct": 10,
+            "nov": 11,
+            "dec": 12,
+        }
+        month = next((number for name, number in month_names.items() if normalized.startswith(name)), 12 if end_value else 1)
+    return year, month
+
+
+def extract_employment_entries(resume_text: str) -> list[dict[str, Any]]:
+    """Return only date ranges that can be tied to a plausible job title.
+
+    This deliberately ignores unattached education dates. It is conservative:
+    an uncertain layout yields no structured entry instead of an invented title.
+    """
+
+    lines = [normalize_text(line) for line in (resume_text or "").splitlines()]
+    has_work_history_heading = any(
+        normalize_match_text(line)
+        in {
+            "career history",
+            "employment history",
+            "experience",
+            "previous experience",
+            "professional experience",
+            "work experience",
+            "work history",
+        }
+        for line in lines
+    )
+    if not has_work_history_heading:
+        return []
+
+    entries: list[dict[str, Any]] = []
+    in_hard_non_work_section = False
+    for index, line in enumerate(lines):
+        if not line:
+            continue
+        normalized_line = normalize_match_text(line)
+        if normalized_line in {
+            "career history",
+            "employment history",
+            "experience",
+            "previous experience",
+            "professional experience",
+            "work experience",
+            "work history",
+        }:
+            in_hard_non_work_section = False
+            continue
+        if normalized_line in {
+            "academic projects",
+            "certifications",
+            "education",
+            "personal projects",
+            "projects",
+            "qualifications",
+        }:
+            in_hard_non_work_section = True
+            continue
+        if in_hard_non_work_section:
+            continue
+
+        for date_match in EMPLOYMENT_DATE_RANGE_PATTERN.finditer(line):
+            title = line[: date_match.start()].strip(" |,-\u2013\u2014")
+            if not is_plausible_job_title(title):
+                title = ""
+                for prior_index in range(index - 1, max(-1, index - 4), -1):
+                    prior_line = lines[prior_index].strip(" |,-\u2013\u2014")
+                    if not prior_line:
+                        continue
+                    if is_plausible_job_title(prior_line):
+                        title = prior_line
+                    break
+            if not title:
+                continue
+            title = clean_employment_title(title)
+
+            start = parse_resume_date_point(date_match.group("start"))
+            end = parse_resume_date_point(date_match.group("end"), end_value=True)
+            if not start or not end or end < start:
+                continue
+            entries.append(
+                {
+                    "title": title,
+                    "start": start,
+                    "end": end,
+                    "date_text": normalize_text(date_match.group(0)),
+                }
+            )
+    return entries
+
+
+def get_most_recent_job_title(entries: list[dict[str, Any]]) -> str:
+    if not entries:
+        return ""
+    latest = max(entries, key=lambda item: (item["start"], item["end"]))
+    return str(latest["title"])
+
+
+def extract_most_recent_job_title(resume_text: str) -> str:
+    return get_most_recent_job_title(extract_employment_entries(resume_text))
+
+
+def get_total_employment_months(entries: list[dict[str, Any]]) -> int | None:
+    if not entries:
+        return None
+
+    # Union the months so simultaneous jobs are not double-counted.
+    covered_months: set[int] = set()
+    for entry in entries:
+        start_year, start_month = entry["start"]
+        end_year, end_month = entry["end"]
+        start_index = (start_year * 12) + start_month - 1
+        end_index = (end_year * 12) + end_month - 1
+        covered_months.update(range(start_index, end_index + 1))
+    return len(covered_months)
+
+
+def compute_total_employment_months(resume_text: str) -> int | None:
+    return get_total_employment_months(extract_employment_entries(resume_text))
+
+
+def compute_role_title_match_score(
+    resume_text: str,
+    role_name: str,
+    most_recent_title: str | None = None,
+) -> float:
     normalized_role = normalize_match_text(role_name)
-    if not normalized_resume.strip() or not normalized_role:
+    if not normalize_match_text(resume_text) or not normalized_role:
         return 0.0
 
     aliases = ROLE_TITLE_MATCH_ALIASES.get(normalized_role, {normalized_role})
-    for alias in aliases:
-        normalized_alias = normalize_match_text(alias)
-        if normalized_alias and f" {normalized_alias} " in normalized_resume:
-            return 100.0
+    if most_recent_title is None:
+        most_recent_title = extract_most_recent_job_title(resume_text)
+    if most_recent_title:
+        normalized_title_source = f" {normalize_match_text(most_recent_title)} "
+        for alias in aliases:
+            normalized_alias = normalize_match_text(alias)
+            if normalized_alias and f" {normalized_alias} " in normalized_title_source:
+                return 100.0
 
-    role_tokens = set(normalized_role.split())
-    if len(role_tokens) >= 2 and role_tokens.issubset(set(normalized_resume.split())):
-        return 70.0
+        best_alias = max(aliases, key=lambda alias: role_similarity_score(alias, most_recent_title))
+        similarity = role_similarity_score(best_alias, most_recent_title)
+        alias_content = set(normalize_match_text(best_alias).split()) - GENERIC_JOB_TITLE_TOKENS
+        title_content = set(normalize_match_text(most_recent_title).split()) - GENERIC_JOB_TITLE_TOKENS
+        has_informative_overlap = bool(alias_content & title_content)
+        if not has_informative_overlap:
+            return min(10.0, round(similarity * 10.0, 2))
+        if similarity >= 0.85:
+            return 90.0
+        if similarity >= 0.65:
+            return 75.0
+        if similarity >= 0.5:
+            return 40.0
+        return min(10.0, round(similarity * 20.0, 2))
 
+    # A target role in a summary or skills list is not proof of a held title.
+    # Without a confidently parsed dated job, title fit remains unavailable.
     return 0.0
 
 
-def has_exact_role_title_match(resume_text: str, role_name: str) -> bool:
-    normalized_resume = f" {normalize_match_text(resume_text)} "
+def has_exact_role_title_match(
+    resume_text: str,
+    role_name: str,
+    most_recent_title: str | None = None,
+) -> bool:
     normalized_role = normalize_match_text(role_name)
     if not normalized_role:
         return False
 
     aliases = ROLE_TITLE_MATCH_ALIASES.get(normalized_role, {normalized_role})
+    if most_recent_title is None:
+        most_recent_title = extract_most_recent_job_title(resume_text)
+    if not most_recent_title:
+        return False
+    normalized_resume = f" {normalize_match_text(most_recent_title)} "
     return any(
         bool(normalized_alias and f" {normalized_alias} " in normalized_resume)
         for normalized_alias in (normalize_match_text(alias) for alias in aliases)
@@ -1651,17 +1923,17 @@ def compute_database_role_confidence_score(
     exact_title_match: bool,
 ) -> float:
     adjusted_score = (
-        (combined_score * 0.62)
-        + (role_evidence_score * 0.23)
-        + (title_match_score * 0.15)
+        (combined_score * 0.55)
+        + (role_evidence_score * 0.20)
+        + (title_match_score * 0.25)
     )
 
-    if exact_title_match and role_evidence_score >= 80:
-        adjusted_score = max(adjusted_score, 78.0)
-        if combined_score >= 38:
+    if exact_title_match:
+        adjusted_score = max(adjusted_score, 70.0)
+        if combined_score >= 30 and role_evidence_score >= 40:
+            adjusted_score = max(adjusted_score, 78.0)
+        if combined_score >= 38 and role_evidence_score >= 65:
             adjusted_score = max(adjusted_score, 82.0)
-    elif title_match_score >= 100 and role_evidence_score >= 80 and combined_score >= 45:
-        adjusted_score = max(adjusted_score, 72.0)
 
     return round(min(100.0, adjusted_score), 2)
 
@@ -1669,6 +1941,7 @@ def compute_database_role_confidence_score(
 def rank_database_role_matches(resume_text: str, limit: int | None = None) -> list[dict[str, Any]]:
     roles, requirements_by_role = fetch_job_catalog()
     ranked_matches: list[dict[str, Any]] = []
+    most_recent_title = extract_most_recent_job_title(resume_text)
 
     for role in roles:
         requirements = requirements_by_role.get(int(role["id"]), [])
@@ -1684,8 +1957,8 @@ def rank_database_role_matches(resume_text: str, limit: int | None = None) -> li
             role_name,
             fit_result.get("important_keywords", []),
         )
-        title_match_score = compute_role_title_match_score(resume_text, role_name)
-        exact_title_match = has_exact_role_title_match(resume_text, role_name)
+        title_match_score = compute_role_title_match_score(resume_text, role_name, most_recent_title)
+        exact_title_match = has_exact_role_title_match(resume_text, role_name, most_recent_title)
         adjusted_score = compute_database_role_confidence_score(
             combined_score,
             role_evidence_score,
@@ -1879,14 +2152,6 @@ def get_semantic_equivalents(token: str) -> set[str]:
 
     direct_matches = SEMANTIC_KEYWORD_EQUIVALENTS.get(canonical, set())
     equivalents.update(normalize_keyword_token(match) for match in direct_matches)
-
-    for source, related_terms in SEMANTIC_KEYWORD_EQUIVALENTS.items():
-        source_token = normalize_keyword_token(source)
-        normalized_related = {normalize_keyword_token(term) for term in related_terms}
-        if canonical == source_token or canonical in normalized_related:
-            equivalents.add(source_token)
-            equivalents.update(normalized_related)
-
     return equivalents
 
 
@@ -1898,17 +2163,67 @@ def token_has_resume_evidence(token: str, resume_tokens: set[str]) -> bool:
     return bool(get_semantic_equivalents(canonical) & resume_tokens)
 
 
+NEGATED_EVIDENCE_MARKERS = {
+    "lack",
+    "lacked",
+    "lacking",
+    "lacks",
+    "never",
+    "no",
+    "not",
+    "unfamiliar",
+    "without",
+}
+
+
+def phrase_has_positive_resume_evidence(phrase: str, resume_text: str) -> bool:
+    phrase_tokens = tokenize_canonical_keywords(phrase)
+    if not phrase_tokens:
+        return False
+
+    # Treat contrast words as clause boundaries so "no Python, but strong Java"
+    # does not incorrectly negate Java as well.
+    clauses = re.split(r"[\n.!?;]+|\b(?:but|however|although)\b", resume_text or "", flags=re.I)
+    width = len(phrase_tokens)
+    for clause in clauses:
+        # Keep short negation words such as "no" and ordinary stop words for
+        # the context window, while still normalizing skill word forms.
+        clause_tokens = [
+            normalize_keyword_token(token)
+            for token in re.findall(r"[a-zA-Z][a-zA-Z+.#/-]*", clause.lower())
+        ]
+        for index in range(0, len(clause_tokens) - width + 1):
+            if clause_tokens[index : index + width] != phrase_tokens:
+                continue
+            preceding = clause_tokens[max(0, index - 6) : index]
+            if not (set(preceding) & NEGATED_EVIDENCE_MARKERS):
+                return True
+    return False
+
+
+def token_has_positive_resume_evidence(token: str, resume_text: str, resume_tokens: set[str]) -> bool:
+    canonical = normalize_keyword_token(token)
+    if not token_has_resume_evidence(canonical, resume_tokens):
+        return False
+
+    strict_tokens = STRICT_TECHNICAL_KEYWORD_EVIDENCE.get(canonical)
+    candidates = strict_tokens if strict_tokens is not None else get_semantic_equivalents(canonical)
+    return any(phrase_has_positive_resume_evidence(candidate, resume_text) for candidate in candidates)
+
+
 def keyword_matches_resume(keyword: str, resume_text: str, resume_tokens: set[str]) -> bool:
     keyword_tokens = tokenize_canonical_keywords(keyword)
     if not keyword_tokens:
         return False
 
-    canonical_resume = " " + " ".join(tokenize_canonical_keywords(resume_text)) + " "
     canonical_keyword = " ".join(keyword_tokens)
-    if f" {canonical_keyword} " in canonical_resume:
+    if phrase_has_positive_resume_evidence(canonical_keyword, resume_text):
         return True
 
-    return all(token_has_resume_evidence(token, resume_tokens) for token in keyword_tokens)
+    return all(
+        token_has_positive_resume_evidence(token, resume_text, resume_tokens)
+        for token in keyword_tokens
+    )
 
 
 def key_phrase_exists(text: str, phrase: str) -> bool:
@@ -1954,9 +2269,8 @@ def build_quality_criterion(
     detail: str,
     suggestion: str,
     penalty: int = 0,
-    visual_marker: str | None = None,
 ) -> dict[str, Any]:
-    criterion = {
+    return {
         "category": category,
         "status": status,
         "title": title,
@@ -1964,9 +2278,6 @@ def build_quality_criterion(
         "suggestion": suggestion,
         "penalty": penalty,
     }
-    if visual_marker:
-        criterion["visual_marker"] = visual_marker
-    return criterion
 
 
 def count_language_markers(text: str, markers: set[str]) -> int:
@@ -2019,6 +2330,37 @@ def count_text_extraction_spacing_glitches(text: str) -> int:
     return sum(1 for token in candidates if normalize_match_text(token) not in expected_technical_tokens)
 
 
+def has_interleaved_section_heading_risk(text: str) -> bool:
+    """Detect an obvious multi-column reading-order collision conservatively."""
+
+    raw_lines = [normalize_text(line) for line in (text or "").splitlines() if normalize_text(line)]
+    normalized_lines = [normalize_match_text(line) for line in raw_lines]
+    work_headings = {
+        "employment history",
+        "professional experience",
+        "work experience",
+        "work history",
+    }
+    sidebar_headings = {"contact", "core skills", "skills", "technical skills", "tools and software"}
+    for index, line in enumerate(normalized_lines):
+        if line not in work_headings:
+            continue
+        next_dated_entry = next(
+            (
+                candidate_index
+                for candidate_index in range(index + 1, min(len(raw_lines), index + 18))
+                if EMPLOYMENT_DATE_RANGE_PATTERN.search(raw_lines[candidate_index])
+                and is_plausible_job_title(EMPLOYMENT_DATE_RANGE_PATTERN.sub("", raw_lines[candidate_index]).strip(" |,-\u2013\u2014"))
+            ),
+            None,
+        )
+        if next_dated_entry is None:
+            continue
+        if any(normalized_lines[candidate_index] in sidebar_headings for candidate_index in range(index + 1, next_dated_entry)):
+            return True
+    return False
+
+
 def analyze_resume_quality(
     resume_text: str,
     uploaded_name: str,
@@ -2045,9 +2387,8 @@ def analyze_resume_quality(
         detail: str,
         suggestion: str,
         penalty: int = 0,
-        visual_marker: str | None = None,
     ) -> None:
-        criteria.append(build_quality_criterion(category, status, title, detail, suggestion, penalty, visual_marker))
+        criteria.append(build_quality_criterion(category, status, title, detail, suggestion, penalty))
 
     if info.get("ocr_used"):
         add(
@@ -2104,6 +2445,16 @@ def analyze_resume_quality(
             "No obvious image or passport-photo signal was detected in the extracted document.",
             "Keep the resume text-focused for ATS uploads.",
             0,
+        )
+
+    if file_type == "pdf" and has_interleaved_section_heading_risk(resume_text):
+        add(
+            "Parsing",
+            "warning",
+            "Possible multi-column reading-order issue",
+            "A sidebar heading appears inside the extracted work-history flow before the first dated job entry.",
+            "Use a single-column ATS version, or verify that copied PDF text keeps headings and work entries in the intended order.",
+            8,
         )
 
     english_hits = count_language_markers(resume_text, ENGLISH_LANGUAGE_MARKERS)
@@ -2168,6 +2519,32 @@ def analyze_resume_quality(
             0,
         )
 
+    has_work_history_heading = bool(
+        re.search(
+            r"\b(?:work experience|professional experience|employment history|work history)\b",
+            lower_text,
+        )
+    )
+    employment_entries = extract_employment_entries(resume_text)
+    if has_work_history_heading and not employment_entries:
+        add(
+            "Timeline",
+            "warning",
+            "Employment dates not recognizable",
+            "A work-history section was found, but no job title could be paired with a standard start/end date range.",
+            "Use a consistent format such as MM/YYYY - MM/YYYY or Month YYYY - Present beside each job title.",
+            4,
+        )
+    elif employment_entries:
+        add(
+            "Timeline",
+            "pass",
+            "Employment dates recognizable",
+            f"The analyzer paired {len(employment_entries)} dated employment entr{'y' if len(employment_entries) == 1 else 'ies'} with job titles.",
+            "Keep date ranges consistent and place each one beside its job title.",
+            0,
+        )
+
     if not has_email or not has_phone:
         add(
             "Contact",
@@ -2180,12 +2557,11 @@ def analyze_resume_quality(
     elif not has_profile_link:
         add(
             "Contact",
-            "warning",
-            "Missing professional profile link",
-            "Email and phone are present, but no LinkedIn, GitHub, or portfolio marker was detected.",
-            "Add GitHub, LinkedIn, or a portfolio link in the contact area near your email and phone.",
-            2,
-            "profile_link_contact_area",
+            "pass",
+            "Contact details readable",
+            "Email and phone are visible. A LinkedIn, GitHub, or portfolio link is optional and is not required for ATS parsing.",
+            "Add a relevant professional link only when it strengthens the application.",
+            0,
         )
     else:
         add(
@@ -2249,13 +2625,33 @@ def analyze_resume_quality(
             0,
         )
 
-    if len(resume_profile.skills) < 4:
+    skill_section_headings = {
+        "core skills",
+        "skills",
+        "technical competencies",
+        "technical skills",
+        "tools and software",
+    }
+    has_skill_section = any(
+        normalize_match_text(line) in skill_section_headings
+        for line in resume_text.splitlines()
+    )
+    if has_skill_section:
+        add(
+            "Skills",
+            "pass",
+            "Dedicated skills section found",
+            f"A clearly labelled skills section was extracted, with {len(resume_profile.skills)} term(s) recognized by the current vocabulary.",
+            "Keep role-relevant tools and skills explicit; database requirement matching evaluates their relevance separately.",
+            0,
+        )
+    elif len(resume_profile.skills) < 4:
         add(
             "Skills",
             "warning",
-            "Technical skills not explicit enough",
-            "Few recognizable technical skills were detected as standalone terms.",
-            "Add a Technical Skills section with languages, frameworks, databases, tools, and cloud platforms.",
+            "Dedicated technical skills section not found",
+            "Few recognizable technical skills were detected and no clearly labelled skills section was extracted.",
+            "Add a Technical Skills section with relevant languages, frameworks, databases, tools, or platforms.",
             8,
         )
     else:
@@ -2288,9 +2684,12 @@ def analyze_resume_quality(
         "quality_score": quality_score,
         "risk_level": risk_level,
         "word_count": word_count,
+        "most_recent_job_title": get_most_recent_job_title(employment_entries) or None,
+        "employment_duration_months": get_total_employment_months(employment_entries),
+        "employment_entry_count": len(employment_entries),
         "document_info": info,
         "criteria": criteria,
-        "issues": issues[:8],
+        "issues": issues,
         "summary": summary,
     }
 
@@ -2527,15 +2926,6 @@ def compute_role_evidence_score(resume_text: str, role_name: str, job_keywords: 
         if keyword_matches_resume(keyword, resume_text, resume_tokens)
     ]
     return round((len(matched_keywords) / max(1, len(job_keywords))) * 100.0, 2)
-
-
-def compute_resume_structure_score(resume_profile: ParsedResume) -> float:
-    skill_score = min(30, len(resume_profile.skills) * 8)
-    experience_score = 0
-    if resume_profile.experience:
-        experience_score = 25 + min(20, len(resume_profile.experience) * 3)
-    education_score = 15 if resume_profile.education else 0
-    return float(min(100, 10 + skill_score + experience_score + education_score))
 
 
 def compute_experience_alignment_score(
@@ -3087,8 +3477,8 @@ def build_analysis_payload(
     role_evidence = round(compute_role_evidence_score(resume_text, target_role, job_keywords))
     experience_alignment = round(compute_experience_alignment_score(resume_profile, keyword_coverage, similarity_score))
     academic_rigor = round(compute_academic_rigor_score(resume_profile, keyword_coverage, similarity_score))
-    resume_structure = round(compute_resume_structure_score(resume_profile))
     resume_quality_score = round(resume_quality["quality_score"])
+    ats_quality_penalty = max(0, 100 - resume_quality_score)
     ats_score = compute_final_readiness_score(
         keyword_match,
         role_evidence,
@@ -3097,8 +3487,9 @@ def build_analysis_payload(
         academic_rigor,
         similarity_score,
     )
-    title_match_score = compute_role_title_match_score(resume_text, target_role)
-    exact_title_match = has_exact_role_title_match(resume_text, target_role)
+    most_recent_job_title = str(resume_quality.get("most_recent_job_title") or "")
+    title_match_score = compute_role_title_match_score(resume_text, target_role, most_recent_job_title)
+    exact_title_match = has_exact_role_title_match(resume_text, target_role, most_recent_job_title)
     if (
         resume_quality_score >= 95
         and role_evidence >= 90
@@ -3149,10 +3540,14 @@ def build_analysis_payload(
             "role_evidence": role_evidence,
             "experience_alignment": experience_alignment,
             "academic_rigor": academic_rigor,
-            "resume_structure": resume_structure,
             "resume_quality": resume_quality_score,
+            "ats_quality_penalty": ats_quality_penalty,
+            "ats_weighted_deduction": round(ats_quality_penalty * 0.20, 2),
             "tfidf_similarity": round(similarity_score, 2),
             "title_match": round(title_match_score),
+            "most_recent_job_title": most_recent_job_title or None,
+            "employment_duration_months": resume_quality.get("employment_duration_months"),
+            "employment_duration_note": "Advisory extraction only; minimum-experience filtering is not applied without a structured job requirement.",
             "formula": "30% database requirement coverage + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF similarity, with a strong-evidence calibration floor",
         },
         "feedback": " ".join(rule_feedback),
@@ -5843,12 +6238,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Figma", "Wireframing", "Prototyping", "User Research", "Usability Testing", "Accessibility", "Design Systems", "HTML", "CSS"]
         focus = "user research, accessible interaction design, prototypes, and evidence-based design decisions"
         experience = [
-            "Created wireframes and an interactive prototype, then documented usability findings and design revisions.",
-            "Worked with developers to define responsive states, accessibility requirements, and reusable interface components.",
+            "Interviewed [N] representative users, mapped their highest-friction tasks, and translated the findings into prioritised user stories and journey maps.",
+            "Designed and tested a [N]-screen Figma prototype, documenting how two design iterations improved example task completion from [A]% to [B]%.",
+            "Specified responsive states, WCAG accessibility checks, and [N] reusable components for developer handoff, reducing example clarification requests by [X]%.",
         ]
         projects = [
-            "Student Services Redesign - mapped user journeys, tested a Figma prototype, and prepared a design handoff.",
-            "Accessible Design System - documented reusable components, keyboard states, contrast checks, and usage guidance.",
+            "Student Services Redesign - recruited [N] test users, mapped two key journeys, validated a clickable Figma prototype, and summarised findings with before-and-after task metrics.",
+            "Accessible Design System - documented [N] reusable components, keyboard and error states, contrast evidence, and implementation guidance for a sample engineering team.",
+            "Mobile Checkout Usability Study - planned [N] moderated sessions, coded recurring usability problems, and prioritised design changes by severity and user impact.",
         ]
         certification = "Google UX Design or another verified UX credential"
         education_focus = "User Experience Design"
@@ -5858,12 +6255,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Network Security", "Linux", "Python", "SIEM", "Wireshark", "OWASP", "Vulnerability Assessment", "Incident Response", "Identity and Access Management"]
         focus = "security monitoring, vulnerability assessment, incident documentation, and defensive controls"
         experience = [
-            "Reviewed sample security alerts, documented indicators, and followed an incident-triage checklist in a lab environment.",
-            "Assessed a deliberately vulnerable web application against OWASP risks and recorded remediation recommendations.",
+            "Triaged [N] sample SIEM security alerts in an authorised lab, correlated host and network indicators, and documented severity, evidence, and escalation decisions.",
+            "Assessed a deliberately vulnerable application against OWASP risks, validated [N] findings, and prioritised remediation by likelihood and business impact.",
+            "Refined a sample detection rule and incident playbook, reducing lab false positives from [A]% to [B]% while retaining documented test coverage.",
         ]
         projects = [
-            "Security Monitoring Lab - collected Linux and network logs, created SIEM queries, and documented alert escalation steps.",
-            "Web Security Assessment - tested an authorised lab application and produced a prioritised remediation report.",
+            "Security Monitoring Lab - collected Linux, authentication, and network logs; created [N] SIEM queries; and verified alert escalation with repeatable test cases.",
+            "Web Security Assessment - tested an authorised lab application, recorded reproducible evidence for [N] findings, and produced a risk-ranked remediation report.",
+            "Incident Response Tabletop - built a fictional ransomware scenario, assigned containment and recovery actions, and documented [N] lessons from the post-incident review.",
         ]
         certification = "CompTIA Security+ or another verified security credential"
         education_focus = "Cybersecurity"
@@ -5873,12 +6272,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Linux", "Git", "Docker", "Kubernetes", "CI/CD", "GitHub Actions", "Terraform", "AWS", "Monitoring", "Scripting"]
         focus = "automated delivery, reproducible infrastructure, containerised services, and operational monitoring"
         experience = [
-            "Containerised a sample web service and created a CI pipeline for linting, tests, and repeatable deployment.",
-            "Defined example cloud infrastructure as code and documented rollback, logging, and monitoring procedures.",
+            "Containerised a sample web service and built a CI/CD pipeline for linting, [N] automated tests, image scanning, and repeatable deployment.",
+            "Provisioned [N] example cloud resources with Terraform, applying versioned configuration, least-privilege access, and a tested rollback procedure.",
+            "Defined availability and error-rate indicators, created actionable alerts, and reduced example recovery time from [A] minutes to [B] minutes during drills.",
         ]
         projects = [
-            "Container Deployment Pipeline - packaged a sample API with Docker and automated test and deployment stages.",
-            "Infrastructure Monitoring Lab - provisioned example resources and created availability and error-rate dashboards.",
+            "Container Deployment Pipeline - packaged a sample API with Docker, automated [N] quality gates in GitHub Actions, and measured deployment lead time before and after automation.",
+            "Infrastructure Monitoring Lab - provisioned example resources, instrumented latency and error metrics, and tested [N] alert and recovery scenarios.",
+            "Highly Available Web Service - designed a fictional multi-zone deployment, documented scaling and backup choices, and load-tested it to [N] requests per second.",
         ]
         certification = "AWS Cloud Practitioner, Azure Fundamentals, or another verified cloud credential"
         education_focus = "Cloud Computing"
@@ -5888,12 +6289,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["TCP/IP", "Routing", "Switching", "VLAN", "DNS", "DHCP", "Linux", "Windows Server", "Wireshark", "Network Troubleshooting"]
         focus = "network configuration, infrastructure monitoring, fault isolation, and technical documentation"
         experience = [
-            "Configured an example segmented network with VLAN, addressing, DHCP, and documented connectivity checks.",
-            "Used packet captures and service logs in a lab to isolate DNS, routing, and access-control problems.",
+            "Configured an example [N]-device segmented network with VLANs, addressing, DHCP, and access controls, then recorded successful connectivity tests.",
+            "Analysed packet captures and service logs to isolate [N] simulated DNS, routing, and access-control faults and document their root causes.",
+            "Created a monitoring and escalation checklist that reduced example fault-isolation time from [A] minutes to [B] minutes during lab exercises.",
         ]
         projects = [
-            "Campus Network Lab - designed an example topology with VLAN segmentation, routing, and verification evidence.",
-            "Infrastructure Health Dashboard - tracked sample service availability, latency, and incident notes.",
+            "Campus Network Lab - designed an example topology for [N] departments with VLAN segmentation, routing, addressing tables, and verification evidence.",
+            "Infrastructure Health Dashboard - tracked availability, latency, and packet loss for [N] sample services and linked alerts to incident notes.",
+            "Branch Connectivity Simulation - configured redundant routes and failover checks, then documented recovery results across [N] controlled outage scenarios.",
         ]
         certification = "Cisco CCNA or another verified networking credential"
         education_focus = "Network Engineering"
@@ -5903,12 +6306,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["SQL", "MySQL", "PostgreSQL", "Data Modelling", "Schema Design", "Indexing", "Query Optimisation", "Backup and Recovery", "Stored Procedures"]
         focus = "relational data modelling, reliable database operations, query performance, and data integrity"
         experience = [
-            "Designed an example relational schema, added constraints and indexes, and documented data validation rules.",
-            "Reviewed sample slow queries with execution plans and recorded measured before-and-after performance evidence.",
+            "Designed an example [N]-table relational schema, normalised key entities, and added constraints, roles, and validation rules to protect data integrity.",
+            "Diagnosed [N] sample slow queries with execution plans and indexing, recording latency improvements from [A] ms to [B] ms.",
+            "Automated a backup-and-restore verification routine and documented recovery-point and recovery-time results across [N] controlled tests.",
         ]
         projects = [
-            "Inventory Database - modelled example products, suppliers, transactions, permissions, and audit history.",
-            "Database Recovery Lab - documented sample backup, restore, integrity-check, and recovery verification procedures.",
+            "Inventory Database - modelled example products, suppliers, transactions, permissions, and audit history across [N] related tables and documented representative SQL queries.",
+            "Database Recovery Lab - scripted backup, restore, integrity checks, and recovery verification for [N] sample failure scenarios.",
+            "Query Performance Study - generated a fictional [N]-row workload, compared execution plans, and reported evidence-based indexing trade-offs.",
         ]
         certification = "Oracle Database SQL, Microsoft Azure Data Fundamentals, or another verified database credential"
         education_focus = "Database Systems"
@@ -5918,12 +6323,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Test Planning", "Manual Testing", "Test Automation", "Selenium", "Postman", "API Testing", "Pytest", "Regression Testing", "Defect Tracking", "Git"]
         focus = "risk-based test design, reproducible defect reports, API validation, and regression automation"
         experience = [
-            "Prepared example test cases from acceptance criteria and recorded reproducible defects with expected and actual results.",
-            "Automated a sample regression flow and API checks, then documented coverage and unresolved risks.",
+            "Derived [N] example positive, negative, and boundary test cases from acceptance criteria and linked each result to traceable evidence.",
+            "Reported [N] reproducible defects with severity, environment, steps, expected and actual results, and verification status.",
+            "Automated a sample UI regression flow and API checks, increasing example repeatable coverage from [A]% to [B]% while documenting residual risks.",
         ]
         projects = [
-            "Web Application Test Suite - created example UI, API, boundary, and regression tests with a clear results report.",
-            "Defect Quality Dashboard - summarised sample defect severity, ageing, retest status, and release risk.",
+            "Web Application Test Suite - created [N] example UI, API, boundary, and regression tests with versioned data and a pass/fail results report.",
+            "Defect Quality Dashboard - summarised [N] sample defects by severity, ageing, retest status, escape rate, and release risk.",
+            "API Contract Test Project - validated authentication, schemas, error responses, and rate limits across [N] sample endpoints using Postman or Pytest.",
         ]
         certification = "ISTQB Foundation Level or another verified software-testing credential"
         education_focus = "Software Quality Assurance"
@@ -5933,12 +6340,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Windows", "Linux", "Microsoft 365", "Active Directory", "Hardware Troubleshooting", "Networking", "Ticketing Systems", "Remote Support", "Technical Documentation"]
         focus = "user support, systematic troubleshooting, ticket ownership, account administration, and clear documentation"
         experience = [
-            "Resolved example hardware, software, account, and connectivity tickets using documented diagnostic steps.",
-            "Prepared a sample knowledge-base article and escalation record with symptoms, actions, evidence, and resolution.",
+            "Resolved [N] example hardware, software, account, and connectivity tickets using documented diagnostics, ownership, and user confirmation.",
+            "Administered sample Microsoft 365 and Active Directory accounts under least-privilege procedures and recorded [N] auditable changes.",
+            "Published [N] knowledge-base articles that reduced example repeat requests by [X]% and improved first-response consistency in simulations.",
         ]
         projects = [
-            "Support Knowledge Base - organised example solutions for account, device, printer, and network issues.",
-            "Asset and Ticket Tracker - recorded sample devices, ownership, ticket priority, status, and resolution history.",
+            "Support Knowledge Base - organised [N] example solutions for account, device, printer, and network issues with symptoms and verification steps.",
+            "Asset and Ticket Tracker - recorded [N] sample devices, ownership, warranty, ticket priority, status, and resolution history.",
+            "Service Desk Improvement Study - categorised [N] fictional tickets, identified the top recurring cause, and measured the effect of a revised triage checklist.",
         ]
         certification = "CompTIA A+ or another verified IT-support credential"
         education_focus = "Information Technology"
@@ -5948,12 +6357,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Python", "SQL", "Pandas", "NumPy", "Data Cleaning", "Statistics", "Data Visualisation", "Power BI", "Machine Learning", "Model Evaluation"]
         focus = "data preparation, exploratory analysis, visual reporting, reproducible modelling, and measured evaluation"
         experience = [
-            "Cleaned an example dataset, documented assumptions, analysed trends, and presented reproducible findings in a dashboard.",
-            "Compared sample baseline and machine-learning models using a held-out test set and appropriate evaluation metrics.",
+            "Cleaned an example [N]-row dataset with Python and SQL, documented missing-value and outlier decisions, and validated [N] data-quality checks.",
+            "Explored sample trends and built a Power BI dashboard with [N] decision-focused measures, filters, and written interpretation for a fictional stakeholder.",
+            "Compared sample baseline and machine-learning models using a held-out test set, cross-validation, and precision, recall, F1, and error analysis.",
         ]
         projects = [
-            "Sales Insight Dashboard - transformed example transaction data with SQL and presented trends and data-quality notes.",
-            "Classification Evaluation Project - trained sample baseline models and reported precision, recall, F1, and limitations.",
+            "Sales Insight Dashboard - transformed [N] example transactions with SQL, defined [N] business measures, and presented trends with data-quality and interpretation notes.",
+            "Classification Evaluation Project - trained sample baseline models, prevented train-test leakage, and reported precision, recall, F1, confusion-matrix errors, and limitations.",
+            "Forecasting Investigation - compared [N] sample approaches against a naive baseline and documented validation design, error metrics, assumptions, and failure cases.",
         ]
         certification = "Microsoft Power BI Data Analyst, Google Data Analytics, or another verified data credential"
         education_focus = "Data Science"
@@ -5963,12 +6374,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Java", "Python", "HTML", "CSS", "JavaScript", "SQL", "Git", "REST API", "Software Testing", "Debugging", "System Design"]
         focus = "software development, database-backed applications, API integration, testing, and maintainable design"
         experience = [
-            "Implemented and tested an example web application with documented requirements, validation, and API integration.",
-            "Recorded sample defects, added regression tests, and documented implementation and handover decisions.",
+            "Implemented [N] example user stories for a database-backed web application, including validation, authentication, and documented REST API integration.",
+            "Designed and optimised [N] API endpoints and SQL queries, recording response-time changes from [A] ms to [B] ms under a repeatable test workload.",
+            "Resolved [N] sample defects, added unit and integration tests, and increased example automated coverage from [A]% to [B]% before handover.",
         ]
         projects = [
-            "Issue Tracker Web App - implemented example authentication, CRUD workflows, search, validation, and tests.",
-            "Library Management System - designed an example relational schema, borrowing workflow, and API endpoints.",
+            "Issue Tracker Web App - implemented example role-based authentication, CRUD and search workflows, validation, [N] REST endpoints, and automated tests.",
+            "Library Management System - designed an example relational schema and borrowing workflow, documented API contracts, and verified [N] business-rule test cases.",
+            "Team Scheduling Service - built a fictional API with conflict detection, pagination, structured errors, and [N] unit and integration tests in a CI workflow.",
         ]
         certification = "a verified software-development or cloud credential"
         education_focus = "Software Engineering"
@@ -5978,12 +6391,14 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Programming Fundamentals", "SQL", "Git", "Testing", "Problem Solving", "Technical Documentation", "Requirements Analysis", "Data Literacy"]
         focus = "technical problem solving, documented requirements, testing, data handling, and collaborative delivery"
         experience = [
-            "Translated example requirements into a small tested solution and documented assumptions, decisions, and limitations.",
-            "Tracked sample tasks and defects, communicated progress, and prepared a concise technical handover.",
+            "Translated [N] example requirements into prioritised acceptance criteria and a tested prototype, documenting assumptions, decisions, and limitations.",
+            "Tracked [N] sample tasks and defects in Git, communicated blockers and progress, and prepared a reproducible technical handover.",
+            "Measured an example process baseline, implemented one controlled improvement, and reported the result from [A] minutes to [B] minutes.",
         ]
         projects = [
-            "Technology Portfolio Project - built an example solution with source control, testing evidence, and documentation.",
-            "Process Improvement Prototype - mapped an example workflow and evaluated a small digital improvement.",
+            "Technology Portfolio Project - built an example solution with versioned source, [N] traceable tests, setup instructions, architecture notes, and documented limitations.",
+            "Process Improvement Prototype - mapped an example workflow, identified [N] pain points, implemented a small digital improvement, and compared before-and-after measures.",
+            "Requirements-to-Test Case Study - converted [N] fictional stakeholder needs into user stories, acceptance tests, and a concise validation report.",
         ]
         certification = "a verified credential relevant to the selected technology role"
         education_focus = "Information Technology"

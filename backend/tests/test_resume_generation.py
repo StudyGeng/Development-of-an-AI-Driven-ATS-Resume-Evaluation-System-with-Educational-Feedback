@@ -399,9 +399,39 @@ class ResumeGenerationTests(unittest.TestCase):
         for sample in (data_sample, cyber_sample, software_sample):
             self.assertEqual(sample["candidate"]["name"], "Sample Candidate")
             self.assertIn("EXAMPLE ONLY - SAMPLE RESUME", sample["plain_text"])
+            self.assertGreaterEqual(len(sample["sections"]["experience_bullets"]), 3)
+            self.assertGreaterEqual(len(sample["sections"]["projects"]), 3)
+            self.assertIn("[N]", " ".join(sample["sections"]["experience_bullets"] + sample["sections"]["projects"]))
             for section_name in ("experience_bullets", "projects", "certifications", "achievements", "education"):
                 for value in sample["sections"][section_name]:
                     self.assertTrue(value.startswith("Example"), (section_name, value))
+
+    def test_every_sample_family_has_detailed_replaceable_evidence_examples(self):
+        representative_roles = (
+            "UI/UX Designer",
+            "Cybersecurity Analyst",
+            "Cloud Engineer",
+            "Network Engineer",
+            "Database Administrator",
+            "QA Engineer",
+            "IT Support Specialist",
+            "Artificial Intelligence Engineer",
+            "Software Developer",
+            "Technology Consultant",
+        )
+
+        for role in representative_roles:
+            with self.subTest(role=role):
+                sample = app_module.build_sample_resume_payload({}, role, 15)
+                experience = sample["sections"]["experience_bullets"]
+                projects = sample["sections"]["projects"]
+
+                self.assertGreaterEqual(len(experience), 3)
+                self.assertGreaterEqual(len(projects), 3)
+                self.assertTrue(all(item.startswith("Example experience bullet:") for item in experience))
+                self.assertTrue(all(item.startswith("Example project:") for item in projects))
+                self.assertIn("[N]", " ".join(experience + projects))
+                self.assertIn("Replace every example", sample["plain_text"])
 
     def test_generic_selected_alias_uses_mapped_role_only_as_profile_fallback(self):
         swe_sample = app_module.build_sample_resume_payload(

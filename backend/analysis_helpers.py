@@ -10,7 +10,9 @@ def compute_tfidf_score(resume_text: str, job_description: str) -> float:
     if not any(documents):
         return 0.0
 
-    vectorizer = TfidfVectorizer(stop_words="english")
+    # Binary term frequency makes this small lexical signal resistant to keyword
+    # stuffing: writing the same word many times cannot increase its weight.
+    vectorizer = TfidfVectorizer(stop_words="english", binary=True)
     try:
         matrix = vectorizer.fit_transform(documents)
     except ValueError:

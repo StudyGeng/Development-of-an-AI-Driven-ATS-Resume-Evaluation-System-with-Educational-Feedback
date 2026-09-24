@@ -1685,52 +1685,63 @@ Download PDF
         }
     }
 
-    function getAtsReadinessCopy(score, resumeQuality) {
+    function getAtsReadinessCopy(score, resumeQuality, scoreBreakdown) {
         const safeResumeQuality = resumeQuality || {};
+        const safeBreakdown = scoreBreakdown || {};
         const safeScore = clampPercent(Number(score || 0));
-        const issueCount = Array.isArray(safeResumeQuality.issues) ? safeResumeQuality.issues.length : 0;
-        const scoreLabel = Math.round(safeScore) + "/100 overall";
+        const issues = Array.isArray(safeResumeQuality.issues) ? safeResumeQuality.issues : [];
+        const issueCount = issues.length;
+        const overallDetail = "Overall role-readiness is " + Math.round(safeScore) + "/100.";
+        const summedPenalty = issues.reduce((total, item) => total + Number(item && item.penalty || 0), 0);
+        const qualityPenalty = Number.isFinite(Number(safeBreakdown.ats_quality_penalty))
+            ? Number(safeBreakdown.ats_quality_penalty)
+            : summedPenalty;
+        const weightedDeduction = Number.isFinite(Number(safeBreakdown.ats_weighted_deduction))
+            ? Number(safeBreakdown.ats_weighted_deduction)
+            : qualityPenalty * 0.20;
+        const qualityScore = Number.isFinite(Number(safeResumeQuality.quality_score))
+            ? clampPercent(Number(safeResumeQuality.quality_score))
+            : clampPercent(100 - qualityPenalty);
+        const qualityScoreLabel = Math.round(qualityScore) + "/100 document quality";
+        const issueLabel = issueCount + " ATS " + (issueCount === 1 ? "fix" : "fixes");
+        const qualityDetail = issueCount
+            ? " ATS document quality is " + Math.round(qualityScore) + "/100; " + issueLabel.toLowerCase() +
+                " remove " + Math.round(qualityPenalty) + " quality points, equal to " +
+                Number(weightedDeduction.toFixed(1)) + " overall points."
+            : " ATS document quality is " + Math.round(qualityScore) + "/100 with no detected format issues.";
 
         if (safeScore < 30) {
             return {
-                headline: "Why This CV May Not Pass ATS",
-                summary: "Overall readiness is below 30/100. Fix parsing, contact, role evidence, and keyword gaps before submitting.",
-                badge: "ATS: Not ready",
-                scoreText: scoreLabel
+                headline: issueCount ? "ATS Document: " + issueLabel : "No ATS Format Issue Detected",
+                summary: overallDetail + qualityDetail + " Role evidence and database requirements also affect the overall score.",
+                badge: issueCount ? issueLabel : "0 ATS fixes",
+                scoreText: qualityScoreLabel
             };
         }
 
         if (safeScore < 50) {
             return {
-                headline: "ATS Improvements Needed",
-                summary: "Overall readiness is between 30 and 49/100. The CV may be readable, but it needs stronger structure, evidence, or role keywords.",
-                badge: "ATS: Needs work",
-                scoreText: scoreLabel
+                headline: issueCount ? "ATS Document: " + issueLabel : "No ATS Format Issue Detected",
+                summary: overallDetail + qualityDetail + " Role evidence and database requirements also affect the overall score.",
+                badge: issueCount ? issueLabel : "0 ATS fixes",
+                scoreText: qualityScoreLabel
             };
         }
 
         if (safeScore < 80) {
-            if (!issueCount) {
-                return {
-                    headline: "ATS Format Looks Clean",
-                    summary: "No major ATS quality issues were detected. The overall score is lower because role/database keyword alignment can still improve.",
-                    badge: "ATS: Good",
-                    scoreText: scoreLabel
-                };
-            }
             return {
-                headline: "ATS Ready, But Can Improve",
-                summary: "Overall readiness is between 50 and 79/100. The CV is usable, but the items below can improve parser and recruiter clarity.",
-                badge: issueCount ? "ATS: OK" : "ATS: Good",
-                scoreText: scoreLabel
+                headline: issueCount ? "ATS Document: " + issueLabel : "ATS Document Checks Passed",
+                summary: overallDetail + qualityDetail + " The remaining score comes from requirements, role evidence, experience, education/skills, and text similarity.",
+                badge: issueCount ? issueLabel : "0 ATS fixes",
+                scoreText: qualityScoreLabel
             };
         }
 
         return {
-            headline: "Strong ATS Ready CV",
-            summary: "Overall readiness is 80/100 or above. The issues below are final polish items for parser and recruiter clarity.",
-            badge: "ATS: Strong",
-            scoreText: scoreLabel
+            headline: issueCount ? "Strong Role Match With " + issueLabel : "ATS Document Checks Passed",
+            summary: overallDetail + qualityDetail + " Treat this as an evidence-match score, not a hiring probability.",
+            badge: issueCount ? issueLabel : "0 ATS fixes",
+            scoreText: qualityScoreLabel
         };
     }
 
@@ -2303,7 +2314,6 @@ Download PDF
     function getIssueSearchText(item) {
         const safeItem = item || {};
         return String([
-            safeItem.visual_marker,
             safeItem.category,
             safeItem.title,
             safeItem.detail,
@@ -2311,88 +2321,13 @@ Download PDF
         ].filter(Boolean).join(" ")).toLowerCase();
     }
 
-    function isProfileLinkIssue(item) {
-        const combined = getIssueSearchText(item);
-        return /profile_link_contact_area|missing professional profile link|\bprofile link\b/.test(combined);
-    }
-
-    function getIssueKind(item) {
-        const combined = getIssueSearchText(item);
-        if (isProfileLinkIssue(item)) {
-            return "profileLink";
-        }
-        if (/embedded|photo|passport|decorative image|image detected/.test(combined)) {
-            return "image";
-        }
-        if (/contact|email|phone|linkedin|github|portfolio/.test(combined)) {
-            return "contact";
-        }
-        if (/skill|technical|tool|framework|language/.test(combined)) {
-            return "skills";
-        }
-        if (/section|heading|education|project/.test(combined)) {
-            return "sections";
-        }
-        if (/impact|measure|quant|number|outcome/.test(combined)) {
-            return "impact";
-        }
-        if (/length/.test(combined)) {
-            return "length";
-        }
-        if (/image|format|layout|spacing|column|font|parser/.test(combined)) {
-            return "format";
-        }
-        return "general";
-    }
-
-    function getVisualMarkerPosition(item, index) {
-        const positions = {
-            image: { top: 12, left: 58, width: 22, height: 20 },
-            profileLink: { top: 13.7, left: 71.5, width: 16.5, height: 2.5, variant: "insert", label: "Add link here" },
-            contact: { top: 21, left: 8, width: 31, height: 9 },
-            format: { top: 36, left: 8, width: 34, height: 15 },
-            sections: { top: 53, left: 8, width: 34, height: 17 },
-            impact: { top: 39, left: 51, width: 37, height: 23 },
-            length: { top: 70, left: 11, width: 75, height: 10 },
-            skills: { top: 31, left: 8, width: 35, height: 10 },
-            general: { top: 29 + (index * 8), left: 12 + (index * 7), width: 34, height: 10 }
-        };
-        return positions[getIssueKind(item)] || positions.general;
-    }
-
-    function buildVisualMarkerOverlay(issues) {
-        const cleanIssues = Array.isArray(issues) ? issues.filter(Boolean).slice(0, 5) : [];
-        if (!cleanIssues.length) {
-            return "";
-        }
-        return cleanIssues.map((item, index) => {
-            const position = getVisualMarkerPosition(item, index);
-            const isInsertMarker = position.variant === "insert";
-            const markerClasses = isInsertMarker
-                ? "absolute rounded border-2 border-dashed border-secondary bg-secondary/10 shadow-[0_0_0_2px_rgba(0,96,172,0.14)]"
-                : "absolute rounded-md border-2 border-error bg-error/5 shadow-[0_0_0_9999px_rgba(255,255,255,0.0)]";
-            const badgeClasses = isInsertMarker
-                ? "absolute -right-2 -top-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-on-primary text-[10px] font-extrabold shadow"
-                : "absolute -right-3 -top-3 inline-flex h-7 w-7 items-center justify-center rounded-full bg-error text-on-error text-xs font-extrabold shadow";
-            const labelMarkup = position.label
-                ? '<span class="absolute right-0 top-full mt-1 whitespace-nowrap rounded bg-secondary px-1.5 py-0.5 text-[9px] font-extrabold uppercase leading-tight text-on-primary shadow">' + escapeHtml(position.label) + '</span>'
-                : "";
-            return (
-                '<div class="' + markerClasses + '" style="top:' + position.top + '%;left:' + position.left + '%;width:' + position.width + '%;height:' + position.height + '%;">' +
-                    '<span class="' + badgeClasses + '">' + escapeHtml(String(index + 1)) + '</span>' +
-                    labelMarkup +
-                '</div>'
-            );
-        }).join("");
-    }
-
-    function buildVisualResumePreview(preview, issues) {
+    function buildVisualResumePreview(preview) {
         if (!preview || !preview.dataUrl) {
             return (
                 '<div class="rounded-xl border border-outline-variant/70 bg-surface-container-low p-4">' +
                     '<p class="text-xs uppercase tracking-widest text-secondary font-bold mb-3">Full resume preview</p>' +
                     '<div class="rounded-lg bg-white border border-outline-variant/60 p-5 text-sm text-on-surface-variant leading-relaxed">' +
-                        'Run a fresh analysis after uploading the resume to show the original PDF or image here with marked problem areas.' +
+                        'Run a fresh analysis after uploading the resume to show the original PDF or image beside the issue list.' +
                     '</div>' +
                 '</div>'
             );
@@ -2403,8 +2338,7 @@ Download PDF
         const type = String(preview.type || "").toLowerCase();
         const isImage = type.startsWith("image/") || /^data:image\//i.test(preview.dataUrl);
         const mediaMarkup = isImage
-            ? '<div class="relative mx-auto w-full max-w-[34rem] bg-white"><img class="block w-full h-auto bg-white" src="' + safeDataUrl + '" alt="' + safeName + '">' +
-                '<div class="pointer-events-none absolute inset-0">' + buildVisualMarkerOverlay(issues) + '</div></div>'
+            ? '<div class="relative mx-auto w-full max-w-[34rem] bg-white"><img class="block w-full h-auto bg-white" src="' + safeDataUrl + '" alt="' + safeName + '"></div>'
             : '<div class="relative mx-auto flex min-h-[34rem] w-full max-w-[34rem] items-center justify-center bg-white text-sm font-semibold text-on-surface-variant" id="resumePdfRenderedPage">Rendering resume page...</div>';
 
         return (
@@ -2413,6 +2347,7 @@ Download PDF
                     '<p class="text-xs uppercase tracking-widest text-secondary font-bold">Full resume preview</p>' +
                     '<span class="text-[11px] font-semibold text-on-surface-variant truncate max-w-[14rem]">' + safeName + '</span>' +
                 '</div>' +
+                '<p class="mb-3 text-[11px] leading-relaxed text-on-surface-variant">Issues are listed beside the preview. The parser does not claim exact page coordinates for them.</p>' +
                 '<div class="overflow-auto rounded-lg bg-[#2f2f2f] border border-outline-variant/60 p-3 shadow-inner">' +
                     mediaMarkup +
                 '</div>' +
@@ -2457,7 +2392,7 @@ Download PDF
         return bytes;
     }
 
-    async function renderPdfResumePreview(preview, issues) {
+    async function renderPdfResumePreview(preview) {
         const target = document.getElementById("resumePdfRenderedPage");
         if (!target || !preview || !preview.dataUrl) {
             return;
@@ -2477,10 +2412,6 @@ Download PDF
             target.innerHTML = "";
             target.className = "relative mx-auto w-full max-w-[34rem] bg-white";
             target.appendChild(canvas);
-            const overlay = document.createElement("div");
-            overlay.className = "pointer-events-none absolute inset-0";
-            overlay.innerHTML = buildVisualMarkerOverlay(issues);
-            target.appendChild(overlay);
 
             try {
                 sessionStorage.setItem("resumeRenderedPreviewDataUrl", canvas.toDataURL("image/png"));
@@ -2545,9 +2476,9 @@ Download PDF
                 '<ul class="space-y-3">' + issueMarkup + '</ul>' +
             '</div>' +
             '<div class="space-y-5 border-t lg:border-l lg:border-t-0 border-outline-variant/60 pt-5 lg:pt-0 lg:pl-6">' +
-                buildVisualResumePreview(resumeVisualPreview, issues) +
+                buildVisualResumePreview(resumeVisualPreview) +
                 '<div>' +
-                    '<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Problem callouts</p>' +
+                    '<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Issue explanations</p>' +
                     calloutIntro +
                     '<ul class="grid gap-2">' + annotationMarkup + '</ul>' +
                 '</div>' +
@@ -2559,7 +2490,7 @@ Download PDF
 
         const previewType = String((resumeVisualPreview && resumeVisualPreview.type) || "").toLowerCase();
         if (resumeVisualPreview && (previewType === "application/pdf" || /^data:application\/pdf/i.test(resumeVisualPreview.dataUrl || ""))) {
-            renderPdfResumePreview(resumeVisualPreview, issues);
+            renderPdfResumePreview(resumeVisualPreview);
         }
     }
 
@@ -2618,11 +2549,17 @@ Download PDF
             : " The score is calculated for " + roleUsed + ", using the selected role and resume evidence.";
         const formula = safeBreakdown.formula || "30% database requirements + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF text similarity, with a strong-evidence calibration floor";
         const formulaSentence = formula.endsWith(".") ? formula : formula + ".";
+        const recentTitle = String(safeBreakdown.most_recent_job_title || "").trim();
+        const employmentMonths = Number(safeBreakdown.employment_duration_months);
+        const employmentText = recentTitle
+            ? " Latest dated title: " + recentTitle + "." +
+                (Number.isFinite(employmentMonths) ? " Recognized timeline: " + Math.round(employmentMonths) + " non-overlapping months (advisory)." : "")
+            : " No dated employment title was parsed, so title-fit evidence is unavailable.";
         const componentText =
             "Req " + formatScoreComponent(safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match) +
             " | Role " + formatScoreComponent(safeBreakdown.role_evidence ?? safeCompatibility.role_evidence) +
             " | Exp " + formatScoreComponent(safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment) +
-            " | ATS " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) + ".";
+            " | ATS " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) + "." + employmentText;
         const fullComponentText =
             "Live components: requirements " + formatScoreComponent(safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match) +
             ", role evidence " + formatScoreComponent(safeBreakdown.role_evidence ?? safeCompatibility.role_evidence) +
@@ -2635,7 +2572,7 @@ Download PDF
             label: band.label,
             text: band.text + contextText,
             formula: componentText,
-            detail: formulaSentence + " " + fullComponentText
+            detail: formulaSentence + " " + fullComponentText + employmentText
         };
     }
 
@@ -2733,22 +2670,7 @@ Download PDF
         )).join("");
     }
 
-    function buildReportVisualMarkerOverlay(criteria) {
-        const issues = Array.isArray(criteria) ? criteria.filter((item) => item && item.status !== "pass").slice(0, 5) : [];
-        return issues.map((item, index) => {
-            const position = getVisualMarkerPosition(item, index);
-            const markerClass = "visual-marker" + (position.variant === "insert" ? " insert-marker" : "");
-            const labelMarkup = position.label ? "<em>" + escapeHtml(position.label) + "<\/em>" : "";
-            return (
-                '<div class="' + markerClass + '" style="top:' + position.top + '%;left:' + position.left + '%;width:' + position.width + '%;height:' + position.height + '%;">' +
-                    '<span>' + escapeHtml(String(index + 1)) + '<\/span>' +
-                    labelMarkup +
-                '<\/div>'
-            );
-        }).join("");
-    }
-
-    function buildReportVisualResumePreview(preview, criteria) {
+    function buildReportVisualResumePreview(preview) {
         if (!preview || !preview.dataUrl) {
             return '<div class="visual-unavailable">Visual resume preview is available after running a fresh analysis from an uploaded file.<\/div>';
         }
@@ -2767,8 +2689,8 @@ Download PDF
                 '<div class="visual-report-head"><strong>Full Resume Preview<\/strong><span>' + safeName + '<\/span><\/div>' +
                 '<div class="visual-frame">' +
                     mediaMarkup +
-                    '<div class="visual-overlay">' + buildReportVisualMarkerOverlay(criteria) + '<\/div>' +
                 '<\/div>' +
+                '<p class="note">Issues are listed separately; exact page coordinates are not inferred from the uploaded layout.<\/p>' +
             '<\/div>'
         );
     }
@@ -2807,7 +2729,7 @@ Download PDF
             ".quality th{width:auto}.status{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700}.pass{background:#dff6e8;color:#176b3a}.warn{background:#ffe1df;color:#9b1c1c}" +
             ".chips{margin-top:10px}.chip{display:inline-block;background:#e7f0ff;color:#064b86;border-radius:999px;padding:5px 10px;margin:3px;font-size:12px;font-weight:700}.missing{background:#ffe7e4;color:#9b1c1c}" +
             "ul{margin:10px 0 0;padding-left:20px}li{margin:7px 0}.excerpt{white-space:pre-wrap;background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#334155;max-height:260px;overflow:auto}" +
-            ".visual-report{border:1px solid #d9e1ec;border-radius:10px;background:#f8fafc;padding:14px;margin-top:12px}.visual-report-head{display:flex;justify-content:space-between;gap:16px;color:#064b86;font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}.visual-report-head span{text-transform:none;letter-spacing:0;color:#64748b;font-weight:700}.visual-frame{position:relative;background:#fff;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.visual-frame img{display:block;width:100%;height:auto;background:#fff;border:0}.visual-frame object,.visual-frame iframe{display:block;width:100%;height:760px;background:#fff;border:0}.visual-overlay{pointer-events:none;position:absolute;inset:0}.visual-marker{position:absolute;border:2px solid #d01822;border-radius:6px;background:rgba(208,24,34,.05)}.visual-marker span{position:absolute;right:-11px;top:-11px;width:24px;height:24px;border-radius:999px;background:#d01822;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}.visual-marker.insert-marker{border-color:#0060ac;border-style:dashed;border-radius:4px;background:rgba(0,96,172,.09);box-shadow:0 0 0 2px rgba(0,96,172,.14)}.visual-marker.insert-marker span{right:-8px;top:-8px;width:20px;height:20px;background:#0060ac;font-size:10px}.visual-marker em{position:absolute;right:0;top:calc(100% + 4px);background:#0060ac;color:#fff;border-radius:4px;padding:3px 6px;white-space:nowrap;font-size:9px;font-style:normal;font-weight:800;line-height:1.15;text-transform:uppercase}.visual-unavailable{background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#64748b;margin-top:10px}" +
+            ".visual-report{border:1px solid #d9e1ec;border-radius:10px;background:#f8fafc;padding:14px;margin-top:12px}.visual-report-head{display:flex;justify-content:space-between;gap:16px;color:#064b86;font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}.visual-report-head span{text-transform:none;letter-spacing:0;color:#64748b;font-weight:700}.visual-frame{position:relative;background:#fff;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.visual-frame img{display:block;width:100%;height:auto;background:#fff;border:0}.visual-frame object,.visual-frame iframe{display:block;width:100%;height:760px;background:#fff;border:0}.visual-unavailable{background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#64748b;margin-top:10px}" +
             "footer{padding:18px 32px;color:#64748b;font-size:12px}.clear{clear:both}@media print{body{background:#fff}.page{margin:0;border:0}.score{float:none;display:block;margin-top:10px}}" +
             "<\/style><\/head><body><div class=\"page\">" +
             "<header><div class=\"score\">" + escapeHtml(score) + "<\/div><h1>UTS CS Career Navigator Feedback Report<\/h1><p>Structured ATS and role-fit feedback for resume improvement.<\/p><div class=\"clear\"><\/div><\/header>" +
@@ -2818,7 +2740,7 @@ Download PDF
             "<section><p class=\"section-title\">Top 3 Role Matches<\/p><div class=\"note\">Evidence-match scores compare resume text with database requirements; they are not hiring probabilities or validated model accuracy.<\/div><table><tr><th>Rank<\/th><th>Database role<\/th><th>Evidence score<\/th><th>Status<\/th><th>Evidence<\/th><\/tr>" + buildTopRoleRows(report.topRoleMatches) + "<\/table><\/section>" +
             "<section><p class=\"section-title\">Score Components<\/p><table>" + componentRows + "<\/table><p class=\"note\">Only the final readiness score is numeric. Component results are shown as status labels to avoid confusing users with multiple percentages.<\/p><\/section>" +
             "<section><p class=\"section-title\">ATS Quality Criteria<\/p><table class=\"quality\"><tr><th>Criteria<\/th><th>Status<\/th><th>Finding<\/th><th>Suggested fix<\/th><\/tr>" + buildQualityRows(report.qualityCriteria) + "<\/table><\/section>" +
-            "<section><p class=\"section-title\">Resume Review Snapshot<\/p><h2>Resume Bad Habits<\/h2><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview, report.qualityCriteria) + "<\/section>" +
+            "<section><p class=\"section-title\">Resume Review Snapshot<\/p><h2>Resume Bad Habits<\/h2><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview) + "<\/section>" +
             "<section><p class=\"section-title\">Resume Evidence<\/p><h2>Matched Signals<\/h2><div class=\"chips\">" + reportList(report.matchedSignals, "No matched signals").split(", ").map((item) => "<span class=\"chip\">" + item + "<\/span>").join("") + "<\/div><h2 style=\"margin-top:22px\">Missing Keywords<\/h2><div class=\"chips\">" + reportList(report.missingKeywords, "No missing keywords").split(", ").map((item) => "<span class=\"chip missing\">" + item + "<\/span>").join("") + "<\/div><\/section>" +
             "<section><p class=\"section-title\">Next Actions<\/p><ul>" + buildFeedbackRows(report.structuredFeedback, report.feedback || "No feedback available.") + "<\/ul><\/section>" +
             "<footer>Generated locally by UTS CS Career Navigator. Open this file in a browser to print or save as PDF.<\/footer>" +
@@ -3500,7 +3422,7 @@ Download PDF
             }
         }
 
-        const atsReadinessCopy = getAtsReadinessCopy(scoreOutOf100, resumeQuality);
+        const atsReadinessCopy = getAtsReadinessCopy(scoreOutOf100, resumeQuality, scoreBreakdown);
         setText("atsQualityHeadline", atsReadinessCopy.headline);
         setText("atsQualitySummaryText", atsReadinessCopy.summary);
         setText("atsQualityRiskText", atsReadinessCopy.badge);

@@ -330,6 +330,10 @@ class RoleRankingQueryRegressionTests(unittest.TestCase):
             return_value=0.0,
         ), patch.object(
             self.app_module,
+            "extract_most_recent_job_title",
+            return_value="",
+        ) as extract_latest_title, patch.object(
+            self.app_module,
             "compute_role_title_match_score",
             return_value=0.0,
         ), patch.object(
@@ -341,6 +345,7 @@ class RoleRankingQueryRegressionTests(unittest.TestCase):
 
         fetch_catalog.assert_called_once_with()
         fetch_one.assert_not_called()
+        extract_latest_title.assert_called_once_with("resume text")
         self.assertEqual(len(matches), 3)
 
 
