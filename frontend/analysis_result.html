@@ -396,7 +396,7 @@ Recommendation actions will appear after analysis.
 </div>
 <div class="border-t border-outline-variant/60 pt-5">
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Beyond Keywords</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="semanticMatchInsight" style="">Semantic matching notes will appear after analysis.</p>
+<p class="text-sm text-on-surface-variant leading-relaxed" id="semanticMatchInsight" style="">Text-matching notes will appear after analysis.</p>
 </div>
 <div class="border-t border-outline-variant/60 pt-5">
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Next Rewrite</p>
@@ -511,10 +511,13 @@ Export HTML Feedback Report
 </div>
 </div>
 <div class="relative z-10 mt-6 hidden bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6" id="generatedResumePanel">
+<div class="hidden mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" id="generatedResumeSampleNotice" role="status">
+<strong>Example only.</strong> This target-role resume uses fictional placeholder details for learning. Replace every fact with your own verified evidence before applying.
+</div>
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
 <div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Generated Draft</p>
-<h3 class="text-2xl font-extrabold text-primary tracking-tight">ATS Resume Preview</h3>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" id="generatedResumeEyebrow">Generated Draft</p>
+<h3 class="text-2xl font-extrabold text-primary tracking-tight" id="generatedResumeTitle">ATS Resume Preview</h3>
 </div>
 <div class="flex flex-col sm:flex-row gap-3">
 <button class="px-4 py-2 rounded-xl bg-surface-container-low text-primary font-bold border border-outline-variant/70 hover:bg-surface-container-high transition-colors inline-flex items-center justify-center gap-2" id="copyGeneratedResumeBtn" type="button">
@@ -1764,30 +1767,30 @@ Download PDF
 
         const safeContext = context || {};
         const cleanSourceMatches = Array.isArray(matches) ? matches.filter(Boolean) : [];
-        if (safeContext.mode === "unrelatedSelectedRole") {
+        let contextNotice = "";
+        if (safeContext.mode === "selectedRoleExample") {
             const roleName = safeContext.roleName || safeContext.selectedRole || "the selected job";
             const scoreText = Number.isFinite(safeContext.selectedMatchScore)
                 ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "below 30/100";
-            container.innerHTML =
-                '<div class="rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
-                    '<p class="font-bold text-on-error-container">Resume not related enough to ' + escapeHtml(roleName) + '.</p>' +
-                    '<p class="mt-2">Selected job match: ' + escapeHtml(scoreText) + '. The ATS preview is still available for format issues.</p>' +
+                : "50/100 or below";
+            contextNotice =
+                '<div class="lg:col-span-3 rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
+                    '<p class="font-bold text-on-error-container">More evidence is needed for ' + escapeHtml(roleName) + '.</p>' +
+                    '<p class="mt-2">Selected-role evidence: ' + escapeHtml(scoreText) + '. The three cards below remain the closest truthful matches from the uploaded resume, while the resume builder offers a clearly labelled learning example for the selected field.</p>' +
                 '</div>';
-            return;
         }
 
         const maxMatches = safeContext.mode === "autoDetectedRole" ? 1 : 3;
         const cleanMatches = cleanSourceMatches.slice(0, maxMatches);
         if (cleanMatches.length === 0) {
-            container.innerHTML =
+            container.innerHTML = contextNotice +
                 '<div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-sm text-on-surface-variant">' +
                     'No alternative database role matches were returned for this analysis.' +
                 '</div>';
             return;
         }
 
-        container.innerHTML = cleanMatches.map((item, index) => {
+        container.innerHTML = contextNotice + cleanMatches.map((item, index) => {
             const rawScore = Number(item.score);
             const score = Number.isFinite(rawScore) ? clampPercent(rawScore) : 0;
             const scoreLabel = Number.isFinite(rawScore) ? Math.round(score) + "/100" : "Pending";
@@ -1800,7 +1803,7 @@ Download PDF
             const isSelected = Boolean(item.is_selected_database_role);
             const reasonText = safeContext.mode === "autoDetectedRole"
                 ? "Top detected role from resume evidence."
-                : (item.reason || "Ranked from resume keywords, role requirements, and semantic similarity.");
+                : (item.reason || "Ranked from resume keywords, weighted role requirements, and TF-IDF text similarity.");
             const cardClass = isFinal
                 ? "border-secondary/40 bg-secondary-container/10"
                 : "border-outline-variant/70 bg-surface-container-low";
@@ -2125,9 +2128,9 @@ Download PDF
             ? safeOptions.missingKeywords.filter(Boolean)
             : [];
         let mode = hasSelectedRole ? "selectedRoleLow" : "autoDetectedRole";
-        if (hasSelectedRole && Number.isFinite(selectedMatchScore) && selectedMatchScore < 30) {
-            mode = "unrelatedSelectedRole";
-        } else if (hasSelectedRole && Number(safeOptions.overallScore || 0) >= 50) {
+        if (hasSelectedRole && Number.isFinite(selectedMatchScore) && selectedMatchScore <= SELECTED_ROLE_EXAMPLE_THRESHOLD) {
+            mode = "selectedRoleExample";
+        } else if (hasSelectedRole && Number.isFinite(selectedMatchScore) && selectedMatchScore > SELECTED_ROLE_EXAMPLE_THRESHOLD) {
             mode = "selectedRoleFit";
         }
 
@@ -2201,7 +2204,7 @@ Download PDF
     function buildIssueActionText(item, context) {
         const baseSuggestion = item.suggestion || item.detail || "Review this section for ATS readability.";
         const safeContext = context || {};
-        if (safeContext.mode === "unrelatedSelectedRole") {
+        if (safeContext.mode === "selectedRoleExample") {
             return baseSuggestion;
         }
 
@@ -2224,13 +2227,13 @@ Download PDF
 
     function buildProblemCalloutIntro(context) {
         const safeContext = context || {};
-        if (safeContext.mode === "unrelatedSelectedRole") {
+        if (safeContext.mode === "selectedRoleExample") {
             const scoreText = Number.isFinite(safeContext.selectedMatchScore)
                 ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "below 30/100";
+                : "50/100 or below";
             return (
                 '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
-                    'Selected job match is ' + escapeHtml(scoreText) + ', so this resume is not related enough to ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "the selected job") + '. ATS preview is still shown for format fixes.' +
+                    'Selected-role evidence is ' + escapeHtml(scoreText) + ' for ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "the selected job") + '. The analysis stays truthful, and the builder provides a separate example instead of inventing experience.' +
                 '</p>'
             );
         }
@@ -2613,7 +2616,7 @@ Download PDF
         const contextText = isDifferentRole
             ? " It is calculated for " + roleUsed + ", not " + selected + ", because the resume evidence matched that role better."
             : " The score is calculated for " + roleUsed + ", using the selected role and resume evidence.";
-        const formula = safeBreakdown.formula || "30% database requirements + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% semantic similarity, with a strong-evidence calibration floor";
+        const formula = safeBreakdown.formula || "30% database requirements + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF text similarity, with a strong-evidence calibration floor";
         const formulaSentence = formula.endsWith(".") ? formula : formula + ".";
         const componentText =
             "Req " + formatScoreComponent(safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match) +
@@ -2626,7 +2629,7 @@ Download PDF
             ", experience " + formatScoreComponent(safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment) +
             ", ATS format " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) +
             ", education/skills " + formatScoreComponent(safeBreakdown.academic_rigor ?? safeCompatibility.academic_rigor) +
-            ", semantic similarity " + formatScoreComponent(safeBreakdown.tfidf_similarity) + ".";
+            ", TF-IDF text similarity " + formatScoreComponent(safeBreakdown.tfidf_similarity) + ".";
 
         return {
             label: band.label,
@@ -2728,16 +2731,6 @@ Download PDF
             "<li><strong>" + escapeHtml(String(index + 1) + ". " + (item.title || item.category || "ATS issue")) + ":<\/strong> " +
             escapeHtml(item.suggestion || item.detail || "Review this section for ATS readability.") + "<\/li>"
         )).join("");
-    }
-
-    function buildResumePreviewBlock(text) {
-        const lines = getResumePreviewLines(text, 12);
-        if (!lines.length) {
-            return '<div class="excerpt">Resume preview was not available for this report.<\/div>';
-        }
-        return '<div class="excerpt">' + lines.map((line, index) => (
-            '<div><strong>' + escapeHtml(String(index + 1)).padStart(2, "0") + '<\/strong> ' + escapeHtml(line) + '<\/div>'
-        )).join("") + '<\/div>';
     }
 
     function buildReportVisualMarkerOverlay(criteria) {
@@ -2872,10 +2865,14 @@ Download PDF
         const role = latestGeneratedResume && latestGeneratedResume.target_role
             ? latestGeneratedResume.target_role
             : localStorage.getItem("selectedJobRole");
-        return slugifyFileName("uts-ats-resume-" + (role || "draft"), "uts-ats-resume-draft");
+        const isExample = Boolean(latestGeneratedResume && (latestGeneratedResume.sample_only || latestGeneratedResume.is_sample_resume));
+        const prefix = isExample ? "uts-example-only-resume-" : "uts-ats-resume-";
+        const fallback = isExample ? "uts-example-only-resume" : "uts-ats-resume-draft";
+        return slugifyFileName(prefix + (role || "draft"), fallback);
     }
 
     const CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD = 20;
+    const SELECTED_ROLE_EXAMPLE_THRESHOLD = 50;
 
     function getTopRoleGenerationScores(result) {
         const roleRecommendation = result && result.role_recommendation ? result.role_recommendation : {};
@@ -2889,13 +2886,80 @@ Download PDF
             .filter((score) => Number.isFinite(score));
     }
 
-    function shouldShowSampleResumeOnly(result) {
-        const topScores = getTopRoleGenerationScores(result || {});
-        if (topScores.length) {
-            return Math.max(...topScores) < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD;
+    function getResumeExampleDecision(result) {
+        const safeResult = result || {};
+        const roleRecommendation = safeResult.role_recommendation || {};
+        const roleMatches = Array.isArray(safeResult.top_role_matches)
+            ? safeResult.top_role_matches
+            : (Array.isArray(roleRecommendation.top_role_matches) ? roleRecommendation.top_role_matches : []);
+        const topRoleMatch = roleMatches.find(Boolean) || {};
+        const topRoleName = String(topRoleMatch.role || topRoleMatch.database_role || "").trim();
+        const selectedRole = String(roleRecommendation.selected_role || safeResult.selected_role || "").trim();
+        const selectedScoreValue = roleRecommendation.selected_score;
+        const selectedScore = selectedScoreValue === null || selectedScoreValue === undefined || selectedScoreValue === ""
+            ? Number.NaN
+            : Number(selectedScoreValue);
+        if (
+            isExplicitSelectedRole(selectedRole)
+            && Number.isFinite(selectedScore)
+            && selectedScore <= SELECTED_ROLE_EXAMPLE_THRESHOLD
+        ) {
+            return {
+                showExample: true,
+                reason: "selected_role_low_match",
+                targetRole: selectedRole,
+                score: selectedScore,
+                threshold: SELECTED_ROLE_EXAMPLE_THRESHOLD
+            };
         }
-        const overallScore = Number(result && result.matching_percentage);
-        return Number.isFinite(overallScore) && overallScore < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD;
+
+        if (isExplicitSelectedRole(selectedRole)) {
+            return {
+                showExample: false,
+                reason: "",
+                targetRole: selectedRole,
+                score: Number.isFinite(selectedScore) ? selectedScore : null,
+                threshold: SELECTED_ROLE_EXAMPLE_THRESHOLD
+            };
+        }
+
+        const topScores = getTopRoleGenerationScores(safeResult);
+        if (topScores.length) {
+            const bestScore = Math.max(...topScores);
+            if (bestScore < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD) {
+                return {
+                    showExample: true,
+                    reason: "no_related_cs_role",
+                    targetRole: selectedRole || topRoleName || "Computer Science",
+                    score: bestScore,
+                    threshold: CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+                };
+            }
+        }
+        const overallScore = Number(safeResult.matching_percentage);
+        if (!topScores.length && Number.isFinite(overallScore) && overallScore < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD) {
+            return {
+                showExample: true,
+                reason: "no_related_cs_role",
+                targetRole: selectedRole || topRoleName || "Computer Science",
+                score: overallScore,
+                threshold: CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+            };
+        }
+        return {
+            showExample: false,
+            reason: "",
+            targetRole: selectedRole,
+            score: Number.isFinite(selectedScore) ? selectedScore : null,
+            threshold: null
+        };
+    }
+
+    function getResumeGeneratorButtonHtml(result) {
+        const decision = getResumeExampleDecision(result);
+        return decision.showExample
+            ? '<span class="material-symbols-outlined" data-icon="description">description</span>View Target-Role Example'
+            : '<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>Generate Optimized Resume';
     }
 
     function isGeneratedResumeAdviceLine(value) {
@@ -2948,11 +3012,41 @@ Download PDF
         const panel = document.getElementById("generatedResumePanel");
         const preview = document.getElementById("generatedResumePreview");
         const notesList = document.getElementById("generatedResumeNotesList");
+        const sampleNotice = document.getElementById("generatedResumeSampleNotice");
+        const eyebrow = document.getElementById("generatedResumeEyebrow");
+        const title = document.getElementById("generatedResumeTitle");
+        const copyButton = document.getElementById("copyGeneratedResumeBtn");
+        const htmlButton = document.getElementById("downloadGeneratedHtmlBtn");
+        const pdfButton = document.getElementById("downloadGeneratedPdfBtn");
         if (!panel || !preview) {
             return;
         }
 
         latestGeneratedResume = draft;
+        const isExample = Boolean(draft && (draft.sample_only || draft.is_sample_resume));
+        if (sampleNotice) {
+            sampleNotice.classList.toggle("hidden", !isExample);
+        }
+        if (eyebrow) {
+            eyebrow.textContent = isExample ? "Target-role learning example" : "Generated Draft";
+        }
+        if (title) {
+            title.textContent = isExample
+                ? (draft.target_role || "Target Role") + " Example Resume"
+                : "ATS Resume Preview";
+        }
+        if (copyButton) {
+            copyButton.innerHTML = '<span class="material-symbols-outlined text-base">content_copy</span>' +
+                (isExample ? "Copy Example Text" : "Copy Resume Text");
+        }
+        if (htmlButton) {
+            htmlButton.innerHTML = '<span class="material-symbols-outlined text-base">code</span>' +
+                (isExample ? "Download Example HTML" : "Download HTML");
+        }
+        if (pdfButton) {
+            pdfButton.innerHTML = '<span class="material-symbols-outlined text-base">picture_as_pdf</span>' +
+                (isExample ? "Download Example PDF" : "Download PDF");
+        }
         preview.srcdoc = draft && draft.html
             ? draft.html
             : "<!doctype html><html><body><p>Generated resume draft is empty.</p></body></html>";
@@ -3072,18 +3166,27 @@ Download PDF
         };
     }
 
-    async function downloadGeneratedResumePdf(analysisId) {
+    async function downloadGeneratedResumePdf(analysis, recommendedRole) {
         if (!latestGeneratedResume) {
             setGeneratedResumeStatus("Generate a resume draft first.", true);
             return;
         }
+        const currentUser = getAuthUser();
         const fileName = getGeneratedResumeBaseName() + ".pdf";
-        setGeneratedResumeStatus("Preparing PDF resume...");
+        const isExample = Boolean(latestGeneratedResume.sample_only || latestGeneratedResume.is_sample_resume);
+        setGeneratedResumeStatus(isExample ? "Preparing example-only PDF..." : "Preparing PDF resume...");
         try {
             const response = await fetch(API_BASE_URL + "/generate-resume-pdf", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ generated_resume: latestGeneratedResume })
+                body: JSON.stringify({
+                    analysis,
+                    analysis_id: analysis && analysis.analysis_id,
+                    resume_text: analysis && (analysis.resume_text_for_generation || analysis.resume_excerpt || ""),
+                    target_role: latestGeneratedResume.target_role || recommendedRole || "",
+                    candidate_name: currentUser && currentUser.full_name ? currentUser.full_name : "",
+                    ...getGeneratedContactLinks()
+                })
             });
             if (!response.ok) {
                 const payload = await response.json().catch(() => ({}));
@@ -3091,8 +3194,8 @@ Download PDF
             }
             const blob = await response.blob();
             downloadGeneratedBlob(blob, fileName);
-            await saveGeneratedResumeDownloadHistory(fileName, analysisId);
-            setGeneratedResumeStatus("PDF resume downloaded.");
+            await saveGeneratedResumeDownloadHistory(fileName, analysis && analysis.analysis_id ? analysis.analysis_id : null);
+            setGeneratedResumeStatus(isExample ? "Example-only PDF downloaded." : "PDF resume downloaded.");
         } catch (error) {
             const message = error && error.message ? error.message : "Could not export PDF resume.";
             setGeneratedResumeStatus(message, true);
@@ -3155,6 +3258,7 @@ Download PDF
     async function generateOptimizedResume(options) {
         const generateBtn = document.getElementById("generateResumeBtn");
         const analysis = options.result || {};
+        const exampleDecision = getResumeExampleDecision(analysis);
         const currentUser = getAuthUser();
         if (!requireAuth()) {
             return;
@@ -3165,8 +3269,8 @@ Download PDF
             generateBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span>Generating...';
         }
         setGeneratedResumeStatus(
-            shouldShowSampleResumeOnly(analysis)
-                ? "Preparing a sample CS ATS resume template..."
+            exampleDecision.showExample
+                ? "Preparing a clearly labelled " + (exampleDecision.targetRole || "target-role") + " example resume..."
                 : "Generating ATS resume draft..."
         );
 
@@ -3177,7 +3281,9 @@ Download PDF
                 body: JSON.stringify({
                     analysis,
                     resume_text: analysis.resume_text_for_generation || analysis.resume_excerpt || "",
-                    target_role: options.recommendedRole || analysis.target_role || "",
+                    target_role: exampleDecision.showExample && exampleDecision.targetRole
+                        ? exampleDecision.targetRole
+                        : (options.recommendedRole || analysis.target_role || ""),
                     candidate_name: currentUser && currentUser.full_name ? currentUser.full_name : "",
                     ...getGeneratedContactLinks()
                 })
@@ -3188,13 +3294,21 @@ Download PDF
             }
             renderGeneratedResume(payload);
             if (payload.sample_only || payload.is_sample_resume) {
-                const score = Number(payload.best_top_role_score);
-                const scoreText = Number.isFinite(score) ? Math.round(score) + "/100" : "below 20/100";
+                const scoreValue = payload.sample_target_score ?? payload.comparison_score ??
+                    payload.selected_role_score ?? payload.best_top_role_score;
+                const score = scoreValue === null || scoreValue === undefined || scoreValue === ""
+                    ? Number.NaN
+                    : Number(scoreValue);
+                const scoreText = Number.isFinite(score) ? Math.round(score) + "/100" : "below the example threshold";
+                const targetRole = payload.sample_target_role || payload.target_role || exampleDecision.targetRole || "the selected role";
+                const reasonText = payload.sample_reason_code === "selected_role_at_or_below_50"
+                    ? "the selected-role evidence score is " + scoreText
+                    : "no sufficiently related CS role was detected (best evidence score " + scoreText + ")";
                 setGeneratedResumeStatus(
-                    "Sample CS ATS template shown because the best Top 3 CS role match is " + scoreText +
-                        ". The system did not rewrite this resume as a CS resume."
+                    targetRole + " example shown because " + reasonText +
+                        ". It uses fictional placeholders and does not rewrite the user's unrelated experience."
                 );
-                showToast("Sample CS resume template shown.", "info");
+                showToast("Target-role example resume shown.", "info");
                 return;
             }
             const templateName = payload.template && payload.template.name ? payload.template.name : "ATS resume draft";
@@ -3212,9 +3326,7 @@ Download PDF
             if (generateBtn) {
                 generateBtn.disabled = false;
                 generateBtn.classList.remove("opacity-70", "cursor-wait");
-                generateBtn.innerHTML = shouldShowSampleResumeOnly(analysis)
-                    ? '<span class="material-symbols-outlined" data-icon="description">description</span>View CS Sample Template'
-                    : '<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>Generate Optimized Resume';
+                generateBtn.innerHTML = getResumeGeneratorButtonHtml(analysis);
             }
         }
     }
@@ -3327,11 +3439,10 @@ Download PDF
         const exportResumeBtn = document.getElementById("exportResumeBtn");
         const exportHtmlReportBtn = document.getElementById("exportHtmlReportBtn");
         const generateResumeBtn = document.getElementById("generateResumeBtn");
-        const sampleResumeOnly = shouldShowSampleResumeOnly(result);
+        const exampleDecision = getResumeExampleDecision(result);
+        const sampleResumeOnly = exampleDecision.showExample;
         if (generateResumeBtn) {
-            generateResumeBtn.innerHTML = sampleResumeOnly
-                ? '<span class="material-symbols-outlined" data-icon="description">description</span>View CS Sample Template'
-                : '<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>Generate Optimized Resume';
+            generateResumeBtn.innerHTML = getResumeGeneratorButtonHtml(result);
         }
         const copyGeneratedResumeBtn = document.getElementById("copyGeneratedResumeBtn");
         const downloadGeneratedHtmlBtn = document.getElementById("downloadGeneratedHtmlBtn");
@@ -3366,8 +3477,8 @@ Download PDF
         renderEvidenceCircles(result, resumeSummary, matchedSignals, compatibility, scoreBreakdown);
 
         if (aiSummary) {
-            if (guidanceContext.mode === "unrelatedSelectedRole") {
-                aiSummary.textContent = "Resume is not related enough to " + (guidanceContext.roleName || selectedRole || "the selected job") + ".";
+            if (guidanceContext.mode === "selectedRoleExample") {
+                aiSummary.textContent = "More verified evidence is needed for " + (guidanceContext.roleName || selectedRole || "the selected job") + ".";
             } else if (guidanceContext.mode === "autoDetectedRole") {
                 aiSummary.textContent = "Top detected role: " + (guidanceContext.roleName || recommendedRole) + ".";
             } else {
@@ -3378,8 +3489,8 @@ Download PDF
         }
 
         if (aiRecommendation) {
-            if (guidanceContext.mode === "unrelatedSelectedRole") {
-                aiRecommendation.textContent = "Choose a closer job or rewrite the resume with true selected-job evidence.";
+            if (guidanceContext.mode === "selectedRoleExample") {
+                aiRecommendation.textContent = "Review the truthful Top 3 alternatives, or use the selected-field example as a learning guide and add only evidence you genuinely have.";
             } else if (guidanceContext.mode === "autoDetectedRole") {
                 aiRecommendation.textContent = "Notes use the Top 1 detected role because no job was selected.";
             } else {
@@ -3396,15 +3507,15 @@ Download PDF
         setText("atsQualityScoreText", atsReadinessCopy.scoreText);
         renderAtsQualityCriteria(qualityCriteria, resumePreviewText, resumeVisualPreview, guidanceContext);
 
-        if (guidanceContext.mode === "unrelatedSelectedRole") {
+        if (guidanceContext.mode === "selectedRoleExample") {
             const selectedScoreText = Number.isFinite(guidanceContext.selectedMatchScore)
                 ? Math.round(guidanceContext.selectedMatchScore) + "/100"
-                : "below 30/100";
-            setText("roleFitHeadline", "Resume Not Related To " + (guidanceContext.roleName || selectedRole || "Selected Job"));
-            setText("roleRecommendationSummary", "Selected job match is " + selectedScoreText + ". The resume does not show enough related evidence for this job.");
-            setText("roleDecisionBadge", "Selected match below 30");
-            setText("topRoleMatchesTitle", "Selected Job Check");
-            setText("topRoleMatchesBadge", "Brief result");
+                : "50/100 or below";
+            setText("roleFitHeadline", "More Evidence Needed For " + (guidanceContext.roleName || selectedRole || "Selected Job"));
+            setText("roleRecommendationSummary", "Selected-role evidence is " + selectedScoreText + ". The truthful Top 3 alternatives remain visible, and the resume builder will show a separate example for the selected field instead of inventing experience.");
+            setText("roleDecisionBadge", "Selected evidence 50 or below");
+            setText("topRoleMatchesTitle", "Top 3 Resume-Matched Roles");
+            setText("topRoleMatchesBadge", "Truthful alternatives");
         } else if (guidanceContext.mode === "autoDetectedRole") {
             setText("roleFitHeadline", "Top Detected Role: " + (guidanceContext.roleName || recommendedRole));
             setText("roleRecommendationSummary", "No job was selected, so examples and notes use the Top 1 detected role from the resume.");
@@ -3445,12 +3556,16 @@ Download PDF
         }
         setText(
             "futureAtsResumeText",
-            sampleResumeOnly
-                ? "Top CS role matches are below 20/100, so the generator will show a sample CS ATS resume template instead of rewriting this resume."
+            exampleDecision.reason === "selected_role_low_match"
+                ? "Your Top 3 matches remain based on the uploaded resume. Because evidence for " +
+                    (exampleDecision.targetRole || "the selected role") + " is " + Math.round(exampleDecision.score) +
+                    "/100, the builder will show a clearly labelled example for that target field instead of inventing experience."
+                : sampleResumeOnly
+                    ? "No sufficiently related CS role was detected, so the builder will show a clearly labelled learning example instead of rewriting this resume as a CS resume."
                 : "Generate an ATS resume draft for " + recommendedRole + " using the missing keywords, score evidence, and feedback from this analysis."
         );
         const generatorReadyMessage = sampleResumeOnly
-            ? "Top 3 CS role matches are below 20/100. Generate will show a sample CS resume template only."
+            ? "Ready to show a fictional " + (exampleDecision.targetRole || "target-role") + " example. Your original analysis and Top 3 matches remain unchanged."
             : result.resume_text_for_generation ? "Ready to generate from extracted resume text." : "Ready to generate from available analysis context.";
         const detectedContactLinks = prefillGeneratedContactLinks(result);
         setGeneratedResumeStatus(generatorReadyMessage + (detectedContactLinks ? " Existing LinkedIn/GitHub link detected." : ""));
@@ -3470,7 +3585,10 @@ Download PDF
         );
         setText(
             "generatorInputInsight",
-            "Generator input: " + recommendedRole + ", matched signals, missing keywords, and ATS feedback."
+            sampleResumeOnly
+                ? "Example target: " + (exampleDecision.targetRole || "CS role") +
+                    ". The example uses fictional placeholders and does not replace the truthful Top 3 analysis."
+                : "Generator input: " + recommendedRole + ", matched signals, missing keywords, and ATS feedback."
         );
 
         renderPills("matchedSignalsChipList", matchedSignals, "No matched resume signals detected yet.");
@@ -3539,7 +3657,7 @@ Download PDF
         if (downloadGeneratedPdfBtn && downloadGeneratedPdfBtn.dataset.bound !== "true") {
             downloadGeneratedPdfBtn.dataset.bound = "true";
             downloadGeneratedPdfBtn.addEventListener("click", () => {
-                downloadGeneratedResumePdf(result.analysis_id || null);
+                downloadGeneratedResumePdf(result, recommendedRole);
             });
         }
 
@@ -3612,102 +3730,6 @@ Download PDF
             });
         }
 
-    }
-
-    function clearDisplayedAnalysis() {
-        // Clear DOM placeholders
-        const overallScore = document.getElementById("overallScore");
-        if (overallScore) overallScore.textContent = "-";
-        setText("scoreMeaningLabel", "Score conclusion");
-        setText("scoreMeaningText", "Run an analysis to see what the score means.");
-        setText("scoreFormulaText", "Live score components will appear here.");
-        setText("roleFitHeadline", "Recommended job fit will appear here.");
-        setText("roleRecommendationSummary", "Run an analysis to compare the selected job with the best database match.");
-        setText("roleDecisionBadge", "Database comparison");
-        setText("selectedChoiceDisplay", "No role selected.");
-        setText("selectedDatabaseRoleDisplay", "Database mapping will appear here.");
-        setText("selectedRoleScoreDisplay", "Role mapping pending.");
-        setText("recommendedRoleDisplay", "No recommendation yet.");
-        setText("recommendedRoleReasonDisplay", "The system will explain why this role is suitable.");
-        setText("recommendedRoleScoreDisplay", "Final role pending.");
-        setText("submissionFileNameDisplay", "No resume selected");
-        setText("submissionFileTypeDisplay", "-");
-        setText("submissionTimeDisplay", "-");
-        setText("submissionRoleDisplay", "No role selected");
-        setText("futureAtsResumeText", "After analysis, this area will generate a stronger ATS resume draft using the database role fit, missing keywords, and feedback.");
-        setGeneratedResumeStatus("Ready after analysis.");
-        setText("fitReasonInsight", "Role-fit reasoning will appear after analysis.");
-        setText("semanticMatchInsight", "Semantic matching notes will appear after analysis.");
-        setText("rewriteTargetInsight", "Missing keyword rewrite targets will appear after analysis.");
-        setText("generatorInputInsight", "Resume-generation input will appear after analysis.");
-        setText("atsQualityHeadline", "ATS Readiness Check");
-        setText("atsQualitySummaryText", "Run an analysis to check resume format, language, contact details, and parsing risks.");
-        setText("atsQualityRiskText", "ATS: -");
-        setText("atsQualityScoreText", "Score band appears after analysis");
-        setText("topRoleMatchesTitle", "Top 3 Role Matches");
-        setText("topRoleMatchesBadge", "Resume evidence ranking");
-        renderAtsQualityCriteria([], "", null);
-        renderPills("matchedSignalsChipList", [], "Matched resume signals will appear here.");
-        renderTopRoleMatches([]);
-        renderRecommendationPlan(null, { empty: true });
-        renderFeedbackList("structuredFeedbackList", [], "Feedback will appear here after analysis.");
-        latestGeneratedResume = null;
-        const generatedResumePanel = document.getElementById("generatedResumePanel");
-        if (generatedResumePanel) {
-            generatedResumePanel.classList.add("hidden");
-        }
-        const generatedResumePreview = document.getElementById("generatedResumePreview");
-        if (generatedResumePreview) {
-            generatedResumePreview.srcdoc = "";
-        }
-        const generatedResumeNotesList = document.getElementById("generatedResumeNotesList");
-        if (generatedResumeNotesList) {
-            generatedResumeNotesList.innerHTML = "";
-        }
-
-        setMetric("metricKeywordBar", "metricKeywordValue", 0);
-        setMetric("metricExperienceBar", "metricExperienceValue", 0);
-        setMetric("metricAcademicBar", "metricAcademicValue", 0);
-        setEvidenceCircle("hardSkillsRing", "hardSkillsScore", 0);
-        setEvidenceCircle("softSkillsRing", "softSkillsScore", 0);
-        setEvidenceCircle("experienceRing", "experienceScore", 0);
-        setText("metricKeywordValue", "Pending");
-        setText("metricExperienceValue", "Pending");
-        setText("metricAcademicValue", "Pending");
-        setText("hardSkillsDetail", "Tools, languages, and role keywords.");
-        setText("softSkillsDetail", "Communication, teamwork, and leadership signals.");
-        setText("experienceDetail", "Projects, internships, and measurable outcomes.");
-
-        const parsedSkillsCount = document.getElementById("parsedSkillsCount");
-        if (parsedSkillsCount) parsedSkillsCount.textContent = "Skills found: 0";
-        const parsedEducationCount = document.getElementById("parsedEducationCount");
-        if (parsedEducationCount) parsedEducationCount.textContent = "Education markers: 0";
-        const parsedExperienceCount = document.getElementById("parsedExperienceCount");
-        if (parsedExperienceCount) parsedExperienceCount.textContent = "Experience markers: 0";
-
-        const jobKeywordCount = document.getElementById("jobKeywordCount");
-        if (jobKeywordCount) jobKeywordCount.textContent = "Important keywords: 0";
-        const missingKeywordCount = document.getElementById("missingKeywordCount");
-        if (missingKeywordCount) missingKeywordCount.textContent = "Missing keywords: 0";
-
-        const matchScoreText = document.getElementById("matchScoreText");
-        if (matchScoreText) matchScoreText.textContent = "Final score shown above";
-
-        const aiSummary = document.getElementById("aiSummary");
-        if (aiSummary) aiSummary.textContent = "Please run an analysis from the dashboard to see results.";
-        const aiRecommendation = document.getElementById("aiRecommendation");
-        if (aiRecommendation) aiRecommendation.textContent = "";
-
-        // Remove stored analysis for privacy
-        try {
-            ["analysisResult", "pipelineStatus", "uploadedResumeName", "selectedJobRole", "selectedJobDescription", "analysisStartedAt", "analysisOwner"].forEach((k) => localStorage.removeItem(k));
-            ["resumeVisualPreviewDataUrl", "resumeVisualPreviewType", "resumeVisualPreviewName", "resumeRenderedPreviewDataUrl", "resumeRenderedPreviewName"].forEach((k) => {
-                sessionStorage.removeItem(k);
-                localStorage.removeItem(k);
-            });
-        } catch (e) {
-            /* ignore */
-        }
     }
 
     loadAnalysisResult();

@@ -157,6 +157,18 @@ ROLE_FAMILY_ALIASES = {
     "database architect": "database",
     "oracle database engineer": "database",
     "sql database developer": "database",
+    "business data analyst": "data_ai",
+    "data analyst": "data_ai",
+    "data scientist": "data_ai",
+    "machine learning engineer": "data_ai",
+    "research scientist": "data_ai",
+    "application consultant cloud": "cloud_devops",
+    "cloud computing solution architect": "cloud_devops",
+    "cloud engineer": "cloud_devops",
+    "devops engineer": "cloud_devops",
+    "ux designer user experience": "ui_ux",
+    "ui designer": "ui_ux",
+    "ui ux designer": "ui_ux",
     "network analyst": "networking",
     "network system engineer information technology": "networking",
     "computer network technician": "networking",
@@ -180,11 +192,11 @@ POPULAR_ROLE_ALIASES = {
     "front end web developer": "Full Stack Developer",
     "software designer": "Software Designer",
     "java consultant": "Java Consultant",
-    "data analyst": "Oracle Database Engineer",
-    "data scientist": "Computer Specialist",
-    "machine learning engineer": "Software Developer",
-    "devops engineer": "Computer Support Engineer",
-    "cloud engineer": "Computer Support Engineer",
+    "data analyst": "Business Data Analyst",
+    "data scientist": "Data Scientist",
+    "machine learning engineer": "Machine Learning Engineer",
+    "devops engineer": "Cloud Computing Solution Architect",
+    "cloud engineer": "Cloud Computing Solution Architect",
     "cybersecurity analyst": "Cybersecurity Analyst",
     "cyber security analyst": "Cybersecurity Analyst",
     "information security analyst": "Cybersecurity Analyst",
@@ -192,7 +204,7 @@ POPULAR_ROLE_ALIASES = {
     "soc analyst": "Cybersecurity Analyst",
     "security engineer": "Security Technologist Specialist",
     "security administrator": "Security Administrator (Information Technology)",
-    "research scientist": "Computer Specialist",
+    "research scientist": "Data Scientist",
     "database engineer": "Oracle Database Engineer",
     "database developer": "SQL Database Developer",
     "sql developer": "SQL Database Developer",
@@ -589,7 +601,6 @@ DEFAULT_SKILL_DICTIONARY = [
     "front-end",
     "full-stack",
     "java",
-    "javascript",
     "jquery",
     "operations analysis",
     "node",
@@ -971,6 +982,18 @@ def require_admin_json_response():
     if not is_user_admin(current_user):
         return jsonify({"detail": "Admin access required"}), 403
     return None
+
+
+def authenticate_json_request() -> tuple[dict[str, Any] | None, Any | None]:
+    """Return the live session user or a JSON authentication error."""
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseError:
+        return None, (jsonify({"detail": "Database error while validating session"}), 500)
+
+    if not current_user:
+        return None, (jsonify({"detail": "Authentication required"}), 401)
+    return current_user, None
 
 
 def email_pin_subject(purpose: str) -> str:
@@ -2583,6 +2606,29 @@ def get_role_family(role_name: str) -> str:
     return normalized
 
 
+def get_calibrated_job_fit_score(
+    resume_text: str,
+    job_match: dict[str, Any] | None,
+    fit_result: dict[str, Any] | None,
+) -> float:
+    if not job_match or not fit_result:
+        return 0.0
+    role_name = get_database_role_name(job_match)
+    combined_score = float(fit_result.get("combined_score") or 0)
+    role_evidence_score = compute_role_evidence_score(
+        resume_text,
+        role_name,
+        list(fit_result.get("important_keywords") or []),
+    )
+    title_match_score = compute_role_title_match_score(resume_text, role_name)
+    return compute_database_role_confidence_score(
+        combined_score,
+        role_evidence_score,
+        title_match_score,
+        has_exact_role_title_match(resume_text, role_name),
+    )
+
+
 def pick_recommended_database_job(
     resume_text: str,
     selected_job: dict[str, Any] | None,
@@ -2603,10 +2649,10 @@ def pick_recommended_database_job(
         selected_name = normalize_match_text(get_database_role_name(selected_job))
         detected_name = normalize_match_text(get_database_role_name(detected_job))
         same_role_family = bool(selected_name and detected_name and get_role_family(selected_name) == get_role_family(detected_name))
-        selected_score = float(selected_fit["combined_score"]) if selected_fit else 0.0
-        detected_score = float(detected_fit["combined_score"]) if detected_fit else 0.0
+        selected_score = get_calibrated_job_fit_score(resume_text, selected_job, selected_fit)
+        detected_score = get_calibrated_job_fit_score(resume_text, detected_job, detected_fit)
 
-        if selected_score >= 50.0:
+        if selected_score > 50.0:
             return selected_job, selected_fit, detected_fit
 
         if selected_name != detected_name and not same_role_family and detected_score >= selected_score + ROLE_RECOMMENDATION_MARGIN:
@@ -2629,7 +2675,7 @@ def build_top_role_match_items(
     recommended_key = normalize_match_text(recommended_database_role)
     items: list[dict[str, Any]] = []
 
-    for rank, match in enumerate(top_role_matches or [], start=1):
+    for rank, match in enumerate((top_role_matches or [])[:3], start=1):
         role = match.get("role") or {}
         role_name = str(role.get("role_name") or "")
         role_key = normalize_match_text(role_name)
@@ -3003,7 +3049,7 @@ def build_part8_recommendation_module(analysis: dict[str, Any]) -> dict[str, Any
     return {
         "stage": "Part 8 - Recommendation and generated resume support",
         "status": "ready",
-        "method": "Converts NLP/ML-style role matching, weighted database requirements, missing keywords, score components, and ATS quality checks into user-facing improvement actions.",
+        "method": "Converts hybrid NLP text matching, weighted database requirements, missing keywords, score components, and ATS quality checks into user-facing improvement actions.",
         "recommended_role": recommended_role,
         "selected_role": selected_role,
         "summary": summary,
@@ -4809,7 +4855,17 @@ def build_generated_resume_plain_text(draft: dict[str, Any]) -> str:
         [candidate.get("email"), candidate.get("phone")] + list(candidate.get("link_labels") or candidate.get("links") or []),
         6,
     )
-    lines = [
+    lines: list[str] = []
+    if draft.get("is_sample_resume") or draft.get("sample_only"):
+        lines.extend(
+            [
+                "EXAMPLE ONLY - SAMPLE RESUME - NOT THE USER'S RESUME",
+                f"Sample target role: {draft.get('sample_target_role') or draft.get('target_role') or 'Target Role'}",
+                "Replace every example with your own verified information before use.",
+                "",
+            ]
+        )
+    lines.extend([
         (candidate.get("name") or "Candidate Name").upper(),
         template.get("headline") or draft.get("target_role") or "Target Role",
         " | ".join(contact_items),
@@ -4818,7 +4874,7 @@ def build_generated_resume_plain_text(draft: dict[str, Any]) -> str:
         sections["professional_summary"],
         "",
         str(template.get("skills_heading") or "Core Skills").upper(),
-    ]
+    ])
     for group in sections.get("skill_groups") or []:
         lines.append(f"{group['label']}: " + ", ".join(group["items"]))
 
@@ -4880,6 +4936,15 @@ def build_generated_resume_html(draft: dict[str, Any]) -> str:
         "</div>"
         for group in sections.get("skill_groups") or []
     )
+    sample_banner_html = ""
+    if draft.get("is_sample_resume") or draft.get("sample_only"):
+        sample_target = draft.get("sample_target_role") or draft.get("target_role") or "Target Role"
+        sample_banner_html = (
+            '<aside class="example-banner" role="note">'
+            '<strong>EXAMPLE ONLY - SAMPLE RESUME</strong>'
+            f'<span>Target example: {html_escape(str(sample_target))}. This is not the user\'s resume. Replace every example with verified personal information.</span>'
+            "</aside>"
+        )
 
     return (
         "<!doctype html><html><head><meta charset=\"utf-8\">"
@@ -4899,8 +4964,11 @@ def build_generated_resume_html(draft: dict[str, Any]) -> str:
         "ul{margin:0 0 0 18px;padding:0;list-style-position:outside}li{margin:4px 0;font-size:10.5pt;break-inside:avoid}"
         ".education-item strong,.education-item span{display:block}.education-item span{margin-top:1px}"
         ".summary{font-size:10.8pt;color:#111}"
+        ".example-banner{border:2px solid #9b1c1c;background:#fff2f2;color:#7f1d1d;padding:9px 11px;margin:0 0 14px;text-align:center}"
+        ".example-banner strong,.example-banner span{display:block}.example-banner strong{font-size:12pt;letter-spacing:.04em}.example-banner span{font-size:9.5pt;margin-top:3px}"
         "@media print{.page{max-width:none;margin:0;padding:0}.header{margin-bottom:10px}}"
         "</style></head><body><main class=\"page\">"
+        f"{sample_banner_html}"
         "<header class=\"header\">"
         f"<h1>{html_escape(candidate.get('name') or 'Candidate Name')}</h1>"
         f"<p class=\"role\">{html_escape(template.get('headline') or draft.get('target_role') or 'Target Role')}</p>"
@@ -4922,7 +4990,7 @@ def build_generated_resume_html(draft: dict[str, Any]) -> str:
 def build_generated_resume_pdf_buffer(draft: dict[str, Any]) -> BytesIO:
     try:
         from reportlab.lib import colors  # type: ignore
-        from reportlab.lib.enums import TA_LEFT  # type: ignore
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT  # type: ignore
         from reportlab.lib.pagesizes import letter  # type: ignore
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet  # type: ignore
         from reportlab.lib.units import inch  # type: ignore
@@ -5027,6 +5095,20 @@ def build_generated_resume_pdf_buffer(draft: dict[str, Any]) -> BytesIO:
             textColor=colors.black,
             spaceAfter=2,
         ),
+        "example_banner": ParagraphStyle(
+            "ExampleOnlyBanner",
+            parent=base_styles["Normal"],
+            alignment=TA_CENTER,
+            fontName="Helvetica-Bold",
+            fontSize=10.5,
+            leading=13,
+            textColor=colors.HexColor("#7f1d1d"),
+            backColor=colors.HexColor("#fff2f2"),
+            borderColor=colors.HexColor("#9b1c1c"),
+            borderWidth=1.2,
+            borderPadding=7,
+            spaceAfter=10,
+        ),
     }
 
     def heading(text: str):
@@ -5035,12 +5117,23 @@ def build_generated_resume_pdf_buffer(draft: dict[str, Any]) -> BytesIO:
             HRFlowable(width="100%", thickness=0.6, color=colors.HexColor("#555555"), spaceAfter=4),
         ]
 
-    story = [
+    story = []
+    if draft.get("is_sample_resume") or draft.get("sample_only"):
+        sample_target = draft.get("sample_target_role") or draft.get("target_role") or "Target Role"
+        story.append(
+            Paragraph(
+                "EXAMPLE ONLY - SAMPLE RESUME<br/>"
+                + html_escape(str(sample_target))
+                + " example; this is not the user's resume.",
+                styles["example_banner"],
+            )
+        )
+    story.extend([
         Paragraph(html_escape(str(candidate.get("name") or "Candidate Name").upper()), styles["name"]),
         Paragraph(html_escape(str(template.get("headline") or draft.get("target_role") or "Target Role")), styles["role"]),
         Paragraph(html_escape(" | ".join(contact_items)), styles["contact"]),
         HRFlowable(width="100%", thickness=0.8, color=colors.black, spaceAfter=7),
-    ]
+    ])
 
     story.extend(heading("Professional Summary"))
     story.append(Paragraph(html_escape(str(sections.get("professional_summary") or "")), styles["body"]))
@@ -5649,80 +5742,330 @@ def get_top_role_generation_name(analysis: dict[str, Any]) -> str:
     return ""
 
 
-def should_return_cs_sample_resume(analysis: dict[str, Any]) -> tuple[bool, float | None]:
+SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD = 50.0
+
+
+def is_explicit_resume_generation_role(value: Any) -> bool:
+    normalized = normalize_match_text(str(value or ""))
+    if not normalized:
+        return False
+    return not any(
+        marker in normalized
+        for marker in ("auto detect", "selected role", "sample role")
+    )
+
+
+def get_resume_sample_decision(analysis: dict[str, Any]) -> dict[str, Any]:
+    """Choose between a truthful rewrite and a clearly labelled sample resume.
+
+    An explicitly selected role is evaluated using its own selected-role score,
+    not the score of the best detected role.  With no explicit selection, the
+    original conservative below-20 Top 3 fallback remains in effect.
+    """
+
     if not analysis:
-        return False, None
+        return {"should_sample": False}
+
+    role_recommendation = (
+        analysis.get("role_recommendation")
+        if isinstance(analysis.get("role_recommendation"), dict)
+        else {}
+    )
+    selected_label = normalize_text(
+        str(role_recommendation.get("selected_role") or analysis.get("selected_role") or "")
+    )
+    if is_explicit_resume_generation_role(selected_label):
+        selected_target = selected_label
+        selected_database_target = normalize_text(
+            str(role_recommendation.get("selected_database_role") or "")
+        )
+        try:
+            selected_score = float(role_recommendation.get("selected_score"))
+        except (TypeError, ValueError):
+            selected_score = None
+
+        if selected_score is not None and selected_score <= SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD:
+            top_scores = get_top_role_generation_scores(analysis)
+            return {
+                "should_sample": True,
+                "reason_code": "selected_role_at_or_below_50",
+                "target_role": selected_target,
+                "mapped_database_role": selected_database_target,
+                "evidence_score": selected_score,
+                "threshold": SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD,
+                "best_top_role_score": max(top_scores) if top_scores else None,
+            }
+        return {
+            "should_sample": False,
+            "reason_code": "selected_role_above_50" if selected_score is not None else "selected_role_score_unavailable",
+            "target_role": selected_target,
+            "mapped_database_role": selected_database_target,
+            "evidence_score": selected_score,
+            "threshold": SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD,
+        }
 
     top_scores = get_top_role_generation_scores(analysis)
     if top_scores:
         best_score = max(top_scores)
-        return best_score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD, best_score
+        return {
+            "should_sample": best_score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+            "reason_code": "auto_detected_top_role_below_20" if best_score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD else "auto_detected_role_has_evidence",
+            "target_role": get_top_role_generation_name(analysis),
+            "evidence_score": best_score,
+            "threshold": CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+            "best_top_role_score": best_score,
+        }
 
     if "matching_percentage" not in analysis:
-        return False, None
+        return {"should_sample": False}
     try:
         score = float(analysis.get("matching_percentage") or 0)
     except (TypeError, ValueError):
-        return False, None
-    return score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD, score
+        return {"should_sample": False}
+    return {
+        "should_sample": score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+        "reason_code": "auto_detected_overall_score_below_20" if score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD else "auto_detected_role_has_evidence",
+        "target_role": get_top_role_generation_name(analysis),
+        "evidence_score": score,
+        "threshold": CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+        "best_top_role_score": score,
+    }
 
 
-def build_cs_sample_resume_payload(
-    analysis: dict[str, Any],
-    target_role: str = "",
-    best_score: float | None = None,
-) -> dict[str, Any]:
-    role = get_top_role_generation_name(analysis) or get_resume_generation_role(analysis, target_role) or "Software Developer"
-    template_profile = select_resume_template_profile(role)
-    sample_skills = [
-        "Java",
-        "Python",
-        "HTML",
-        "CSS",
-        "JavaScript",
-        "SQL",
-        "Git",
-        "REST API",
-        "Software Testing",
-        "Debugging",
-        "System Design",
-    ]
+def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
+    """Return deterministic, explicitly fictional example content for a role family."""
+
+    role = normalize_text(target_role) or "Technology Professional"
+    normalized_role = normalize_match_text(role)
+
+    if any(term in normalized_role for term in ("ui ux", "ux", "user experience", "interface designer", "product designer")):
+        family = "UI / UX"
+        skills = ["Figma", "Wireframing", "Prototyping", "User Research", "Usability Testing", "Accessibility", "Design Systems", "HTML", "CSS"]
+        focus = "user research, accessible interaction design, prototypes, and evidence-based design decisions"
+        experience = [
+            "Created wireframes and an interactive prototype, then documented usability findings and design revisions.",
+            "Worked with developers to define responsive states, accessibility requirements, and reusable interface components.",
+        ]
+        projects = [
+            "Student Services Redesign - mapped user journeys, tested a Figma prototype, and prepared a design handoff.",
+            "Accessible Design System - documented reusable components, keyboard states, contrast checks, and usage guidance.",
+        ]
+        certification = "Google UX Design or another verified UX credential"
+        education_focus = "User Experience Design"
+        achievement = "improved an example prototype's task-completion rate after usability testing"
+    elif any(term in normalized_role for term in ("cyber", "security analyst", "security engineer", "information security", "soc analyst")):
+        family = "Cybersecurity"
+        skills = ["Network Security", "Linux", "Python", "SIEM", "Wireshark", "OWASP", "Vulnerability Assessment", "Incident Response", "Identity and Access Management"]
+        focus = "security monitoring, vulnerability assessment, incident documentation, and defensive controls"
+        experience = [
+            "Reviewed sample security alerts, documented indicators, and followed an incident-triage checklist in a lab environment.",
+            "Assessed a deliberately vulnerable web application against OWASP risks and recorded remediation recommendations.",
+        ]
+        projects = [
+            "Security Monitoring Lab - collected Linux and network logs, created SIEM queries, and documented alert escalation steps.",
+            "Web Security Assessment - tested an authorised lab application and produced a prioritised remediation report.",
+        ]
+        certification = "CompTIA Security+ or another verified security credential"
+        education_focus = "Cybersecurity"
+        achievement = "reduced false-positive alerts in an example lab by refining a documented detection rule"
+    elif any(term in normalized_role for term in ("cloud", "devops", "site reliability", "platform engineer", "release engineer")):
+        family = "Cloud / DevOps"
+        skills = ["Linux", "Git", "Docker", "Kubernetes", "CI/CD", "GitHub Actions", "Terraform", "AWS", "Monitoring", "Scripting"]
+        focus = "automated delivery, reproducible infrastructure, containerised services, and operational monitoring"
+        experience = [
+            "Containerised a sample web service and created a CI pipeline for linting, tests, and repeatable deployment.",
+            "Defined example cloud infrastructure as code and documented rollback, logging, and monitoring procedures.",
+        ]
+        projects = [
+            "Container Deployment Pipeline - packaged a sample API with Docker and automated test and deployment stages.",
+            "Infrastructure Monitoring Lab - provisioned example resources and created availability and error-rate dashboards.",
+        ]
+        certification = "AWS Cloud Practitioner, Azure Fundamentals, or another verified cloud credential"
+        education_focus = "Cloud Computing"
+        achievement = "shortened an example deployment workflow by automating repeatable validation steps"
+    elif any(term in normalized_role for term in ("network", "infrastructure engineer", "systems administrator", "system administrator")):
+        family = "Network / Infrastructure"
+        skills = ["TCP/IP", "Routing", "Switching", "VLAN", "DNS", "DHCP", "Linux", "Windows Server", "Wireshark", "Network Troubleshooting"]
+        focus = "network configuration, infrastructure monitoring, fault isolation, and technical documentation"
+        experience = [
+            "Configured an example segmented network with VLAN, addressing, DHCP, and documented connectivity checks.",
+            "Used packet captures and service logs in a lab to isolate DNS, routing, and access-control problems.",
+        ]
+        projects = [
+            "Campus Network Lab - designed an example topology with VLAN segmentation, routing, and verification evidence.",
+            "Infrastructure Health Dashboard - tracked sample service availability, latency, and incident notes.",
+        ]
+        certification = "Cisco CCNA or another verified networking credential"
+        education_focus = "Network Engineering"
+        achievement = "reduced example incident diagnosis time by introducing a documented troubleshooting checklist"
+    elif any(term in normalized_role for term in ("database", "dba", "sql developer", "data engineer")):
+        family = "Database"
+        skills = ["SQL", "MySQL", "PostgreSQL", "Data Modelling", "Schema Design", "Indexing", "Query Optimisation", "Backup and Recovery", "Stored Procedures"]
+        focus = "relational data modelling, reliable database operations, query performance, and data integrity"
+        experience = [
+            "Designed an example relational schema, added constraints and indexes, and documented data validation rules.",
+            "Reviewed sample slow queries with execution plans and recorded measured before-and-after performance evidence.",
+        ]
+        projects = [
+            "Inventory Database - modelled example products, suppliers, transactions, permissions, and audit history.",
+            "Database Recovery Lab - documented sample backup, restore, integrity-check, and recovery verification procedures.",
+        ]
+        certification = "Oracle Database SQL, Microsoft Azure Data Fundamentals, or another verified database credential"
+        education_focus = "Database Systems"
+        achievement = "improved an example query's measured response time after indexing and execution-plan review"
+    elif any(term in normalized_role for term in ("quality assurance", "qa", "tester", "test engineer", "software test")):
+        family = "Quality Assurance / Testing"
+        skills = ["Test Planning", "Manual Testing", "Test Automation", "Selenium", "Postman", "API Testing", "Pytest", "Regression Testing", "Defect Tracking", "Git"]
+        focus = "risk-based test design, reproducible defect reports, API validation, and regression automation"
+        experience = [
+            "Prepared example test cases from acceptance criteria and recorded reproducible defects with expected and actual results.",
+            "Automated a sample regression flow and API checks, then documented coverage and unresolved risks.",
+        ]
+        projects = [
+            "Web Application Test Suite - created example UI, API, boundary, and regression tests with a clear results report.",
+            "Defect Quality Dashboard - summarised sample defect severity, ageing, retest status, and release risk.",
+        ]
+        certification = "ISTQB Foundation Level or another verified software-testing credential"
+        education_focus = "Software Quality Assurance"
+        achievement = "increased example regression coverage after converting repeated checks into automated tests"
+    elif any(term in normalized_role for term in ("help desk", "service desk", "it support", "support specialist", "computer technician", "desktop support")):
+        family = "IT Support"
+        skills = ["Windows", "Linux", "Microsoft 365", "Active Directory", "Hardware Troubleshooting", "Networking", "Ticketing Systems", "Remote Support", "Technical Documentation"]
+        focus = "user support, systematic troubleshooting, ticket ownership, account administration, and clear documentation"
+        experience = [
+            "Resolved example hardware, software, account, and connectivity tickets using documented diagnostic steps.",
+            "Prepared a sample knowledge-base article and escalation record with symptoms, actions, evidence, and resolution.",
+        ]
+        projects = [
+            "Support Knowledge Base - organised example solutions for account, device, printer, and network issues.",
+            "Asset and Ticket Tracker - recorded sample devices, ownership, ticket priority, status, and resolution history.",
+        ]
+        certification = "CompTIA A+ or another verified IT-support credential"
+        education_focus = "Information Technology"
+        achievement = "improved example first-response consistency by introducing a documented triage checklist"
+    elif any(term in normalized_role for term in ("data analyst", "data scientist", "machine learning", "artificial intelligence", " ai ", "ai engineer", "business intelligence", "research scientist")):
+        family = "Data / AI"
+        skills = ["Python", "SQL", "Pandas", "NumPy", "Data Cleaning", "Statistics", "Data Visualisation", "Power BI", "Machine Learning", "Model Evaluation"]
+        focus = "data preparation, exploratory analysis, visual reporting, reproducible modelling, and measured evaluation"
+        experience = [
+            "Cleaned an example dataset, documented assumptions, analysed trends, and presented reproducible findings in a dashboard.",
+            "Compared sample baseline and machine-learning models using a held-out test set and appropriate evaluation metrics.",
+        ]
+        projects = [
+            "Sales Insight Dashboard - transformed example transaction data with SQL and presented trends and data-quality notes.",
+            "Classification Evaluation Project - trained sample baseline models and reported precision, recall, F1, and limitations.",
+        ]
+        certification = "Microsoft Power BI Data Analyst, Google Data Analytics, or another verified data credential"
+        education_focus = "Data Science"
+        achievement = "reduced an example reporting workflow's preparation time after creating a reproducible data-cleaning pipeline"
+    elif any(term in normalized_role for term in ("software", "developer", "programmer", "web", "frontend", "backend", "full stack", "mobile")):
+        family = "Software Development"
+        skills = ["Java", "Python", "HTML", "CSS", "JavaScript", "SQL", "Git", "REST API", "Software Testing", "Debugging", "System Design"]
+        focus = "software development, database-backed applications, API integration, testing, and maintainable design"
+        experience = [
+            "Implemented and tested an example web application with documented requirements, validation, and API integration.",
+            "Recorded sample defects, added regression tests, and documented implementation and handover decisions.",
+        ]
+        projects = [
+            "Issue Tracker Web App - implemented example authentication, CRUD workflows, search, validation, and tests.",
+            "Library Management System - designed an example relational schema, borrowing workflow, and API endpoints.",
+        ]
+        certification = "a verified software-development or cloud credential"
+        education_focus = "Software Engineering"
+        achievement = "improved an example application's measured test coverage after adding automated regression tests"
+    else:
+        family = "Technology"
+        skills = ["Programming Fundamentals", "SQL", "Git", "Testing", "Problem Solving", "Technical Documentation", "Requirements Analysis", "Data Literacy"]
+        focus = "technical problem solving, documented requirements, testing, data handling, and collaborative delivery"
+        experience = [
+            "Translated example requirements into a small tested solution and documented assumptions, decisions, and limitations.",
+            "Tracked sample tasks and defects, communicated progress, and prepared a concise technical handover.",
+        ]
+        projects = [
+            "Technology Portfolio Project - built an example solution with source control, testing evidence, and documentation.",
+            "Process Improvement Prototype - mapped an example workflow and evaluated a small digital improvement.",
+        ]
+        certification = "a verified credential relevant to the selected technology role"
+        education_focus = "Information Technology"
+        achievement = "improved an example workflow after measuring a baseline and validating the revised process"
+
+    example_prefix = "Example content only: "
     sections = {
         "professional_summary": (
-            f"Computer Science candidate targeting {role} roles with project experience in software development, "
-            "database-backed applications, API testing, and technical documentation. Able to translate requirements "
-            "into maintainable features, validate defects, and communicate implementation decisions clearly."
+            f"{example_prefix}a candidate profile targeting {role}, demonstrating {focus}. "
+            "Replace this summary with a truthful overview supported by your own evidence."
         ),
-        "technical_skills": sample_skills,
-        "skill_groups": categorize_resume_skills(sample_skills),
-        "experience_bullets": [
-            "Built and tested a web-based student services application using JavaScript, SQL, and REST API endpoints.",
-            "Documented software defects, reproduced test cases, and verified fixes before release.",
-            "Collaborated with project teammates to split requirements, track progress, and prepare technical handover notes.",
-        ],
-        "projects": [
-            "Resume Analyzer Web App - implemented file upload, text extraction, ATS scoring, and generated HTML/PDF exports.",
-            "Library Management System - designed database tables, CRUD workflows, search filters, and validation checks.",
-        ],
+        "technical_skills": skills,
+        "skill_groups": categorize_resume_skills(skills),
+        "experience_bullets": [f"Example experience bullet: {item}" for item in experience],
+        "projects": [f"Example project: {item}" for item in projects],
         "certifications": [
-            "AWS Academy Cloud Foundations - AWS Academy (2025).",
+            f"Example certification placeholder: {certification}; include it only if you actually earned it."
         ],
         "achievements": [
-            "Dean's List - Faculty of Computing (2025).",
+            f"Example achievement placeholder: {achievement}; replace this with your verified result and metric."
         ],
         "education": [
-            "Bachelor of Computer Science - University Name (2024 - 2027).",
-            "Diploma in Information Technology - Institution Name (2020 - 2023).",
+            f"Example education placeholder: Bachelor of Computer Science ({education_focus}) - Example University (2024 - 2027)."
         ],
         "keyword_targets": [],
     }
+    return {"family": family, "sections": sections}
+
+
+def build_sample_resume_payload(
+    analysis: dict[str, Any],
+    target_role: str = "",
+    best_score: float | None = None,
+    *,
+    reason_code: str = "auto_detected_top_role_below_20",
+    evidence_score: float | None = None,
+    generation_threshold: float = CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+) -> dict[str, Any]:
+    role = get_resume_generation_role(analysis, target_role) or get_top_role_generation_name(analysis) or "Software Developer"
+    template_profile = select_resume_template_profile(role)
+    role_recommendation = (
+        analysis.get("role_recommendation")
+        if isinstance(analysis.get("role_recommendation"), dict)
+        else {}
+    )
+    mapped_database_role = normalize_text(str(role_recommendation.get("selected_database_role") or ""))
+    sample_profile = build_sample_resume_role_profile(role)
+    sample_profile_basis = role
+    if sample_profile["family"] == "Technology" and mapped_database_role:
+        mapped_profile = build_sample_resume_role_profile(mapped_database_role)
+        if mapped_profile["family"] != "Technology":
+            sample_profile = mapped_profile
+            sample_profile_basis = mapped_database_role
+    sections = sample_profile["sections"]
     completeness = build_section_completeness(sections)
-    score_text = f"{best_score:.0f}/100" if isinstance(best_score, (int, float)) else "below 20/100"
+    sample_score = evidence_score if isinstance(evidence_score, (int, float)) else best_score
+    score_text = f"{sample_score:.0f}/100" if isinstance(sample_score, (int, float)) else "not available"
+    selected_role_sample = reason_code == "selected_role_at_or_below_50"
+    if selected_role_sample:
+        reason_note = (
+            f"EXAMPLE ONLY: the selected {role} role scored {score_text}, at or below the "
+            f"{generation_threshold:.0f}/100 evidence threshold. The uploaded resume was not rewritten "
+            "or presented as belonging to this field."
+        )
+        sample_reason = (
+            f"The selected {role} evidence score is {score_text}, at or below the "
+            f"{generation_threshold:.0f}/100 sample threshold."
+        )
+    else:
+        reason_note = (
+            f"EXAMPLE ONLY: the best automatically detected CS role match was {score_text}, below the "
+            f"{generation_threshold:.0f}/100 evidence threshold. The uploaded resume was not rewritten as a CS resume."
+        )
+        sample_reason = (
+            f"The best automatically detected CS role evidence score is {score_text}, below the "
+            f"{generation_threshold:.0f}/100 sample threshold."
+        )
     draft = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "target_role": role,
         "candidate": {
-            "name": "Sample CS Candidate",
+            "name": "Sample Candidate",
             "email": "candidate@example.com",
             "phone": "+60 12 345 6789",
             "links": ["https://linkedin.com/in/sample-cs-candidate", "https://github.com/sample-cs-candidate"],
@@ -5737,14 +6080,20 @@ def build_cs_sample_resume_payload(
         "completeness": completeness,
         "missing_keywords": [],
         "ats_notes": [
-            f"Sample only: the best Top 3 CS role match was {score_text}, so the system did not rewrite this resume as a CS resume.",
-            "Use this as a CS resume structure example, not as a final resume to submit.",
+            reason_note,
+            f"Use this as a {role} resume structure example, not as a final resume to submit.",
             "To generate a real CS ATS resume, upload a resume with true CS coursework, projects, internships, tools, or certifications.",
             "Replace every sample name, contact, education, project, and achievement with your own verified details.",
         ],
         "template": {
             **template_profile,
-            "name": "Sample CS ATS Template",
+            "name": f"Example {sample_profile['family']} ATS Template",
+            "experience_heading": "Example Experience",
+            "project_heading": "Example Projects",
+            "certification_heading": "Example Certification Placeholder",
+            "achievement_heading": "Example Achievement Placeholder",
+            "skills_heading": "Example Technical Skills",
+            "education_heading": "Example Education Placeholder",
             "inspired_by": [
                 "single-column ATS resume structure",
                 "compact technical skills grouping",
@@ -5754,8 +6103,24 @@ def build_cs_sample_resume_payload(
         },
         "sample_only": True,
         "is_sample_resume": True,
-        "sample_reason": "Top 3 CS role matches are below the 20/100 generation threshold.",
-        "generation_threshold": CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+        "sample_reason": sample_reason,
+        "sample_reason_code": reason_code,
+        "sample_target_role": role,
+        "sample_mapped_database_role": mapped_database_role or None,
+        "sample_target_score": sample_score,
+        "sample_score_threshold": generation_threshold,
+        "sample_role_family": sample_profile["family"],
+        "sample_profile_basis_role": sample_profile_basis,
+        "sample_metadata": {
+            "reason_code": reason_code,
+            "target_role": role,
+            "mapped_database_role": mapped_database_role or None,
+            "profile_basis_role": sample_profile_basis,
+            "evidence_score": sample_score,
+            "threshold": generation_threshold,
+            "comparison": "at_or_below" if selected_role_sample else "below",
+        },
+        "generation_threshold": generation_threshold,
         "best_top_role_score": best_score,
     }
     draft["plain_text"] = build_generated_resume_plain_text(draft)
@@ -5772,9 +6137,17 @@ def build_generated_resume_payload(
 ) -> dict[str, Any]:
     safe_analysis = analysis or {}
     role = get_resume_generation_role(safe_analysis, target_role)
-    use_sample_resume, best_top_role_score = should_return_cs_sample_resume(safe_analysis)
-    if use_sample_resume:
-        return build_cs_sample_resume_payload(safe_analysis, role, best_top_role_score)
+    sample_decision = get_resume_sample_decision(safe_analysis)
+    if sample_decision.get("should_sample"):
+        sample_role = normalize_text(str(sample_decision.get("target_role") or role))
+        return build_sample_resume_payload(
+            safe_analysis,
+            sample_role,
+            sample_decision.get("best_top_role_score"),
+            reason_code=str(sample_decision.get("reason_code") or "auto_detected_top_role_below_20"),
+            evidence_score=sample_decision.get("evidence_score"),
+            generation_threshold=float(sample_decision.get("threshold") or CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD),
+        )
 
     template_profile = select_resume_template_profile(role)
     resume_source = clean_resume_source_text(resume_text or str(safe_analysis.get("resume_text_for_generation") or ""))
@@ -6690,25 +7063,88 @@ def get_generated_resume_contact_links(payload: dict[str, Any]) -> list[str]:
     )
 
 
-@app.post("/generate-resume")
-def generate_ats_resume():
-    payload = request.get_json(silent=True) or {}
-    analysis = payload.get("analysis") if isinstance(payload.get("analysis"), dict) else {}
+def parse_generation_analysis_id(payload: dict[str, Any], client_analysis: dict[str, Any]) -> int:
+    raw_analysis_id = payload.get("analysis_id", client_analysis.get("analysis_id"))
+    if isinstance(raw_analysis_id, bool):
+        raise ValueError("analysis_id must be a positive integer")
+    try:
+        analysis_id = int(raw_analysis_id)
+    except (TypeError, ValueError):
+        raise ValueError("analysis_id is required to generate a resume") from None
+    if analysis_id <= 0:
+        raise ValueError("analysis_id must be a positive integer")
+    return analysis_id
+
+
+def load_owned_analysis_snapshot(user_id: int, analysis_id: int) -> tuple[str, dict[str, Any] | None]:
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT user_id, analysis_json, resume_excerpt FROM resume_analyses WHERE id = %s",
+            (analysis_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return "not_found", None
+
+        owner_id = row.get("user_id")
+        if owner_id is None or int(owner_id) != int(user_id):
+            return "forbidden", None
+
+        try:
+            analysis = json.loads(str(row.get("analysis_json") or ""))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return "invalid", None
+        if not isinstance(analysis, dict):
+            return "invalid", None
+
+        analysis["analysis_id"] = analysis_id
+        if not analysis.get("resume_excerpt") and row.get("resume_excerpt"):
+            analysis["resume_excerpt"] = str(row["resume_excerpt"])
+        return "owned", analysis
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+
+def build_owned_generated_resume(
+    payload: dict[str, Any],
+    current_user: dict[str, Any],
+) -> tuple[dict[str, Any] | None, Any | None]:
+    client_analysis = payload.get("analysis") if isinstance(payload.get("analysis"), dict) else {}
+    try:
+        analysis_id = parse_generation_analysis_id(payload, client_analysis)
+    except ValueError as error:
+        return None, (jsonify({"detail": str(error)}), 400)
+
+    try:
+        ownership_status, analysis = load_owned_analysis_snapshot(int(current_user["id"]), analysis_id)
+    except DatabaseError:
+        return None, (jsonify({"detail": "Database error while loading the saved analysis"}), 500)
+
+    if ownership_status == "not_found":
+        return None, (jsonify({"detail": "Analysis not found"}), 404)
+    if ownership_status == "forbidden":
+        return None, (jsonify({"detail": "You cannot generate a resume from another user's analysis"}), 403)
+    if ownership_status != "owned" or not analysis:
+        return None, (jsonify({"detail": "The saved analysis is unavailable or invalid; run the analysis again"}), 409)
+
     resume_text = clean_resume_source_text(
         str(
             payload.get("resume_text")
-            or analysis.get("resume_text_for_generation")
+            or client_analysis.get("resume_text_for_generation")
             or analysis.get("resume_excerpt")
             or ""
         )
     )
     target_role = normalize_text(str(payload.get("target_role") or ""))
-    candidate_name = normalize_text(str(payload.get("candidate_name") or ""))
+    candidate_name = normalize_text(str(payload.get("candidate_name") or current_user.get("full_name") or ""))
     contact_links = get_generated_resume_contact_links(payload)
-
-    if not analysis and not resume_text:
-        return jsonify({"detail": "analysis or resume_text is required"}), 400
-
     generated_resume = build_generated_resume_payload(
         analysis,
         resume_text[:RESUME_GENERATION_MAX_TEXT_LENGTH],
@@ -6716,36 +7152,32 @@ def generate_ats_resume():
         candidate_name,
         contact_links,
     )
+    return generated_resume, None
+
+
+@app.post("/generate-resume")
+def generate_ats_resume():
+    current_user, auth_error = authenticate_json_request()
+    if auth_error is not None:
+        return auth_error
+
+    payload = request.get_json(silent=True) or {}
+    generated_resume, generation_error = build_owned_generated_resume(payload, current_user or {})
+    if generation_error is not None:
+        return generation_error
     return jsonify(generated_resume)
 
 
 @app.post("/generate-resume-pdf")
 def generate_ats_resume_pdf():
-    payload = request.get_json(silent=True) or {}
-    draft = payload.get("generated_resume") if isinstance(payload.get("generated_resume"), dict) else None
+    current_user, auth_error = authenticate_json_request()
+    if auth_error is not None:
+        return auth_error
 
-    if draft is None:
-        analysis = payload.get("analysis") if isinstance(payload.get("analysis"), dict) else {}
-        resume_text = clean_resume_source_text(
-            str(
-                payload.get("resume_text")
-                or analysis.get("resume_text_for_generation")
-                or analysis.get("resume_excerpt")
-                or ""
-            )
-        )
-        target_role = normalize_text(str(payload.get("target_role") or ""))
-        candidate_name = normalize_text(str(payload.get("candidate_name") or ""))
-        contact_links = get_generated_resume_contact_links(payload)
-        if not analysis and not resume_text:
-            return jsonify({"detail": "generated_resume, analysis, or resume_text is required"}), 400
-        draft = build_generated_resume_payload(
-            analysis,
-            resume_text[:RESUME_GENERATION_MAX_TEXT_LENGTH],
-            target_role,
-            candidate_name,
-            contact_links,
-        )
+    payload = request.get_json(silent=True) or {}
+    draft, generation_error = build_owned_generated_resume(payload, current_user or {})
+    if generation_error is not None:
+        return generation_error
 
     try:
         pdf_buffer = build_generated_resume_pdf_buffer(draft)
@@ -6753,7 +7185,8 @@ def generate_ats_resume_pdf():
         return jsonify({"detail": str(error)}), 500
 
     role_slug = re.sub(r"[^a-z0-9]+", "-", normalize_match_text(str(draft.get("target_role") or "ats-resume"))).strip("-")
-    file_name = f"uts-ats-resume-{role_slug or 'draft'}.pdf"
+    file_prefix = "uts-example-only-resume" if draft.get("sample_only") or draft.get("is_sample_resume") else "uts-ats-resume"
+    file_name = f"{file_prefix}-{role_slug or 'draft'}.pdf"
     return send_file(
         pdf_buffer,
         mimetype="application/pdf",
@@ -7082,6 +7515,7 @@ def analyze_file():
 
     selected_job: dict[str, Any] | None = None
     detected_job: dict[str, Any] | None = None
+    ranked_role_matches: list[dict[str, Any]] = []
     top_role_matches: list[dict[str, Any]] = []
 
     if requested_target_role and requested_target_role != "selected role":
@@ -7091,7 +7525,8 @@ def analyze_file():
             selected_job = None
 
     try:
-        top_role_matches = rank_database_role_matches(resume_text, limit=3)
+        ranked_role_matches = rank_database_role_matches(resume_text)
+        top_role_matches = ranked_role_matches[:3]
     except DatabaseError:
         top_role_matches = []
 
@@ -7110,7 +7545,7 @@ def analyze_file():
         recommended_job,
         selected_fit,
         detected_fit,
-        top_role_matches,
+        ranked_role_matches,
     )
 
     job_source: dict[str, Any] = {

@@ -249,6 +249,25 @@ class AnalysisOwnershipAuthorizationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.database.download_inserts, [])
 
+    def test_generated_resume_snapshot_can_only_be_loaded_by_its_owner(self):
+        self.database.analyses[101] = {
+            "id": 101,
+            "user_id": 1,
+            "analysis_json": '{"selected_role": "Software Engineer"}',
+            "resume_excerpt": "Example excerpt",
+        }
+
+        owned_status, owned_analysis = app_module.load_owned_analysis_snapshot(1, 101)
+        forbidden_status, forbidden_analysis = app_module.load_owned_analysis_snapshot(2, 101)
+
+        self.assertEqual(owned_status, "owned")
+        self.assertEqual(owned_analysis["analysis_id"], 101)
+        self.assertEqual(owned_analysis["selected_role"], "Software Engineer")
+        self.assertEqual(owned_analysis["resume_excerpt"], "Example excerpt")
+        self.assertEqual(forbidden_status, "forbidden")
+        self.assertIsNone(forbidden_analysis)
+        self.assertTrue(all(connection.closed for connection in self.database.connections))
+
     def test_download_for_nonexistent_analysis_returns_not_found(self):
         self.sign_in(1, email="alice@example.com")
 

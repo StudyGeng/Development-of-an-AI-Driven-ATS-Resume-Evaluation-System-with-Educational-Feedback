@@ -442,6 +442,9 @@
         }
         .market-role-strip {
             overflow: visible;
+            background:
+                radial-gradient(circle at top right, rgba(0, 96, 172, 0.10), transparent 42%),
+                linear-gradient(135deg, #ffffff 0%, #f6f9ff 100%);
         }
         .market-role-track {
             display: flex;
@@ -451,6 +454,7 @@
         }
         .job-role-btn {
             animation: marketRoleAppear 0.35s ease both;
+            box-shadow: 0 2px 8px rgba(0, 37, 85, 0.05);
         }
         .job-role-btn:nth-child(2) { animation-delay: 0.04s; }
         .job-role-btn:nth-child(3) { animation-delay: 0.08s; }
@@ -459,9 +463,123 @@
         .job-role-btn:nth-child(6) { animation-delay: 0.20s; }
         .job-role-btn:hover {
             transform: translateY(-1px);
+            border-color: #0060ac;
+            box-shadow: 0 5px 14px rgba(0, 96, 172, 0.12);
+        }
+        .role-combobox-shell {
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+        }
+        #rolePickerMeta {
+            background: rgba(104, 171, 255, 0.6);
+        }
+        .role-picker-search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        #customRoleInput {
+            width: 100%;
+            border: 0;
+            border-radius: 0.75rem;
+            background: transparent;
+            padding: 0.75rem 5rem 0.75rem 2.75rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+        #customRoleInput:focus {
+            border-color: transparent;
+            outline: none;
+            box-shadow: none;
+            --tw-ring-shadow: 0 0 #0000;
+        }
+        #clearRoleBtn {
+            right: 2.5rem;
+        }
+        #rolePickerToggleBtn {
+            right: 0.5rem;
+        }
+        .role-combobox-shell:focus-within {
+            border-color: #0060ac;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 96, 172, 0.13);
+        }
+        .role-picker-panel {
+            left: 0;
+            right: 0;
+            z-index: 40;
+            overflow: hidden;
+            box-shadow: 0 18px 45px rgba(0, 37, 85, 0.18);
+            animation: rolePickerAppear 0.16s ease both;
+        }
+        .role-picker-heading {
+            letter-spacing: 0.14em;
+        }
+        .role-picker-state {
+            padding: 1.25rem 0.75rem;
+        }
+        .role-picker-loading-icon {
+            animation: rolePickerSpin 0.9s linear infinite;
+        }
+        #roleSuggestionHint {
+            padding: 0.625rem 1rem;
+        }
+        .role-picker-list {
+            max-height: min(19rem, 42vh);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 96, 172, 0.35) transparent;
+        }
+        .role-picker-option {
+            display: flex;
+            width: 100%;
+            align-items: flex-start;
+            gap: 0.75rem;
+            border-radius: 0.75rem;
+            padding: 0.7rem 0.75rem;
+            color: #172033;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+        }
+        .role-picker-option:hover,
+        .role-picker-option[aria-selected="true"] {
+            background: #eaf3ff;
+            color: #002555;
+        }
+        .role-picker-option[aria-selected="true"] {
+            box-shadow: inset 3px 0 0 #0060ac;
+        }
+        .role-picker-option-description {
+            display: -webkit-box;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
+        }
+        .role-picker-chevron {
+            transition: transform 0.18s ease;
+        }
+        .role-picker-chevron.is-open {
+            transform: rotate(180deg);
+        }
+        @keyframes rolePickerAppear {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes rolePickerSpin {
+            to { transform: rotate(360deg); }
+        }
+        @media (max-width: 639px) {
+            .role-picker-list {
+                max-height: min(16rem, 38vh);
+            }
+            .role-picker-option-description {
+                -webkit-line-clamp: 2;
+            }
         }
         @media (prefers-reduced-motion: reduce) {
             .job-role-btn,
+            .role-picker-panel,
             .dashboard-reveal,
             .hero-score-card,
             .score-ring-progress,
@@ -567,7 +685,7 @@
 <div class="w-12 h-12 bg-primary text-on-primary rounded-xl flex items-center justify-center mb-6">
 <span class="material-symbols-outlined" style="">data_object</span>
 </div>
-<h3 class="font-headline text-2xl font-bold text-primary mb-4" style="">Semantic Resume Parsing</h3>
+<h3 class="font-headline text-2xl font-bold text-primary mb-4" style="">NLP Resume Parsing</h3>
 <p class="text-on-surface-variant leading-relaxed mb-8" style="">Beyond simple text extraction, our system understands context. We map your CS coursework, GitHub contributions, and internships to industry-standard taxonomies.</p>
 <div class="flex flex-wrap gap-3">
 <span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-medium" style="">LaTeX Support</span>
@@ -715,19 +833,36 @@
 <p class="text-xs uppercase tracking-[0.16em] font-bold text-secondary mb-3">Step 1</p>
 <p class="text-sm font-semibold text-on-surface mb-1">Target job role <span class="text-on-surface-variant font-normal">(optional)</span></p>
 <p class="text-xs text-on-surface-variant mb-3">Type the role you want, or choose one trending CS market role below.</p>
-<div id="customRoleWrapper">
-<label class="text-xs font-semibold text-on-surface mb-2 block" for="customRoleInput">Custom target role</label>
-<div class="relative">
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm pr-12" id="customRoleInput" type="text" list="dbRoleOptions" placeholder="Example: Cybersecurity Analyst, UI/UX Developer, Cloud Engineer">
-<button class="absolute right-2 top-1/2 -translate-y-1/2 hidden w-8 h-8 rounded-full bg-surface-container-high text-primary hover:bg-primary hover:text-on-primary transition-colors items-center justify-center" id="clearRoleBtn" type="button" title="Clear selected role">
-<span class="material-symbols-outlined text-base">close</span>
+<div class="relative" id="customRoleWrapper">
+<div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+<label class="text-xs font-semibold text-on-surface" for="customRoleInput">Search or enter a target role</label>
+<span class="rounded-full bg-secondary-container/60 px-2.5 py-1 text-[11px] font-semibold text-on-secondary-container" id="rolePickerMeta" aria-live="polite">Loading role list...</span>
+</div>
+<div class="role-combobox-shell relative rounded-xl border border-outline-variant bg-surface-container-lowest">
+<span class="material-symbols-outlined role-picker-search-icon pointer-events-none text-xl text-secondary" aria-hidden="true">search</span>
+<input class="w-full rounded-xl border-0 bg-transparent py-3 pl-11 pr-20 text-sm focus:ring-0" id="customRoleInput" type="text" placeholder="Search database roles or type your own" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="roleSuggestionList" aria-activedescendant="">
+<button class="absolute right-10 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface-container-high text-primary transition-colors hover:bg-primary hover:text-on-primary" id="clearRoleBtn" type="button" title="Clear selected role" aria-label="Clear selected role">
+<span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
+</button>
+<button class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container-high" id="rolePickerToggleBtn" type="button" aria-label="Browse database job roles" aria-expanded="false" aria-controls="roleSuggestionPanel">
+<span class="material-symbols-outlined role-picker-chevron text-xl" id="rolePickerChevron" aria-hidden="true">expand_more</span>
 </button>
 </div>
-<datalist id="dbRoleOptions"></datalist>
+<div class="role-picker-panel absolute left-0 right-0 z-40 mt-2 hidden rounded-2xl border border-outline-variant/70 bg-white" id="roleSuggestionPanel">
+<div class="flex items-center justify-between gap-3 border-b border-outline-variant/50 px-4 py-3">
+<div>
+<p class="role-picker-heading text-xs font-bold uppercase text-secondary">Database job roles</p>
+<p class="mt-0.5 text-xs text-on-surface-variant" id="roleSuggestionStatus" aria-live="polite">Loading available roles...</p>
+</div>
+<span class="material-symbols-outlined text-secondary" aria-hidden="true">work_outline</span>
+</div>
+<div class="role-picker-list p-2" id="roleSuggestionList" role="listbox" aria-label="Available target job roles"></div>
+<p class="border-t border-outline-variant/50 bg-surface-container-low px-4 py-2.5 text-[11px] leading-relaxed text-on-surface-variant" id="roleSuggestionHint">Choose a database role, or keep your own wording as a custom target.</p>
+</div>
 </div>
 <div class="mt-4">
 <div class="flex items-center justify-between gap-3">
-<p class="text-xs uppercase tracking-[0.16em] font-bold text-secondary">Popular market roles</p>
+<p class="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] font-bold text-secondary"><span class="material-symbols-outlined text-base" aria-hidden="true">trending_up</span>Popular market roles</p>
 <p class="text-xs text-on-surface-variant">Tap one to fill the role</p>
 </div>
 <div class="market-role-strip mt-3 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-3" id="jobRoleButtons">
@@ -1041,7 +1176,13 @@
   const customRoleWrapper = document.getElementById("customRoleWrapper");
   const customRoleInput = document.getElementById("customRoleInput");
   const clearRoleBtn = document.getElementById("clearRoleBtn");
-  const dbRoleOptions = document.getElementById("dbRoleOptions");
+  const rolePickerMeta = document.getElementById("rolePickerMeta");
+  const rolePickerToggleBtn = document.getElementById("rolePickerToggleBtn");
+  const rolePickerChevron = document.getElementById("rolePickerChevron");
+  const roleSuggestionPanel = document.getElementById("roleSuggestionPanel");
+  const roleSuggestionList = document.getElementById("roleSuggestionList");
+  const roleSuggestionStatus = document.getElementById("roleSuggestionStatus");
+  const roleSuggestionHint = document.getElementById("roleSuggestionHint");
   const jobDescriptionInput = document.getElementById("jobDescriptionInput");
   const resumeDropZone = document.getElementById("resumeDropZone");
   const uploadPdfBtn = document.getElementById("uploadPdfBtn");
@@ -1117,8 +1258,12 @@
     "resumeRenderedPreviewName"
   ];
   let pendingAuthAction = "";
-  let isCustomRoleSelected = false;
   let databaseRoles = [];
+  let visibleDatabaseRoles = [];
+  let databaseRoleLoadState = "loading";
+  let isRolePickerOpen = false;
+  let activeRoleOptionIndex = -1;
+  let roleRequirementRequestId = 0;
   let customRoleLookupTimer = null;
   let lastAutoJobDescription = "";
 
@@ -1361,43 +1506,6 @@
     clearStoredResumeVisualPreview();
 
     // Reset in-memory selections and UI preview fields
-    selectedPdfFile = null;
-    selectedPdfFileName = "";
-    clearRoleSelection();
-
-    if (selectedPdfName) {
-      selectedPdfName.textContent = "No file selected.";
-      selectedPdfName.className = "text-sm text-on-surface-variant";
-    }
-    if (resumePreviewName) resumePreviewName.textContent = "File: -";
-    if (resumePreviewSize) resumePreviewSize.textContent = "Size: -";
-    if (resumePreviewType) resumePreviewType.textContent = "Type: PDF, PNG, or JPG";
-    clearAutoJobDescription();
-    setEvaluationStatus("");
-
-    if (uploadHint) {
-      uploadHint.textContent = "Click \"Evaluate My Resume\" to choose your target job and upload your resume file.";
-      uploadHint.className = "text-sm text-on-surface-variant mt-3";
-    }
-
-    refreshStartButtonState();
-  }
-
-  function clearStoredAnalysis() {
-    try {
-      [
-        "analysisResult",
-        "pipelineStatus",
-        "uploadedResumeName",
-        "selectedJobRole",
-        "selectedJobDescription",
-        "analysisStartedAt",
-      ].forEach((k) => localStorage.removeItem(k));
-    } catch (e) {
-      /* ignore */
-    }
-    clearStoredResumeVisualPreview();
-
     selectedPdfFile = null;
     selectedPdfFileName = "";
     clearRoleSelection();
@@ -1692,24 +1800,242 @@
     lastAutoJobDescription = "";
   }
 
+  function getDatabaseRoleName(role) {
+    return String(role && role.role_name ? role.role_name : "").trim();
+  }
+
+  function getRoleSearchScore(roleName, query) {
+    const normalizedName = roleName.toLowerCase();
+    if (!query) {
+      return 4;
+    }
+    if (normalizedName === query) {
+      return 0;
+    }
+    if (normalizedName.startsWith(query)) {
+      return 1;
+    }
+    if (normalizedName.split(/\s+/).some((word) => word.startsWith(query))) {
+      return 2;
+    }
+    return normalizedName.includes(query) ? 3 : -1;
+  }
+
+  function getFilteredDatabaseRoles() {
+    const query = customRoleInput ? customRoleInput.value.trim().toLowerCase().replace(/\s+/g, " ") : "";
+    return databaseRoles
+      .map((role) => ({ role, score: getRoleSearchScore(getDatabaseRoleName(role), query) }))
+      .filter((entry) => entry.score >= 0)
+      .sort((left, right) => {
+        if (left.score !== right.score) {
+          return left.score - right.score;
+        }
+        return getDatabaseRoleName(left.role).localeCompare(getDatabaseRoleName(right.role));
+      })
+      .map((entry) => entry.role);
+  }
+
+  function setActiveRoleOption(index) {
+    if (!roleSuggestionList) {
+      return;
+    }
+    const options = Array.from(roleSuggestionList.querySelectorAll('[role="option"]'));
+    if (!options.length) {
+      activeRoleOptionIndex = -1;
+      if (customRoleInput) {
+        customRoleInput.setAttribute("aria-activedescendant", "");
+      }
+      return;
+    }
+
+    activeRoleOptionIndex = Math.max(0, Math.min(index, options.length - 1));
+    options.forEach((option, optionIndex) => {
+      option.setAttribute("aria-selected", optionIndex === activeRoleOptionIndex ? "true" : "false");
+    });
+    const activeOption = options[activeRoleOptionIndex];
+    if (customRoleInput && activeOption) {
+      customRoleInput.setAttribute("aria-activedescendant", activeOption.id);
+      activeOption.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function renderRoleSuggestions() {
+    if (!roleSuggestionList || !roleSuggestionStatus) {
+      return;
+    }
+
+    roleSuggestionList.replaceChildren();
+    visibleDatabaseRoles = [];
+    activeRoleOptionIndex = -1;
+    if (customRoleInput) {
+      customRoleInput.setAttribute("aria-activedescendant", "");
+    }
+
+    if (databaseRoleLoadState === "loading") {
+      roleSuggestionStatus.textContent = "Loading available roles...";
+      const loadingRow = document.createElement("div");
+      loadingRow.className = "role-picker-state flex items-center gap-3 text-sm text-on-surface-variant";
+      const loadingIcon = document.createElement("span");
+      loadingIcon.className = "material-symbols-outlined role-picker-loading-icon text-secondary";
+      loadingIcon.textContent = "progress_activity";
+      loadingIcon.setAttribute("aria-hidden", "true");
+      const loadingText = document.createElement("span");
+      loadingText.textContent = "Getting job roles from the database";
+      loadingRow.append(loadingIcon, loadingText);
+      roleSuggestionList.appendChild(loadingRow);
+      return;
+    }
+
+    if (databaseRoleLoadState === "error") {
+      roleSuggestionStatus.textContent = "Role list is temporarily unavailable";
+      const errorRow = document.createElement("div");
+      errorRow.className = "role-picker-state text-sm text-on-surface-variant";
+      errorRow.textContent = "You can still type and use a custom target role.";
+      roleSuggestionList.appendChild(errorRow);
+      if (roleSuggestionHint) {
+        roleSuggestionHint.textContent = "Your custom role will still be checked against the closest database role during analysis.";
+      }
+      return;
+    }
+
+    const query = customRoleInput ? customRoleInput.value.trim() : "";
+    visibleDatabaseRoles = getFilteredDatabaseRoles();
+    if (!visibleDatabaseRoles.length) {
+      roleSuggestionStatus.textContent = "No database roles match this search";
+      const emptyRow = document.createElement("div");
+      emptyRow.className = "role-picker-state flex items-start gap-3";
+      const emptyIcon = document.createElement("span");
+      emptyIcon.className = "material-symbols-outlined text-secondary";
+      emptyIcon.textContent = "edit_note";
+      emptyIcon.setAttribute("aria-hidden", "true");
+      const emptyCopy = document.createElement("div");
+      const emptyTitle = document.createElement("p");
+      emptyTitle.className = "text-sm font-semibold text-on-surface";
+      emptyTitle.textContent = query ? 'Use "' + query + '" as a custom role' : "Start typing a target role";
+      const emptyDescription = document.createElement("p");
+      emptyDescription.className = "mt-1 text-xs text-on-surface-variant";
+      emptyDescription.textContent = "The analysis can still compare it with the closest role in the database.";
+      emptyCopy.append(emptyTitle, emptyDescription);
+      emptyRow.append(emptyIcon, emptyCopy);
+      roleSuggestionList.appendChild(emptyRow);
+      if (roleSuggestionHint) {
+        roleSuggestionHint.textContent = "No exact choice is required—custom target roles are supported.";
+      }
+      return;
+    }
+
+    roleSuggestionStatus.textContent = query
+      ? visibleDatabaseRoles.length + (visibleDatabaseRoles.length === 1 ? " matching role" : " matching roles")
+      : databaseRoles.length + " roles available — scroll or search";
+    if (roleSuggestionHint) {
+      roleSuggestionHint.textContent = query
+        ? "Choose a match, or keep your wording as a custom target role."
+        : "Choose a database role, or keep your own wording as a custom target.";
+    }
+
+    visibleDatabaseRoles.forEach((role, index) => {
+      const roleName = getDatabaseRoleName(role);
+      const option = document.createElement("div");
+      option.id = "databaseRoleOption" + index;
+      option.className = "role-picker-option";
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", "false");
+      option.setAttribute("data-role-index", String(index));
+
+      const iconWrap = document.createElement("span");
+      iconWrap.className = "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container";
+      const icon = document.createElement("span");
+      icon.className = "material-symbols-outlined text-lg";
+      icon.textContent = "work_outline";
+      icon.setAttribute("aria-hidden", "true");
+      iconWrap.appendChild(icon);
+
+      const copy = document.createElement("span");
+      copy.className = "min-w-0 flex-1";
+      const title = document.createElement("span");
+      title.className = "block text-sm font-semibold";
+      title.textContent = roleName;
+      copy.appendChild(title);
+
+      const description = String(role && role.masco_description ? role.masco_description : "").trim();
+      const requirementCount = Number(role && role.requirement_count ? role.requirement_count : 0);
+      const detail = document.createElement("span");
+      detail.className = "role-picker-option-description mt-0.5 text-xs text-on-surface-variant";
+      detail.textContent = description || (requirementCount > 0 ? requirementCount + " matching criteria available" : "Database role");
+      copy.appendChild(detail);
+
+      const check = document.createElement("span");
+      check.className = "material-symbols-outlined mt-1 text-lg text-secondary";
+      check.textContent = "arrow_forward";
+      check.setAttribute("aria-hidden", "true");
+      option.append(iconWrap, copy, check);
+      option.addEventListener("mouseenter", () => setActiveRoleOption(index));
+      option.addEventListener("click", () => selectDatabaseRole(role));
+      roleSuggestionList.appendChild(option);
+    });
+  }
+
+  function setRolePickerOpen(shouldOpen) {
+    if (!roleSuggestionPanel || !customRoleInput) {
+      return;
+    }
+    isRolePickerOpen = Boolean(shouldOpen);
+    roleSuggestionPanel.classList.toggle("hidden", !isRolePickerOpen);
+    customRoleInput.setAttribute("aria-expanded", isRolePickerOpen ? "true" : "false");
+    if (rolePickerToggleBtn) {
+      rolePickerToggleBtn.setAttribute("aria-expanded", isRolePickerOpen ? "true" : "false");
+    }
+    if (rolePickerChevron) {
+      rolePickerChevron.classList.toggle("is-open", isRolePickerOpen);
+    }
+    if (isRolePickerOpen) {
+      renderRoleSuggestions();
+    } else {
+      activeRoleOptionIndex = -1;
+      customRoleInput.setAttribute("aria-activedescendant", "");
+    }
+  }
+
   async function loadDatabaseJobRoles() {
+    databaseRoleLoadState = "loading";
+    if (rolePickerMeta) {
+      rolePickerMeta.textContent = "Loading role list...";
+    }
+    if (isRolePickerOpen) {
+      renderRoleSuggestions();
+    }
     try {
       const response = await fetch(API_BASE_URL + "/job-roles");
       if (!response.ok) {
-        return;
+        throw new Error("Could not load database roles");
       }
       const payload = await response.json();
-      databaseRoles = Array.isArray(payload.roles) ? payload.roles : [];
-      if (dbRoleOptions) {
-        dbRoleOptions.innerHTML = "";
-        databaseRoles.forEach((role) => {
-          const option = document.createElement("option");
-          option.value = role.role_name || "";
-          dbRoleOptions.appendChild(option);
-        });
+      const roles = Array.isArray(payload.roles) ? payload.roles : [];
+      const uniqueRoles = new Map();
+      roles.forEach((role) => {
+        const roleName = getDatabaseRoleName(role);
+        const roleKey = roleName.toLowerCase();
+        if (roleName && !uniqueRoles.has(roleKey)) {
+          uniqueRoles.set(roleKey, role);
+        }
+      });
+      databaseRoles = Array.from(uniqueRoles.values()).sort((left, right) =>
+        getDatabaseRoleName(left).localeCompare(getDatabaseRoleName(right))
+      );
+      databaseRoleLoadState = "ready";
+      if (rolePickerMeta) {
+        rolePickerMeta.textContent = databaseRoles.length + " roles available";
       }
     } catch (error) {
       databaseRoles = [];
+      databaseRoleLoadState = "error";
+      if (rolePickerMeta) {
+        rolePickerMeta.textContent = "Custom role available";
+      }
+    } finally {
+      if (isRolePickerOpen) {
+        renderRoleSuggestions();
+      }
     }
   }
 
@@ -1719,6 +2045,7 @@
       return false;
     }
 
+    const requestId = ++roleRequirementRequestId;
     const allowStatus = options.allowStatus !== false;
     try {
       if (allowStatus) {
@@ -1726,6 +2053,9 @@
       }
       const response = await fetch(API_BASE_URL + "/job-requirements?role=" + encodeURIComponent(requestedRole));
       const payload = await response.json().catch(() => ({}));
+      if (requestId !== roleRequirementRequestId) {
+        return null;
+      }
       if (!response.ok) {
         throw new Error(payload.detail || "Could not load database job requirements.");
       }
@@ -1754,6 +2084,9 @@
       }
       return true;
     } catch (error) {
+      if (requestId !== roleRequirementRequestId) {
+        return null;
+      }
       if (allowStatus) {
         setEvaluationStatus("Could not check database role now. The backend will still try to auto-detect the closest role from your resume.", true);
       }
@@ -1800,7 +2133,7 @@
 
   function clearRoleSelection() {
     selectedRole = "";
-    isCustomRoleSelected = false;
+    roleRequirementRequestId += 1;
     if (customRoleLookupTimer) {
       clearTimeout(customRoleLookupTimer);
       customRoleLookupTimer = null;
@@ -1813,18 +2146,54 @@
     if (selectedRoleText) {
       selectedRoleText.textContent = "Type a role or choose a popular market role. You can also skip this and let the system infer from your resume.";
     }
+    if (isRolePickerOpen) {
+      renderRoleSuggestions();
+    }
   }
 
   function updateCustomRoleSelection() {
     const typedRole = customRoleInput ? customRoleInput.value.trim() : "";
-    isCustomRoleSelected = true;
+    roleRequirementRequestId += 1;
     selectedRole = typedRole;
     jobRoleButtons.forEach((button) => setRoleButtonState(button, false));
     updateClearRoleButton();
     if (selectedRoleText) {
-      selectedRoleText.textContent = typedRole ? "Selected role: " + typedRole : "Type a role or choose a popular market role.";
+      const exactRole = databaseRoles.find((role) => getDatabaseRoleName(role).toLowerCase() === typedRole.toLowerCase());
+      selectedRoleText.textContent = typedRole
+        ? (exactRole ? "Selected database role: " : "Custom target role: ") + typedRole
+        : "Type a role or choose a popular market role.";
     }
     scheduleCustomRoleLookup();
+    refreshStartButtonState();
+  }
+
+  function selectDatabaseRole(role) {
+    const roleName = getDatabaseRoleName(role);
+    if (!roleName || !customRoleInput) {
+      return;
+    }
+    if (customRoleLookupTimer) {
+      clearTimeout(customRoleLookupTimer);
+      customRoleLookupTimer = null;
+    }
+    roleRequirementRequestId += 1;
+    selectedRole = roleName;
+    customRoleInput.value = roleName;
+    jobRoleButtons.forEach((button) => {
+      setRoleButtonState(button, (button.dataset.role || "").toLowerCase() === roleName.toLowerCase());
+    });
+    updateClearRoleButton();
+    if (selectedRoleText) {
+      selectedRoleText.textContent = "Selected database role: " + roleName;
+    }
+    clearAutoJobDescription();
+    customRoleInput.focus({ preventScroll: true });
+    setRolePickerOpen(false);
+    loadDatabaseRequirementsForRole(roleName, { allowStatus: true }).then((matched) => {
+      if (matched === false && selectedRole === roleName) {
+        setEvaluationStatus("The selected role has no saved requirements yet. The backend will use the closest available role.", true);
+      }
+    });
     refreshStartButtonState();
   }
 
@@ -1928,6 +2297,7 @@
   }
 
   function closeEvaluationModal() {
+    setRolePickerOpen(false);
     evaluationModal.classList.add("hidden");
     document.body.classList.remove("overflow-hidden");
   }
@@ -2139,17 +2509,18 @@
   jobRoleButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const selectedButtonRole = button.dataset.role || "";
+      setRolePickerOpen(false);
 
       jobRoleButtons.forEach((btn) => {
         setRoleButtonState(btn, (btn.dataset.role || "") === selectedButtonRole);
       });
 
-      isCustomRoleSelected = false;
 
       if (customRoleLookupTimer) {
         clearTimeout(customRoleLookupTimer);
         customRoleLookupTimer = null;
       }
+      roleRequirementRequestId += 1;
 
       selectedRole = selectedButtonRole;
       if (customRoleInput) {
@@ -2164,7 +2535,7 @@
 
       const roleAtClick = selectedRole;
       loadDatabaseRequirementsForRole(roleAtClick, { allowStatus: true }).then((matched) => {
-        if (!matched && selectedRole === roleAtClick) {
+        if (matched === false && selectedRole === roleAtClick) {
           setEvaluationStatus("No matching database role found. The backend will auto-detect the closest role from your resume.", true);
         }
       });
@@ -2173,8 +2544,71 @@
   });
 
   if (customRoleInput) {
+    customRoleInput.addEventListener("focus", () => {
+      setRolePickerOpen(true);
+    });
+
     customRoleInput.addEventListener("input", () => {
       updateCustomRoleSelection();
+      setRolePickerOpen(true);
+    });
+
+    customRoleInput.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (!isRolePickerOpen) {
+          setRolePickerOpen(true);
+        }
+        const nextIndex = activeRoleOptionIndex < visibleDatabaseRoles.length - 1
+          ? activeRoleOptionIndex + 1
+          : 0;
+        setActiveRoleOption(nextIndex);
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (!isRolePickerOpen) {
+          setRolePickerOpen(true);
+        }
+        const nextIndex = activeRoleOptionIndex > 0
+          ? activeRoleOptionIndex - 1
+          : visibleDatabaseRoles.length - 1;
+        setActiveRoleOption(nextIndex);
+        return;
+      }
+      if (event.key === "Home" && isRolePickerOpen && visibleDatabaseRoles.length) {
+        event.preventDefault();
+        setActiveRoleOption(0);
+        return;
+      }
+      if (event.key === "End" && isRolePickerOpen && visibleDatabaseRoles.length) {
+        event.preventDefault();
+        setActiveRoleOption(visibleDatabaseRoles.length - 1);
+        return;
+      }
+      if (event.key === "Enter" && isRolePickerOpen && activeRoleOptionIndex >= 0) {
+        event.preventDefault();
+        selectDatabaseRole(visibleDatabaseRoles[activeRoleOptionIndex]);
+        return;
+      }
+      if (event.key === "Escape" && isRolePickerOpen) {
+        event.preventDefault();
+        setRolePickerOpen(false);
+        return;
+      }
+      if (event.key === "Tab") {
+        setRolePickerOpen(false);
+      }
+    });
+  }
+
+  if (rolePickerToggleBtn) {
+    rolePickerToggleBtn.addEventListener("click", () => {
+      const shouldOpen = !isRolePickerOpen;
+      if (customRoleInput) {
+        customRoleInput.focus();
+      }
+      setRolePickerOpen(shouldOpen);
     });
   }
 
@@ -2187,8 +2621,15 @@
       if (customRoleInput) {
         customRoleInput.focus();
       }
+      setRolePickerOpen(true);
     });
   }
+
+  document.addEventListener("pointerdown", (event) => {
+    if (isRolePickerOpen && customRoleWrapper && !customRoleWrapper.contains(event.target)) {
+      setRolePickerOpen(false);
+    }
+  });
 
   if (resumeDropZone && resumePdfInput) {
     resumeDropZone.addEventListener("click", (event) => {

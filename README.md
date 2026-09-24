@@ -35,6 +35,19 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 - Tailwind CSS (locally compiled production stylesheet)
 - JavaScript
 
+## How Job Matching Works
+
+The current matcher is a transparent hybrid NLP and rule-based system. It does not call an external AI API and it is not a self-trained classifier or LLM.
+
+1. MySQL supplies the job roles, MASCO descriptions, requirement types, importance weights, and job requirements.
+2. The resume and requirements are normalized using skill aliases, word-form rules, and a curated set of related terms.
+3. TF-IDF measures lexical text similarity between the resume and each requirement/job description.
+4. Weighted requirement coverage, role-family evidence, title evidence, experience, education, and ATS-format checks are combined into the displayed scores.
+
+This design is explainable, but TF-IDF mainly recognizes shared wording. The curated related-term rules help with known alternatives, while unseen paraphrases, negated claims, and keyword stuffing can still be scored incorrectly. Do not describe the current implementation as an LLM or a trained predictive model.
+
+Training a model from scratch is not required. A future semantic upgrade can use a local pretrained sentence-embedding model alongside exact technology matching and the existing weighted requirements. Such a change should be evaluated on separate human-labelled development and unseen test sets before its score weights are adopted.
+
 ## Project Structure
 
 ```text
