@@ -216,6 +216,137 @@
     document.body.classList.toggle("overflow-hidden", isOpen);
   }
 
+  function createSampleAnalysis() {
+    return {
+      analysis_title: "UTS CS Career Navigator Resume Analyzer",
+      uploaded_resume_name: "sample_resume.pdf",
+      matching_percentage: 87,
+      resume_excerpt: "Sample resume excerpt showing strong systems design and Kubernetes experience.",
+      resume_text_for_generation: "Alex Tan alex.tan@example.com +60 12-345 6789 linkedin.com/in/alextan github.com/alextan Bachelor of Computer Science. Projects: Designed a cloud deployment project using Docker and Kubernetes. Built backend services and tested API workflows. Improved documentation for a software engineering capstone project.",
+      resume_summary: {
+        skills: ["systems design", "kubernetes", "docker"],
+        education_markers: ["bachelor"],
+        experience_markers: ["internship"]
+      },
+      resume_quality: {
+        quality_score: 88,
+        risk_level: "Low",
+        summary: "ATS quality risk is low. The resume format looks readable and structured.",
+        criteria: [
+          {
+            category: "Format",
+            status: "pass",
+            title: "Readable resume text detected",
+            detail: "The uploaded resume contains text that the parser can extract.",
+            suggestion: "Keep using a text-based PDF or a clear, high-resolution resume image."
+          },
+          {
+            category: "Impact",
+            status: "warning",
+            title: "Limited measurable impact",
+            detail: "The resume could use more quantified outcomes.",
+            suggestion: "Add users, speed, accuracy, revenue, or time improvements."
+          }
+        ],
+        issues: []
+      },
+      job_description_analysis: {
+        important_keywords: ["kubernetes", "systems design", "docker"],
+        missing_keywords: []
+      },
+      compatibility: {
+        matching_percentage: 87,
+        keyword_match: 87,
+        role_evidence: 92,
+        resume_quality: 88,
+        experience_alignment: 84,
+        academic_rigor: 80
+      },
+      score_breakdown: {
+        ats_score: 87,
+        keyword_coverage: 87,
+        role_evidence: 92,
+        experience_alignment: 84,
+        academic_rigor: 80,
+        resume_quality: 88,
+        tfidf_similarity: 72,
+        formula: "30% database requirement coverage + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF similarity, with a strong-evidence calibration floor"
+      },
+      feedback: "Strong keyword match. Quantify your impact in cloud projects.",
+      structured_feedback: ["Strong keyword match.", "Quantify impact in cloud projects."],
+      summary: "Sample analysis for demo",
+      recommendation: "Highlight measurable outcomes in project bullets.",
+      target_role: "Computer Programmer",
+      selected_role: "Software Engineer",
+      role_recommendation: {
+        selected_role: "Software Engineer",
+        selected_database_role: "Computer Programmer",
+        detected_database_role: "Computer Programmer",
+        recommended_role: "Computer Programmer",
+        recommended_database_role: "Computer Programmer",
+        is_different_from_selected: false,
+        selected_score: 87,
+        recommended_score: 87,
+        matched_resume_signals: ["systems", "design", "kubernetes", "docker"],
+        recommended_missing_keywords: [],
+        selected_missing_keywords: [],
+        reason_summary: "The selected role maps to Computer Programmer, and it remains the best database match for this resume.",
+        top_role_matches: [
+          {
+            rank: 1,
+            role: "Computer Programmer",
+            score: 87,
+            confidence_label: "Strong evidence",
+            matched_keywords: ["systems", "design", "kubernetes", "docker"],
+            missing_keywords: [],
+            is_selected_database_role: true,
+            is_final_recommended: true,
+            reason: "Strong evidence: systems, design, kubernetes, docker."
+          },
+          {
+            rank: 2,
+            role: "Software Developer",
+            score: 79,
+            confidence_label: "Strong evidence",
+            matched_keywords: ["software", "development", "testing", "deployment"],
+            missing_keywords: ["debugging", "api"],
+            is_selected_database_role: false,
+            is_final_recommended: false,
+            reason: "Strong evidence: software, development, testing, deployment. Improve with: debugging, API."
+          },
+          {
+            rank: 3,
+            role: "DevOps Engineer",
+            score: 68,
+            confidence_label: "Good evidence",
+            matched_keywords: ["kubernetes", "docker", "cloud"],
+            missing_keywords: ["ci/cd", "monitoring"],
+            is_selected_database_role: false,
+            is_final_recommended: false,
+            reason: "Strong evidence: kubernetes, docker, cloud. Improve with: CI/CD, monitoring."
+          }
+        ]
+      },
+      generated_at: new Date().toISOString()
+    };
+  }
+
+  function writeSampleAnalysisForDemo() {
+    const sample = createSampleAnalysis();
+    try {
+      localStorage.removeItem("analysisResult");
+      localStorage.removeItem("analysisOwner");
+      localStorage.setItem("sampleAnalysis", JSON.stringify(sample));
+      localStorage.setItem("pipelineStatus", "sample_available");
+      localStorage.setItem("uploadedResumeName", sample.uploaded_resume_name);
+      localStorage.setItem("selectedJobRole", "Sample Role");
+      localStorage.setItem("selectedJobDescription", "Sample database role requirements for demo.");
+    } catch (error) {
+      // The caller can still use the returned sample when storage is unavailable.
+    }
+    return sample;
+  }
+
   function getHistoryKey() {
     const user = getAuthUser();
     return "analysisHistory_" + (user && user.email ? (user.email || "").toLowerCase() : "guest");
@@ -396,6 +527,8 @@
     clearProfileSensitiveFields,
     populateProfileForm,
     setModalOpen,
+    createSampleAnalysis,
+    writeSampleAnalysisForDemo,
     getHistoryKey,
     loadHistory,
     saveHistory,

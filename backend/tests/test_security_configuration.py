@@ -151,10 +151,7 @@ class FlaskSecretKeyConfigurationTests(unittest.TestCase):
         )
         import_script = "\n".join(
             (
-                "from unittest.mock import patch",
-                "import database",
-                "with patch.object(database, 'init_mysql_database'):",
-                "    import app",
+                "import app",
                 f"assert app.app.secret_key == {valid_key!r}",
                 "assert app.app.config['SESSION_COOKIE_SECURE'] is True",
             )

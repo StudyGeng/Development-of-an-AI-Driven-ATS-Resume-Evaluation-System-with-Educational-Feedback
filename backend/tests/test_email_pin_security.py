@@ -16,7 +16,6 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-import database  # noqa: E402
 import app_config  # noqa: E402
 
 
@@ -27,7 +26,7 @@ with patch.dict(
         "FLASK_SECRET_KEY": "email-pin-tests-only-secret-key-value-1234567890",
     },
     clear=False,
-), patch.object(database, "init_mysql_database"):
+):
     app_module = importlib.import_module("app")
 
 import security  # noqa: E402
@@ -346,10 +345,7 @@ class EmailPinProductionStartupTests(unittest.TestCase):
         environment.update(overrides)
         import_script = "\n".join(
             (
-                "from unittest.mock import patch",
-                "import database",
-                "with patch.object(database, 'init_mysql_database'):",
-                "    import app",
+                "import app",
             )
         )
         return subprocess.run(

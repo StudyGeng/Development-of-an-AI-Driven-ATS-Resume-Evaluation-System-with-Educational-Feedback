@@ -13,7 +13,7 @@ def parse_stored_analysis_json(raw_value: Any) -> dict[str, Any]:
         return {}
     try:
         parsed = json.loads(str(raw_value))
-    except (TypeError, ValueError, json.JSONDecodeError):
+    except (TypeError, ValueError):
         return {}
     return parsed if isinstance(parsed, dict) else {}
 

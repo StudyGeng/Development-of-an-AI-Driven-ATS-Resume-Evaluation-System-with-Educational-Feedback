@@ -102,139 +102,158 @@ def ensure_column(cursor, database_name: str, table_name: str, column_name: str,
         cursor.execute(f"ALTER TABLE {quote_identifier(table_name)} ADD COLUMN {column_sql}")
 
 
-def init_mysql_database() -> None:
-    # Validate pool sizing during startup without opening pooled connections yet.
+def init_mysql_database(*, create_database: bool = False) -> None:
+    """Create or upgrade tables without seeding user data.
+
+    Managed database users commonly cannot create databases, so the default
+    connects directly to the configured ``MYSQL_DATABASE``. Local first-time
+    setup can opt in to creating that database.
+    """
+    # Validate pool sizing before opening a database connection.
     get_mysql_pool_size()
     database_name = get_database_name()
-    connection = mysql.connector.connect(**get_mysql_config(include_database=False))
-    cursor = connection.cursor()
-    cursor.execute(
-        f"""
-        CREATE DATABASE IF NOT EXISTS {quote_identifier(database_name)}
-        CHARACTER SET utf8mb4
-        COLLATE utf8mb4_unicode_ci
-        """
-    )
-    cursor.execute(f"USE {quote_identifier(database_name)}")
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            full_name VARCHAR(255) NOT NULL,
-            email VARCHAR(255) NOT NULL UNIQUE,
-            password_hash VARCHAR(255) NOT NULL,
-            email_verified_at TIMESTAMP NULL,
-            is_admin TINYINT UNSIGNED NOT NULL DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-    )
-    ensure_column(cursor, database_name, "users", "email_verified_at", "email_verified_at TIMESTAMP NULL")
-    ensure_column(cursor, database_name, "users", "is_admin", "is_admin TINYINT UNSIGNED NOT NULL DEFAULT 0")
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS email_verification_pins (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) NOT NULL,
-            purpose VARCHAR(50) NOT NULL,
-            pin_hash VARCHAR(255) NOT NULL,
-            attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
-            expires_at DATETIME NOT NULL,
-            consumed_at DATETIME NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_email_pins_lookup (email, purpose, consumed_at),
-            INDEX idx_email_pins_expires_at (expires_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS auth_rate_limit_events (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            event_type VARCHAR(32) NOT NULL,
-            subject_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_auth_rate_subject (event_type, subject_hash, created_at),
-            INDEX idx_auth_rate_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS resume_analyses (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT,
-            uploaded_resume_name VARCHAR(255) NOT NULL,
-            target_role VARCHAR(255) NOT NULL,
-            matching_percentage DECIMAL(5,2) NOT NULL,
-            feedback TEXT NOT NULL,
-            job_description LONGTEXT NOT NULL,
-            resume_excerpt LONGTEXT,
-            analysis_json LONGTEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT fk_resume_analyses_user
-                FOREIGN KEY (user_id)
-                REFERENCES users(id)
-                ON DELETE SET NULL,
-            INDEX idx_resume_analyses_user_id (user_id),
-            INDEX idx_resume_analyses_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-    )
-    ensure_column(cursor, database_name, "resume_analyses", "user_id", "user_id INT")
-    ensure_column(cursor, database_name, "resume_analyses", "analysis_json", "analysis_json LONGTEXT")
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS download_history (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT,
-            analysis_id INT,
-            downloaded_file_name VARCHAR(255) NOT NULL,
-            report_type VARCHAR(50) NOT NULL DEFAULT 'resume_comments',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT fk_download_history_user
-                FOREIGN KEY (user_id)
-                REFERENCES users(id)
-                ON DELETE SET NULL,
-            CONSTRAINT fk_download_history_analysis
-                FOREIGN KEY (analysis_id)
-                REFERENCES resume_analyses(id)
-                ON DELETE SET NULL,
-            INDEX idx_download_history_user_id (user_id),
-            INDEX idx_download_history_analysis_id (analysis_id),
-            INDEX idx_download_history_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS job_roles (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            role_name VARCHAR(255) NOT NULL UNIQUE,
-            masco_description TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS job_requirements (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            role_id INT NOT NULL,
-            requirement_type VARCHAR(50) NOT NULL,
-            requirement_text TEXT NOT NULL,
-            importance_weight TINYINT UNSIGNED NOT NULL DEFAULT 3,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT fk_job_requirements_role
-                FOREIGN KEY (role_id)
-                REFERENCES job_roles(id)
-                ON DELETE CASCADE,
-            INDEX idx_job_requirements_role_id (role_id),
-            INDEX idx_job_requirements_type (requirement_type)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """
-    )
-    connection.commit()
-    cursor.close()
-    connection.close()
+    connection = None
+    cursor = None
+    try:
+        connection = mysql.connector.connect(**get_mysql_config(include_database=not create_database))
+        cursor = connection.cursor()
+        if create_database:
+            cursor.execute(
+                f"""
+                CREATE DATABASE IF NOT EXISTS {quote_identifier(database_name)}
+                CHARACTER SET utf8mb4
+                COLLATE utf8mb4_unicode_ci
+                """
+            )
+            cursor.execute(f"USE {quote_identifier(database_name)}")
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                full_name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                email_verified_at TIMESTAMP NULL,
+                is_admin TINYINT UNSIGNED NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        )
+        ensure_column(cursor, database_name, "users", "email_verified_at", "email_verified_at TIMESTAMP NULL")
+        ensure_column(cursor, database_name, "users", "is_admin", "is_admin TINYINT UNSIGNED NOT NULL DEFAULT 0")
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS email_verification_pins (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                purpose VARCHAR(50) NOT NULL,
+                pin_hash VARCHAR(255) NOT NULL,
+                attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+                expires_at DATETIME NOT NULL,
+                consumed_at DATETIME NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_email_pins_lookup (email, purpose, consumed_at),
+                INDEX idx_email_pins_expires_at (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS auth_rate_limit_events (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                event_type VARCHAR(32) NOT NULL,
+                subject_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_auth_rate_subject (event_type, subject_hash, created_at),
+                INDEX idx_auth_rate_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS resume_analyses (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                uploaded_resume_name VARCHAR(255) NOT NULL,
+                target_role VARCHAR(255) NOT NULL,
+                matching_percentage DECIMAL(5,2) NOT NULL,
+                feedback TEXT NOT NULL,
+                job_description LONGTEXT NOT NULL,
+                resume_excerpt LONGTEXT,
+                analysis_json LONGTEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_resume_analyses_user
+                    FOREIGN KEY (user_id)
+                    REFERENCES users(id)
+                    ON DELETE SET NULL,
+                INDEX idx_resume_analyses_user_id (user_id),
+                INDEX idx_resume_analyses_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        )
+        ensure_column(cursor, database_name, "resume_analyses", "user_id", "user_id INT")
+        ensure_column(cursor, database_name, "resume_analyses", "analysis_json", "analysis_json LONGTEXT")
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS download_history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                analysis_id INT,
+                downloaded_file_name VARCHAR(255) NOT NULL,
+                report_type VARCHAR(50) NOT NULL DEFAULT 'resume_comments',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_download_history_user
+                    FOREIGN KEY (user_id)
+                    REFERENCES users(id)
+                    ON DELETE SET NULL,
+                CONSTRAINT fk_download_history_analysis
+                    FOREIGN KEY (analysis_id)
+                    REFERENCES resume_analyses(id)
+                    ON DELETE SET NULL,
+                INDEX idx_download_history_user_id (user_id),
+                INDEX idx_download_history_analysis_id (analysis_id),
+                INDEX idx_download_history_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS job_roles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                role_name VARCHAR(255) NOT NULL UNIQUE,
+                masco_description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS job_requirements (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                role_id INT NOT NULL,
+                requirement_type VARCHAR(50) NOT NULL,
+                requirement_text TEXT NOT NULL,
+                importance_weight TINYINT UNSIGNED NOT NULL DEFAULT 3,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_job_requirements_role
+                    FOREIGN KEY (role_id)
+                    REFERENCES job_roles(id)
+                    ON DELETE CASCADE,
+                INDEX idx_job_requirements_role_id (role_id),
+                INDEX idx_job_requirements_type (requirement_type)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        )
+        connection.commit()
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        raise
+    finally:
+        try:
+            if cursor is not None:
+                cursor.close()
+        finally:
+            if connection is not None:
+                connection.close()

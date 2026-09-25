@@ -166,9 +166,6 @@ def get_accuracy_testing_auto_export_enabled() -> bool:
     return raw_value in TRUE_ENVIRONMENT_VALUES and not is_production_environment()
 
 
-ACCURACY_TESTING_AUTO_EXPORT = get_accuracy_testing_auto_export_enabled()
-
-
 def email_pin_dev_mode_requested() -> bool:
     return os.getenv("EMAIL_PIN_DEV_MODE", "").strip().lower() in TRUE_ENVIRONMENT_VALUES
 

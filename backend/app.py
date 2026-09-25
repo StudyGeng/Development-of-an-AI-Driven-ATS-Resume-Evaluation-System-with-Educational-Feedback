@@ -23,7 +23,6 @@ from typing import Any
 from database import (
     DatabaseError,
     get_db_connection,
-    init_mysql_database,
     is_duplicate_entry_error,
 )
 from data_cleaning import (
@@ -792,7 +791,8 @@ MALAY_LANGUAGE_MARKERS = {
 
 
 FLASK_SESSION_SECRET_KEY = get_flask_secret_key()
-EMAIL_PIN_DELIVERY_MODE = get_email_pin_delivery_mode()
+# Validate hosted PIN delivery at startup without retaining an unused setting.
+get_email_pin_delivery_mode()
 validate_admin_email_configuration(require_configured_admin=is_production_environment())
 
 app = Flask(__name__)
@@ -1850,10 +1850,6 @@ def get_total_employment_months(entries: list[dict[str, Any]]) -> int | None:
         end_index = (end_year * 12) + end_month - 1
         covered_months.update(range(start_index, end_index + 1))
     return len(covered_months)
-
-
-def compute_total_employment_months(resume_text: str) -> int | None:
-    return get_total_employment_months(extract_employment_entries(resume_text))
 
 
 def compute_role_title_match_score(
@@ -7326,6 +7322,17 @@ def delete_admin_user(user_id: int):
         cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
         if not cursor.fetchone():
             return jsonify({"detail": "User not found"}), 404
+        cursor.execute(
+            """
+            DELETE FROM download_history
+            WHERE user_id = %s
+               OR analysis_id IN (
+                    SELECT id FROM resume_analyses WHERE user_id = %s
+               )
+            """,
+            (user_id, user_id),
+        )
+        cursor.execute("DELETE FROM resume_analyses WHERE user_id = %s", (user_id,))
         cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
         connection.commit()
     except DatabaseError:
@@ -7762,9 +7769,6 @@ def get_job_data_insights():
         return jsonify({"detail": "Database error while building job data insights"}), 500
 
     return jsonify(insights)
-
-
-init_mysql_database()
 
 
 @app.get("/health")

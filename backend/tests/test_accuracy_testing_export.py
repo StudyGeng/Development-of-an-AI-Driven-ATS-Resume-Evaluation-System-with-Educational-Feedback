@@ -13,7 +13,6 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 import app_config  # noqa: E402
-import database  # noqa: E402
 
 
 with patch.dict(
@@ -24,7 +23,7 @@ with patch.dict(
         "ACCURACY_TESTING_AUTO_EXPORT": "0",
     },
     clear=False,
-), patch.object(database, "init_mysql_database"):
+):
     app_module = importlib.import_module("app")
 
 

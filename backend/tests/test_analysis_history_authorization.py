@@ -14,9 +14,6 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-import database  # noqa: E402
-
-
 with patch.dict(
     os.environ,
     {
@@ -24,7 +21,7 @@ with patch.dict(
         "FLASK_SECRET_KEY": "history-tests-only-secret-key-value-1234567890",
     },
     clear=False,
-), patch.object(database, "init_mysql_database"):
+):
     app_module = importlib.import_module("app")
 
 

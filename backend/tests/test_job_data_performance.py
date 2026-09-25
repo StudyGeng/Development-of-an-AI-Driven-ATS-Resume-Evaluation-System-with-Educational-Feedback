@@ -286,7 +286,7 @@ class RoleRankingQueryRegressionTests(unittest.TestCase):
                 "FLASK_SECRET_KEY": "job-performance-tests-only-secret-value-123456789",
             },
             clear=False,
-        ), patch.object(database, "init_mysql_database"):
+        ):
             cls.app_module = importlib.import_module("app")
 
     def test_ranking_95_roles_uses_one_bulk_catalog_access(self):

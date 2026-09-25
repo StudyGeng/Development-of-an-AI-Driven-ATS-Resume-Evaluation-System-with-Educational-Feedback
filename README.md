@@ -67,11 +67,13 @@ Training a model from scratch is not required. A future semantic upgrade can use
 |   |-- export_helpers.py
 |   |-- job_data_insights.py
 |   |-- job_repository.py
+|   |-- job_catalog_seed.json
+|   |-- manage.py
 |   |-- models.py
 |   |-- requirements.txt
+|   |-- seed_job_catalog.py
 |   |-- security.py
-|   |-- tests/
-|   `-- schema.sql
+|   `-- tests/
 |-- frontend/
 |   |-- home_page.html
 |   |-- analysis_result.html
@@ -182,18 +184,35 @@ For a hosted deployment, set `APP_ENV=production` and save the generated secret 
 
 Successful logins use an expiring persistent cookie, so closing and reopening the browser does not immediately sign the user out. `SESSION_LIFETIME_DAYS` defaults to 7 and accepts values from 1 to 30. The frontend validates the signed cookie against the live user record whenever a page opens; a deleted account or expired/invalid cookie is therefore removed from the browser UI instead of leaving a misleading remembered login.
 
-### 5. Create the MySQL database
+### 5. Create or upgrade the MySQL database
 
-Start MySQL, then run:
+For local first-time setup, start MySQL and run this explicit migration command from the `backend` folder:
 
 ```bash
-mysql -u root -p < schema.sql
+python manage.py migrate --create-database
 ```
 
-The backend can also create the main tables automatically when it starts. However, the job matching feature needs data inside these tables:
+The opt-in flag creates `MYSQL_DATABASE` before applying its tables. For a managed cloud MySQL service, create/select the database through the provider and omit the flag so the migration does not require `CREATE DATABASE` permission:
+
+```bash
+python manage.py migrate
+```
+
+Run the appropriate command once before the first application start and again after pulling a version that contains schema changes. Importing or starting the Flask application does not create or alter tables, so multiple production workers cannot race to perform schema setup.
+
+The migration creates or upgrades the main tables; the local opt-in form also creates the database. However, the job matching feature also needs data inside these tables:
 
 - `job_roles`
 - `job_requirements`
+
+Load the bundled sanitized catalogue after migration:
+
+```bash
+python seed_job_catalog.py seed
+python seed_job_catalog.py verify --database
+```
+
+The tracked seed contains 96 roles and 2,847 requirements. It contains only role names, MASCO descriptions, requirement types/text, and importance weights—never user accounts, resumes, PINs, analysis history, or download history. Seeding an identical catalogue is a safe no-op; a different non-empty catalogue is not overwritten unless you explicitly review it and use `--replace`.
 
 ### 6. Run the application
 
@@ -377,9 +396,12 @@ For a hosted Flask deployment, run the commands from the project root so that th
 
 ```text
 Build command: npm ci && npm run build:css && pip install -r backend/requirements.txt
+Pre-deploy/release commands: python backend/manage.py migrate && python backend/seed_job_catalog.py seed
 Start command: gunicorn --chdir backend app:app --bind 0.0.0.0:$PORT
 Root directory: leave blank (project root)
 ```
+
+Run migration and catalogue seeding as separate one-off, pre-deploy, or release steps before starting new web workers. Do not append them to the Gunicorn start command, because every worker start or restart should only launch the website. You can then run `python backend/seed_job_catalog.py verify --database` to confirm the hosted catalogue has all 96 roles and 2,847 requirements.
 
 Configure these values in the hosting provider before starting the application:
 

@@ -10,7 +10,6 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-import database  # noqa: E402
 from analysis_helpers import compute_tfidf_score  # noqa: E402
 
 
@@ -22,7 +21,7 @@ with patch.dict(
         "ACCURACY_TESTING_AUTO_EXPORT": "0",
     },
     clear=False,
-), patch.object(database, "init_mysql_database"):
+):
     app_module = importlib.import_module("app")
 
 
@@ -93,7 +92,7 @@ class AnalysisScoringTests(unittest.TestCase):
         entries = app_module.extract_employment_entries(text)
 
         self.assertEqual([entry["title"] for entry in entries], ["IT Manager", "System Admin"])
-        self.assertEqual(app_module.compute_total_employment_months(text), 18)
+        self.assertEqual(app_module.get_total_employment_months(entries), 18)
 
     def test_skills_heading_and_optional_profile_link_are_not_false_warnings(self):
         filler = " ".join(
