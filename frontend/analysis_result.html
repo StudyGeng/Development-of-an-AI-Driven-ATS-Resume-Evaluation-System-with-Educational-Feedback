@@ -508,7 +508,7 @@ Export HTML Feedback Report
 </div>
 <div class="relative z-10 mt-6 hidden bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6" id="generatedResumePanel">
 <div class="hidden mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" id="generatedResumeSampleNotice" role="status">
-<strong>Example only.</strong> This target-role resume uses fictional placeholder details for learning. Replace every fact with your own verified evidence before applying.
+<strong>Fictional example - not for submission.</strong> This complete target-role reference is not the user's resume and was not generated from the user's experience.
 </div>
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
 <div>
@@ -870,6 +870,47 @@ Download PDF
             toast.classList.add("app-toast-hide");
             toast.addEventListener("animationend", () => toast.remove(), { once: true });
         }, 3800);
+    }
+
+    function showAccuracyTestingSaveStatus(result) {
+        if (!result || result.accuracy_testing_attempted !== true) {
+            return;
+        }
+
+        const analysisKey = result.analysis_id || result.generated_at || [
+            result.uploaded_resume_name || "resume",
+            result.target_role || "role",
+            result.matching_percentage ?? "score"
+        ].join("|");
+        const notificationKey = "accuracyTestingStatusShown:" + String(analysisKey);
+        try {
+            if (sessionStorage.getItem(notificationKey) === "1") {
+                return;
+            }
+            sessionStorage.setItem(notificationKey, "1");
+        } catch (error) {
+            // The save result can still be shown when browser storage is unavailable.
+        }
+
+        if (result.accuracy_testing_saved) {
+            showToast(
+                result.accuracy_testing_history_only
+                    ? "Saved to Excel Test Run History as UNREVIEWED."
+                    : "Saved to the ATS accuracy workbook and Test Run History.",
+                "success"
+            );
+            return;
+        }
+        if (result.accuracy_testing_pending) {
+            showToast(
+                "Excel is open. Result queued; close Excel and run one more analysis.",
+                "info"
+            );
+            return;
+        }
+        if (result.accuracy_testing_warning) {
+            showToast(String(result.accuracy_testing_warning), "error");
+        }
     }
 
     function updateAuthUi() {
@@ -2205,7 +2246,7 @@ Download PDF
         const isImage = type.startsWith("image/") || /^data:image\//i.test(preview.dataUrl);
         const mediaMarkup = isImage
             ? '<div class="relative mx-auto w-full max-w-[34rem] bg-white"><img class="block w-full h-auto bg-white" src="' + safeDataUrl + '" alt="' + safeName + '"></div>'
-            : '<div class="relative mx-auto flex min-h-[34rem] w-full max-w-[34rem] items-center justify-center bg-white text-sm font-semibold text-on-surface-variant" id="resumePdfRenderedPage">Rendering resume page...</div>';
+            : '<div class="relative mx-auto flex min-h-[34rem] w-full max-w-[34rem] items-center justify-center bg-white text-sm font-semibold text-on-surface-variant" id="resumePdfRenderedPages">Rendering all resume pages...</div>';
 
         return (
             '<div class="rounded-xl border border-outline-variant/70 bg-surface-container-low p-4">' +
@@ -2259,29 +2300,47 @@ Download PDF
     }
 
     async function renderPdfResumePreview(preview) {
-        const target = document.getElementById("resumePdfRenderedPage");
+        const target = document.getElementById("resumePdfRenderedPages");
         if (!target || !preview || !preview.dataUrl) {
             return;
         }
         try {
             const pdfjsLib = await loadPdfJs();
             const pdf = await pdfjsLib.getDocument({ data: dataUrlToBytes(preview.dataUrl) }).promise;
-            const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.8 });
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            canvas.width = Math.floor(viewport.width);
-            canvas.height = Math.floor(viewport.height);
-            canvas.className = "block w-full h-auto bg-white";
-            await page.render({ canvasContext: context, viewport }).promise;
-
             target.innerHTML = "";
-            target.className = "relative mx-auto w-full max-w-[34rem] bg-white";
-            target.appendChild(canvas);
+            target.className = "relative mx-auto flex w-full max-w-[34rem] flex-col gap-3";
+
+            let firstPageCanvas = null;
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+                const page = await pdf.getPage(pageNumber);
+                const viewport = page.getViewport({ scale: 1.8 });
+                const canvas = document.createElement("canvas");
+                const context = canvas.getContext("2d");
+                canvas.width = Math.floor(viewport.width);
+                canvas.height = Math.floor(viewport.height);
+                canvas.className = "block w-full h-auto bg-white";
+                canvas.setAttribute("aria-label", "Resume page " + pageNumber + " of " + pdf.numPages);
+                await page.render({ canvasContext: context, viewport }).promise;
+
+                const pageFrame = document.createElement("div");
+                pageFrame.className = "overflow-hidden rounded-lg bg-white shadow-sm";
+                const pageLabel = document.createElement("div");
+                pageLabel.className = "bg-surface-container-low px-3 py-2 text-center text-[11px] font-bold text-on-surface-variant";
+                pageLabel.textContent = "Page " + pageNumber + " of " + pdf.numPages;
+                pageFrame.appendChild(pageLabel);
+                pageFrame.appendChild(canvas);
+                target.appendChild(pageFrame);
+
+                if (pageNumber === 1) {
+                    firstPageCanvas = canvas;
+                }
+            }
 
             try {
-                sessionStorage.setItem("resumeRenderedPreviewDataUrl", canvas.toDataURL("image/png"));
-                sessionStorage.setItem("resumeRenderedPreviewName", preview.name || "Rendered resume preview");
+                if (firstPageCanvas) {
+                    sessionStorage.setItem("resumeRenderedPreviewDataUrl", firstPageCanvas.toDataURL("image/png"));
+                    sessionStorage.setItem("resumeRenderedPreviewName", preview.name || "Rendered resume preview");
+                }
             } catch (storageError) {
                 // The page preview still works if the rendered image is too large for storage.
             }
@@ -3094,7 +3153,7 @@ Download PDF
                     : "no sufficiently related CS role was detected (best evidence score " + scoreText + ")";
                 setGeneratedResumeStatus(
                     targetRole + " example shown because " + reasonText +
-                        ". It uses fictional placeholders and does not rewrite the user's unrelated experience."
+                        ". It uses complete fictional details and does not rewrite the user's unrelated experience."
                 );
                 showToast("Target-role example resume shown.", "info");
                 return;
@@ -3180,6 +3239,8 @@ Download PDF
             localStorage.setItem("uploadedResumeName", result.uploaded_resume_name || "sample_resume.pdf");
             localStorage.setItem("selectedJobRole", localStorage.getItem("selectedJobRole") || "Sample Role");
         }
+
+        showAccuracyTestingSaveStatus(result);
 
         const percentage = clampPercent(Number(result.matching_percentage || 0));
         const scoreOutOf100 = Math.round(percentage);
@@ -3374,7 +3435,7 @@ Download PDF
             "generatorInputInsight",
             sampleResumeOnly
                 ? "Example target: " + (exampleDecision.targetRole || "CS role") +
-                    ". The example uses fictional placeholders and does not replace the truthful Top 3 analysis."
+                    ". The example uses complete fictional details and does not replace the truthful Top 3 analysis."
                 : "Generator input: " + recommendedRole + ", matched signals, missing keywords, and ATS feedback."
         );
 
@@ -3537,6 +3598,7 @@ Download PDF
 
     window.CareerNavigatorCommon.createHistoryModal({
         modal: historyModal,
+        openButton: openHistoryBtn,
         backdrop: historyModalBackdrop,
         closeButton: closeHistoryModalBtn,
         list: historyList,

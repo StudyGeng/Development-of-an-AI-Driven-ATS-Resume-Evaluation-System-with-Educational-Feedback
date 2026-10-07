@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -120,6 +121,42 @@ class ResumeGenerationTests(unittest.TestCase):
             "Fallback Account Name",
         )
 
+    def assert_professional_fictional_sample(self, sample):
+        sections = sample["sections"]
+        section_text = "\n".join(
+            [str(sections.get("professional_summary") or "")]
+            + [
+                str(value)
+                for section_name in (
+                    "experience_bullets",
+                    "projects",
+                    "certifications",
+                    "achievements",
+                    "education",
+                )
+                for value in sections.get(section_name) or []
+            ]
+        )
+        forbidden_patterns = (
+            r"\[(?:N|A|B|X)\]",
+            r"\bplaceholder\b",
+            r"\breplace\s+(?:this|every)\b",
+            r"\binclude\s+it\s+only\b",
+            r"\bexample\s+(?:experience\s+bullet|project)\b",
+        )
+        for pattern in forbidden_patterns:
+            self.assertIsNone(re.search(pattern, section_text, re.I), pattern)
+
+        self.assertEqual(sample["candidate"]["name"], "Avery Tan")
+        self.assertIn("FICTIONAL EXAMPLE - NOT THE USER'S RESUME - NOT FOR SUBMISSION", sample["plain_text"])
+        self.assertIn("FICTIONAL EXAMPLE - NOT FOR SUBMISSION", sample["html"])
+        self.assertNotIn("Replace every", sample["plain_text"])
+        self.assertNotIn("Placeholder", " ".join(str(value) for value in sample["template"].values()))
+        self.assertTrue(all(re.search(r"\d", item) for item in sections["experience_bullets"]))
+        self.assertTrue(all(re.search(r"\d", item) for item in sections["projects"]))
+        for section_name in ("certifications", "achievements", "education"):
+            self.assertTrue(sections[section_name], section_name)
+
     def test_preserves_source_candidate_contact_projects_and_education(self):
         draft = self.build_draft()
 
@@ -208,6 +245,37 @@ class ResumeGenerationTests(unittest.TestCase):
         self.assertIn("<strong>Bachelor of Computer Science</strong>", draft["html"])
         self.assertIn("University of Technology Sarawak | 2023 - Present", draft["html"])
 
+    def test_source_cleaning_removes_only_obvious_jobseeker_template_advice(self):
+        cleaned = app_module.clean_resume_source_text(
+            """
+            AVERY TAN
+            Retail Operations Executive
+            HOW TO FIND A JOB
+            Job search tips for recent graduates
+            Resume writing advice
+            Use this resume template to get started
+            Replace this sample text with your details
+            Click here to download the full guide
+            PROFESSIONAL EXPERIENCE
+            Helped customers find suitable products and resolved service enquiries.
+            Prepared monthly sales reports and coordinated staff schedules.
+            """
+        )
+
+        for removed_line in (
+            "HOW TO FIND A JOB",
+            "Job search tips for recent graduates",
+            "Resume writing advice",
+            "Use this resume template to get started",
+            "Replace this sample text with your details",
+            "Click here to download the full guide",
+        ):
+            self.assertNotIn(removed_line, cleaned)
+        self.assertIn("AVERY TAN", cleaned)
+        self.assertIn("Retail Operations Executive", cleaned)
+        self.assertIn("Helped customers find suitable products", cleaned)
+        self.assertIn("Prepared monthly sales reports", cleaned)
+
     def test_project_title_and_technology_metadata_are_not_duplicated(self):
         projects = app_module.build_project_entries(
             """
@@ -261,7 +329,7 @@ class ResumeGenerationTests(unittest.TestCase):
 
         self.assertTrue(draft["is_sample_resume"])
         self.assertEqual(draft["target_role"], "Software Engineer")
-        self.assertEqual(draft["candidate"]["name"], "Sample Candidate")
+        self.assertEqual(draft["candidate"]["name"], "Avery Tan")
         self.assertEqual(draft["sample_reason_code"], "selected_role_at_or_below_50")
         self.assertEqual(draft["sample_target_role"], "Software Engineer")
         self.assertEqual(draft["sample_mapped_database_role"], "Software Developer")
@@ -280,8 +348,9 @@ class ResumeGenerationTests(unittest.TestCase):
                 "comparison": "at_or_below",
             },
         )
-        self.assertIn("EXAMPLE ONLY - SAMPLE RESUME", draft["plain_text"])
-        self.assertIn("EXAMPLE ONLY - SAMPLE RESUME", draft["html"])
+        self.assertIn("FICTIONAL EXAMPLE - NOT THE USER'S RESUME - NOT FOR SUBMISSION", draft["plain_text"])
+        self.assertIn("FICTIONAL EXAMPLE - NOT FOR SUBMISSION", draft["html"])
+        self.assert_professional_fictional_sample(draft)
         self.assertNotIn("Aisha Business User", draft["plain_text"])
         self.assertNotIn("Retail Operations Executive", draft["plain_text"])
         self.assertNotIn("monthly sales reports", draft["html"])
@@ -367,8 +436,10 @@ class ResumeGenerationTests(unittest.TestCase):
             for page in app_module.PdfReader(pdf_buffer).pages
         )
 
-        self.assertIn("EXAMPLE ONLY - SAMPLE RESUME", extracted_text)
+        self.assertIn("FICTIONAL EXAMPLE - NOT FOR SUBMISSION", extracted_text)
         self.assertIn("this is not the user's resume", extracted_text)
+        for forbidden in ("[N]", "[A]", "[B]", "[X]", "placeholder", "Replace this", "include it only"):
+            self.assertNotIn(forbidden.lower(), extracted_text.lower())
 
     def test_sample_content_is_tailored_to_data_cybersecurity_and_software_roles(self):
         data_sample = app_module.build_sample_resume_payload({}, "Data Analyst", 15)
@@ -394,16 +465,11 @@ class ResumeGenerationTests(unittest.TestCase):
         self.assertNotEqual(cyber_sample["sections"]["projects"], software_sample["sections"]["projects"])
 
         for sample in (data_sample, cyber_sample, software_sample):
-            self.assertEqual(sample["candidate"]["name"], "Sample Candidate")
-            self.assertIn("EXAMPLE ONLY - SAMPLE RESUME", sample["plain_text"])
+            self.assert_professional_fictional_sample(sample)
             self.assertGreaterEqual(len(sample["sections"]["experience_bullets"]), 3)
             self.assertGreaterEqual(len(sample["sections"]["projects"]), 3)
-            self.assertIn("[N]", " ".join(sample["sections"]["experience_bullets"] + sample["sections"]["projects"]))
-            for section_name in ("experience_bullets", "projects", "certifications", "achievements", "education"):
-                for value in sample["sections"][section_name]:
-                    self.assertTrue(value.startswith("Example"), (section_name, value))
 
-    def test_every_sample_family_has_detailed_replaceable_evidence_examples(self):
+    def test_every_sample_family_has_complete_professional_fictional_content(self):
         representative_roles = (
             "UI/UX Designer",
             "Cybersecurity Analyst",
@@ -425,10 +491,7 @@ class ResumeGenerationTests(unittest.TestCase):
 
                 self.assertGreaterEqual(len(experience), 3)
                 self.assertGreaterEqual(len(projects), 3)
-                self.assertTrue(all(item.startswith("Example experience bullet:") for item in experience))
-                self.assertTrue(all(item.startswith("Example project:") for item in projects))
-                self.assertIn("[N]", " ".join(experience + projects))
-                self.assertIn("Replace every example", sample["plain_text"])
+                self.assert_professional_fictional_sample(sample)
 
     def test_generic_selected_alias_uses_mapped_role_only_as_profile_fallback(self):
         swe_sample = app_module.build_sample_resume_payload(

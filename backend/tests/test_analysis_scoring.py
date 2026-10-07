@@ -94,6 +94,31 @@ class AnalysisScoringTests(unittest.TestCase):
         self.assertEqual([entry["title"] for entry in entries], ["IT Manager", "System Admin"])
         self.assertEqual(app_module.get_total_employment_months(entries), 18)
 
+    def test_title_after_employer_date_line_is_parsed(self):
+        text = """
+        PROFESSIONAL EXPERIENCE
+        SAINS, Kuching, Sarawak Jan 2023 - June 2023
+        Full-Stack Developer Intern
+        Developed and designed a responsive website.
+
+        New Century, Sarikei, Sarawak July 2023 - Dec 2023
+        IT Technician
+        Troubleshot hardware, software, and infrastructure issues.
+
+        EDUCATION
+        University of Technology Sarawak Feb 2024 - Present
+        Bachelor of Computer Science
+        """
+
+        entries = app_module.extract_employment_entries(text)
+
+        self.assertEqual(
+            [entry["title"] for entry in entries],
+            ["Full-Stack Developer Intern", "IT Technician"],
+        )
+        self.assertEqual(app_module.extract_most_recent_job_title(text), "IT Technician")
+        self.assertEqual(app_module.get_total_employment_months(entries), 12)
+
     def test_skills_heading_and_optional_profile_link_are_not_false_warnings(self):
         filler = " ".join(
             ["Documented operational procedures and prepared clear team reports for service delivery."] * 35
@@ -210,6 +235,48 @@ class AnalysisScoringTests(unittest.TestCase):
         old_testing_role = app_module.compute_database_role_confidence_score(44.2, 98, 5.22, False)
 
         self.assertGreater(current_title_role, old_testing_role)
+
+    def test_missing_parsed_title_renormalizes_available_role_evidence(self):
+        unavailable_title_score = app_module.compute_database_role_confidence_score(
+            44.2,
+            98,
+            0,
+            False,
+            False,
+        )
+        mismatched_title_score = app_module.compute_database_role_confidence_score(
+            44.2,
+            98,
+            0,
+            False,
+            True,
+        )
+
+        self.assertEqual(unavailable_title_score, 58.55)
+        self.assertEqual(mismatched_title_score, 43.91)
+
+    def test_role_ranking_distinguishes_unavailable_title_from_mismatched_title(self):
+        role = {"id": 1, "role_name": "Software Developer"}
+        fit_result = {"combined_score": 44.2, "important_keywords": ["Python"]}
+        with (
+            patch.object(app_module, "fetch_job_catalog", return_value=([role], {1: ["Python"]})),
+            patch.object(app_module, "build_job_description_from_requirements", return_value="Python"),
+            patch.object(app_module, "evaluate_job_fit", return_value=fit_result),
+            patch.object(app_module, "compute_role_evidence_score", return_value=98),
+        ):
+            unavailable = app_module.rank_database_role_matches(
+                "Skills include Python and software development.",
+                limit=1,
+            )[0]
+            mismatched = app_module.rank_database_role_matches(
+                "WORK EXPERIENCE\nIT Manager 01/2024 - Present\nManaged infrastructure.",
+                limit=1,
+            )[0]
+
+        self.assertFalse(unavailable["title_match_available"])
+        self.assertEqual(unavailable["confidence_score"], 58.55)
+        self.assertTrue(mismatched["title_match_available"])
+        self.assertLess(mismatched["confidence_score"], unavailable["confidence_score"])
 
     def test_unrecognized_work_dates_are_an_advisory_quality_warning(self):
         text = """

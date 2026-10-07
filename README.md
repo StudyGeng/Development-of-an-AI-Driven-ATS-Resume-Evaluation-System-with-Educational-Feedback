@@ -232,14 +232,29 @@ The Flask backend serves the frontend pages, so use the backend URL instead of o
 
 ## Accuracy Evaluation Rules
 
-The application must not be used to judge its own evaluation quality. Accuracy testing is a separate, local-only workflow:
+The application must not be used to judge its own evaluation quality. Accuracy testing is a separate, local-only workflow using the live workbook at `outputs/accuracy_evaluation/ats_resume_fyp_testing.xlsx`.
 
-1. Register each test case in the workbook before running it, including a fixed Resume ID, Expected Role, and Source File.
-2. Keep the expected role unchanged after seeing the recommendation.
-3. Let the backend write only the system-output columns: Recommended Role, ATS Score, Keyword Notes, and Explanation Notes.
-4. Have a human tester complete `Score OK?`, `Keywords OK?`, `Explanation OK?`, and `Discussion` using the rubric in the workbook.
-5. Record every failed case and subsequent retest in the Improvement Log.
-6. Report role accuracy only from rows whose status is `Pass` or `Fail`. Incomplete or unreviewed rows are excluded.
+The `Accuracy Testing` sheet supports both a chosen target and a blank-role auto-detection test. Its visible columns A:J are `Test ID`, `Test Mode`, `Selected Role`, `Expected Role`, `Evidence Basis`, `Expected Fit`, `ATS Score`, `Recommended Role`, `System Fit`, and `Check`.
+
+| Columns | Workbook workflow |
+| --- | --- |
+| A:F | Prepared test information and independent ground truth. Set these before viewing the result. |
+| G:I | Filled automatically with ATS score, recommended role, and selected-role fit. |
+| J | Shows `NEEDS HUMAN ANSWER`, `READY TO RUN`, `PASS`, or `REVIEW` using the rule for the row's test mode. |
+| K | Hidden technical `Source File` used with test mode and selected role to map an upload to the correct row. |
+
+The two test modes answer different questions:
+
+1. `Selected role`: choose the exact role shown in column C before uploading. Column J checks whether the system's broad role-fit answer agrees with the prepared `MATCH` or `NOT MATCH` value in column F.
+2. `Auto-detect`: leave the role field empty before uploading. Column J checks whether the top recommended database role exactly matches the independent expected role in column D. A related role from the same family is not counted as an exact hit.
+
+The workbook contains the two original selected-role cases, seven professional auto-detect cases across several CS roles, and review drafts generated from unique `UNREVIEWED` history scenarios. A generated draft copies only the source filename, test mode, and selected role when applicable. It deliberately leaves Expected Role, Evidence Basis, and Expected Fit for independent human review. Complete the yellow cells before rerunning the exact PDF. The `Role List` tab contains all current database roles for the workbook dropdowns. Do not type results into G:I manually. Close Excel while running analyses so the backend can save each result.
+
+`Accuracy Testing` always shows the latest result for each prepared case. Every successful run is also appended to `Test Run History`; repeating a case therefore preserves the earlier scores, recommendations, top-three roles, keyword evidence, and recommendation reason instead of replacing the historical record. A resume that is not registered as a prepared test case is still stored there, but its ground-truth columns stay blank and its result is `UNREVIEWED`, so it is not counted in the accuracy summary until a human prepares and reviews the expected answer. Use that append-only sheet to compare system versions and investigate changes. Do not edit or delete historical rows while a test series is in progress.
+
+The summary reports selected-role accuracy and auto-detect exact-role accuracy separately. These are pilot test-set results, not proof of accuracy for all users or all roles. Every counted row needs independent ground truth prepared before the system result is viewed.
+
+Earlier workbook layouts are retained under `outputs/accuracy_evaluation/archive`; do not use them for current tests.
 
 Automatic workbook export defaults to off, requires the explicit local setting `ACCURACY_TESTING_AUTO_EXPORT=1`, and is always disabled when `APP_ENV=production`. A hosted deployment therefore does not write evaluation data to a local Excel file.
 

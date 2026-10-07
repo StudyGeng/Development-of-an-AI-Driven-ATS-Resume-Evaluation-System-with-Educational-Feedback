@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import math
 import os
 import re
 import secrets
@@ -1808,6 +1809,21 @@ def extract_employment_entries(resume_text: str) -> list[dict[str, Any]]:
                         title = prior_line
                     break
             if not title:
+                # Some resumes put the employer and date range on one line,
+                # followed by the job title on the next non-empty line.
+                # Only inspect that adjacent content line so a later bullet or
+                # section cannot be borrowed as the title for this date range.
+                following_index = index + 1
+                while following_index < len(lines) and not lines[following_index]:
+                    following_index += 1
+                if following_index < len(lines):
+                    following_line = lines[following_index].strip(" |,-\u2013\u2014")
+                    if (
+                        not EMPLOYMENT_DATE_RANGE_PATTERN.search(following_line)
+                        and is_plausible_job_title(following_line)
+                    ):
+                        title = following_line
+            if not title:
                 continue
             title = clean_employment_title(title)
 
@@ -1917,12 +1933,24 @@ def compute_database_role_confidence_score(
     role_evidence_score: float,
     title_match_score: float,
     exact_title_match: bool,
+    title_match_available: bool = True,
 ) -> float:
-    adjusted_score = (
-        (combined_score * 0.55)
-        + (role_evidence_score * 0.20)
-        + (title_match_score * 0.25)
-    )
+    weighted_requirement_score = combined_score * 0.55
+    weighted_role_evidence_score = role_evidence_score * 0.20
+    title_match_available = bool(title_match_available or exact_title_match)
+    if title_match_available:
+        adjusted_score = (
+            weighted_requirement_score
+            + weighted_role_evidence_score
+            + (title_match_score * 0.25)
+        )
+    else:
+        # A parser miss is not evidence that the candidate held an unrelated
+        # job. Redistribute the unavailable title component across the two
+        # evidence components while preserving their 55:20 ratio.
+        adjusted_score = (
+            weighted_requirement_score + weighted_role_evidence_score
+        ) / 0.75
 
     if exact_title_match:
         adjusted_score = max(adjusted_score, 70.0)
@@ -1955,11 +1983,13 @@ def rank_database_role_matches(resume_text: str, limit: int | None = None) -> li
         )
         title_match_score = compute_role_title_match_score(resume_text, role_name, most_recent_title)
         exact_title_match = has_exact_role_title_match(resume_text, role_name, most_recent_title)
+        title_match_available = bool(normalize_match_text(most_recent_title))
         adjusted_score = compute_database_role_confidence_score(
             combined_score,
             role_evidence_score,
             title_match_score,
             exact_title_match,
+            title_match_available,
         )
 
         ranked_matches.append(
@@ -1972,6 +2002,7 @@ def rank_database_role_matches(resume_text: str, limit: int | None = None) -> li
                 "base_confidence_score": round(combined_score, 2),
                 "role_evidence_score": role_evidence_score,
                 "title_match_score": title_match_score,
+                "title_match_available": title_match_available,
                 "exact_title_match": exact_title_match,
                 "fit_result": fit_result,
             }
@@ -3006,12 +3037,18 @@ def get_calibrated_job_fit_score(
         role_name,
         list(fit_result.get("important_keywords") or []),
     )
-    title_match_score = compute_role_title_match_score(resume_text, role_name)
+    most_recent_title = extract_most_recent_job_title(resume_text)
+    title_match_score = compute_role_title_match_score(
+        resume_text,
+        role_name,
+        most_recent_title,
+    )
     return compute_database_role_confidence_score(
         combined_score,
         role_evidence_score,
         title_match_score,
-        has_exact_role_title_match(resume_text, role_name),
+        has_exact_role_title_match(resume_text, role_name, most_recent_title),
+        bool(normalize_match_text(most_recent_title)),
     )
 
 
@@ -3600,10 +3637,12 @@ def persist_analysis(payload: dict[str, Any], job_description: str, target_role:
 
 def infer_accuracy_resume_id(uploaded_name: str) -> str:
     """Read an explicit test ID from a filename without deriving ground truth."""
-    name = normalize_match_text(os.path.splitext(os.path.basename(uploaded_name or ""))[0])
-    direct_match = re.search(r"\b(sd|da|cy)\s*0?(\d{1,2})\b", name)
+    name = os.path.splitext(os.path.basename(uploaded_name or ""))[0].lower()
+    direct_match = re.search(r"(?<![a-z0-9])(ats|sd|da|cy|ml)[\s_-]*0?(\d{1,2})(?!\d)", name)
     if direct_match:
-        return f"{direct_match.group(1).upper()}{int(direct_match.group(2)):02d}"
+        prefix = direct_match.group(1).upper()
+        separator = "-" if prefix == "ATS" else ""
+        return f"{prefix}{separator}{int(direct_match.group(2)):02d}"
     return ""
 
 
@@ -3634,45 +3673,317 @@ def build_accuracy_missing_keywords_note(analysis: dict[str, Any]) -> str:
     return " | ".join(note_parts)[:500]
 
 
+ACCURACY_TESTING_HEADER_ALIASES = {
+    "test id": "test_id",
+    "resume id": "test_id",
+    "test mode": "test_mode",
+    "resume scenario": "scenario",
+    "target role": "target_role",
+    "selected role": "selected_role",
+    "expected role": "expected_role",
+    "evidence basis": "evidence",
+    "professional resume evidence": "evidence",
+    "expected fit": "expected_fit",
+    "expected answer": "expected_answer",
+    "recommended role": "recommended_role",
+    "ats score": "ats_score",
+    "ats feedback": "ats_feedback",
+    "system fit": "system_fit",
+    "system answer": "system_answer",
+    "check": "check",
+    "keyword notes": "keyword_notes",
+    "explanation notes": "explanation_notes",
+    "source file": "source_file",
+}
+
+ACCURACY_TESTING_UNREGISTERED_WARNING = (
+    "The uploaded resume is not registered in Accuracy Testing. "
+    "Set its Source File, Test Mode, and Selected Role (when used), or include its prepared "
+    "test ID in the filename before running the test."
+)
+ACCURACY_TESTING_CASES_TABLE = "AccuracyCasesTable"
+
+
+def normalize_accuracy_case_id(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def normalize_accuracy_testing_mode(value: Any) -> str:
+    normalized = normalize_match_text(str(value or ""))
+    if normalized in {"selected", "selected role", "target role"}:
+        return "selected_role"
+    if normalized in {"auto", "auto detect", "auto detected", "automatic"}:
+        return "auto_detect"
+    return ""
+
+
+def canonicalize_accuracy_role(value: Any) -> str:
+    """Return an exact comparison key, resolving only known role aliases.
+
+    This deliberately does not use ``get_role_family``: auto-detect accuracy
+    needs to distinguish, for example, Data Analyst from Data Scientist even
+    though both roles belong to the broader data/AI family.
+    """
+
+    normalized = normalize_match_text(str(value or ""))
+    if not normalized:
+        return ""
+    alias_target = POPULAR_ROLE_ALIASES.get(normalized)
+    return normalize_match_text(alias_target) if alias_target else normalized
+
+
+def get_accuracy_analysis_mode(analysis: dict[str, Any]) -> str:
+    return "selected_role" if normalize_text(str(analysis.get("selected_role") or "")) else "auto_detect"
+
+
+def get_combined_accuracy_testing_data_end_row(sheet, header_row: int) -> int:
+    """Return the combined-case table boundary with a legacy-size fallback."""
+    fallback_end_row = header_row + 20
+    tables = getattr(sheet, "tables", None)
+    if not tables:
+        return fallback_end_row
+
+    try:
+        table = tables.get(ACCURACY_TESTING_CASES_TABLE)
+    except (AttributeError, KeyError, TypeError):
+        return fallback_end_row
+    table_ref = getattr(table, "ref", "")
+    match = re.fullmatch(
+        r"\s*\$?[A-Z]{1,3}\$?(\d+):\$?[A-Z]{1,3}\$?(\d+)\s*",
+        str(table_ref or ""),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return fallback_end_row
+
+    table_header_row = int(match.group(1))
+    table_end_row = int(match.group(2))
+    if table_header_row != header_row or table_end_row <= header_row:
+        return fallback_end_row
+    return table_end_row
+
+
+def get_accuracy_testing_schema(sheet) -> dict[str, Any] | None:
+    """Discover the combined, simplified, or legacy testing columns."""
+    max_row = int(getattr(sheet, "max_row", 0) or 0)
+    max_column = max(15, int(getattr(sheet, "max_column", 0) or 0))
+    for header_row in range(1, min(max_row, 15) + 1):
+        columns: dict[str, int] = {}
+        raw_headers: set[str] = set()
+        for column in range(1, min(max_column, 30) + 1):
+            raw_header = normalize_match_text(str(sheet.cell(row=header_row, column=column).value or ""))
+            if not raw_header:
+                continue
+            raw_headers.add(raw_header)
+            canonical = ACCURACY_TESTING_HEADER_ALIASES.get(raw_header)
+            if canonical:
+                columns[canonical] = column
+
+        if {
+            "test_id",
+            "test_mode",
+            "selected_role",
+            "expected_role",
+            "evidence",
+            "expected_fit",
+            "ats_score",
+            "recommended_role",
+            "system_fit",
+            "check",
+            "source_file",
+        }.issubset(columns):
+            return {
+                "kind": "combined",
+                "header_row": header_row,
+                "data_end_row": get_combined_accuracy_testing_data_end_row(
+                    sheet,
+                    header_row,
+                ),
+                "columns": columns,
+            }
+
+        if "test id" in raw_headers and {
+            "test_id",
+            "target_role",
+            "expected_answer",
+            "ats_score",
+            "ats_feedback",
+            "system_answer",
+            "check",
+        }.issubset(columns):
+            return {"kind": "simplified", "header_row": header_row, "columns": columns}
+
+        if "resume id" in raw_headers and {
+            "test_id",
+            "expected_role",
+            "recommended_role",
+            "ats_score",
+            "keyword_notes",
+            "explanation_notes",
+        }.issubset(columns):
+            legacy_columns = dict(columns)
+            legacy_columns["target_role"] = columns["expected_role"]
+            return {"kind": "legacy", "header_row": header_row, "columns": legacy_columns}
+    return None
+
+
+def get_accuracy_testing_sheet(workbook):
+    for sheet_name in ("Accuracy Testing", "Two Examples"):
+        if sheet_name in workbook.sheetnames:
+            return workbook[sheet_name]
+    return None
+
+
+def validate_accuracy_testing_case(sheet, schema: dict[str, Any], row: int) -> str:
+    columns = schema["columns"]
+    case_id = normalize_text(str(sheet.cell(row=row, column=columns["test_id"]).value or ""))
+    if schema["kind"] == "combined":
+        if not case_id:
+            return "The prepared test case needs a Test ID before testing."
+
+        mode = normalize_accuracy_testing_mode(
+            sheet.cell(row=row, column=columns["test_mode"]).value
+        )
+        selected_role = normalize_text(
+            str(sheet.cell(row=row, column=columns["selected_role"]).value or "")
+        )
+        expected_role = normalize_text(
+            str(sheet.cell(row=row, column=columns["expected_role"]).value or "")
+        )
+        evidence = normalize_text(
+            str(sheet.cell(row=row, column=columns["evidence"]).value or "")
+        )
+        expected_fit = normalize_text(
+            str(sheet.cell(row=row, column=columns["expected_fit"]).value or "")
+        ).upper()
+
+        if mode == "selected_role":
+            if not selected_role or expected_fit not in {"MATCH", "NOT MATCH"}:
+                return (
+                    "A Selected role test needs a Selected Role and an Expected Fit "
+                    "of MATCH or NOT MATCH before testing."
+                )
+            if not evidence:
+                return "A Selected role test needs an Evidence Basis before testing."
+            return ""
+
+        if mode == "auto_detect":
+            if not expected_role:
+                return "An Auto-detect test needs an Expected Role before testing."
+            if selected_role or expected_fit:
+                return "An Auto-detect test must leave Selected Role and Expected Fit blank."
+            if not evidence:
+                return "An Auto-detect test needs an Evidence Basis before testing."
+            return ""
+
+        return "Test Mode must be Selected role or Auto-detect before testing."
+
+    target_role = normalize_text(str(sheet.cell(row=row, column=columns["target_role"]).value or ""))
+    if not case_id or not target_role:
+        return "The matching test case needs a Test ID and Target Role before testing."
+    if schema["kind"] == "simplified":
+        expected_answer = normalize_text(
+            str(sheet.cell(row=row, column=columns["expected_answer"]).value or "")
+        ).upper()
+        if expected_answer not in {"MATCH", "NOT MATCH"}:
+            return "The matching test case needs an Expected Answer of MATCH or NOT MATCH before testing."
+    return ""
+
+
+def combined_accuracy_row_matches_analysis(
+    sheet,
+    schema: dict[str, Any],
+    row: int,
+    analysis: dict[str, Any],
+) -> bool:
+    columns = schema["columns"]
+    actual_mode = get_accuracy_analysis_mode(analysis)
+    row_mode = normalize_accuracy_testing_mode(
+        sheet.cell(row=row, column=columns["test_mode"]).value
+    )
+    if row_mode != actual_mode:
+        return False
+    if actual_mode == "auto_detect":
+        return True
+
+    actual_selected_role = canonicalize_accuracy_role(analysis.get("selected_role"))
+    prepared_selected_role = canonicalize_accuracy_role(
+        sheet.cell(row=row, column=columns["selected_role"]).value
+    )
+    return bool(
+        actual_selected_role
+        and prepared_selected_role
+        and actual_selected_role == prepared_selected_role
+    )
+
+
 def find_accuracy_testing_row(workbook, analysis: dict[str, Any]) -> tuple[Any | None, int | None, str]:
-    sheet = workbook["Accuracy Testing"] if "Accuracy Testing" in workbook.sheetnames else None
+    sheet = get_accuracy_testing_sheet(workbook)
     if sheet is None:
         return None, None, "Accuracy Testing sheet was not found."
+
+    schema = get_accuracy_testing_schema(sheet)
+    if schema is None:
+        return sheet, None, "Accuracy Testing headers were not recognised."
 
     uploaded_name = str(analysis.get("uploaded_resume_name") or "")
     uploaded_key = normalize_match_text(os.path.basename(uploaded_name))
     inferred_resume_id = infer_accuracy_resume_id(uploaded_name)
+    columns = schema["columns"]
+    first_data_row = int(schema["header_row"]) + 1
+    last_data_row = int(getattr(sheet, "max_row", first_data_row) or first_data_row)
+    if schema["kind"] == "combined":
+        last_data_row = min(last_data_row, int(schema.get("data_end_row") or last_data_row))
 
     source_matches: list[int] = []
-    for row in range(5, min(sheet.max_row, 34) + 1):
-        source_file = normalize_match_text(
-            os.path.basename(str(sheet.cell(row=row, column=15).value or ""))
-        )
-        if uploaded_key and source_file and uploaded_key == source_file:
-            source_matches.append(row)
+    source_column = columns.get("source_file")
+    if source_column:
+        for row in range(first_data_row, last_data_row + 1):
+            source_file = normalize_match_text(
+                os.path.basename(str(sheet.cell(row=row, column=source_column).value or ""))
+            )
+            if uploaded_key and source_file and uploaded_key == source_file:
+                source_matches.append(row)
+
+    if schema["kind"] == "combined":
+        source_matches = [
+            row
+            for row in source_matches
+            if combined_accuracy_row_matches_analysis(sheet, schema, row, analysis)
+        ]
 
     if len(source_matches) > 1:
-        return sheet, None, "The uploaded resume is assigned to more than one prepared test case."
+        duplicate_description = "source, mode, and selected role" if schema["kind"] == "combined" else "source"
+        return sheet, None, (
+            "The uploaded resume is assigned to more than one prepared test case "
+            f"with the same {duplicate_description}."
+        )
     if source_matches:
         row = source_matches[0]
-        resume_id = normalize_text(str(sheet.cell(row=row, column=1).value or ""))
-        expected_role = normalize_text(str(sheet.cell(row=row, column=2).value or ""))
-        if not resume_id or not expected_role:
-            return (
-                sheet,
-                None,
-                "The matching test case needs a Resume ID and Expected Role before testing.",
-            )
+        warning = validate_accuracy_testing_case(sheet, schema, row)
+        if warning:
+            return sheet, None, warning
         return sheet, row, ""
 
-    for row in range(5, min(sheet.max_row, 34) + 1):
-        resume_id = normalize_text(str(sheet.cell(row=row, column=1).value or ""))
-        if inferred_resume_id and normalize_match_text(resume_id) == normalize_match_text(inferred_resume_id):
-            if not normalize_text(str(sheet.cell(row=row, column=2).value or "")):
-                return sheet, None, "The matching test case needs an Expected Role before testing."
-            return sheet, row, ""
+    id_matches: list[int] = []
+    for row in range(first_data_row, last_data_row + 1):
+        resume_id = sheet.cell(row=row, column=columns["test_id"]).value
+        if inferred_resume_id and normalize_accuracy_case_id(resume_id) == normalize_accuracy_case_id(inferred_resume_id):
+            if schema["kind"] != "combined" or combined_accuracy_row_matches_analysis(
+                sheet, schema, row, analysis
+            ):
+                id_matches.append(row)
 
-    if "Resume Dataset" in workbook.sheetnames:
+    if len(id_matches) > 1:
+        return sheet, None, "The prepared test ID has more than one matching mode and selected-role case."
+    if id_matches:
+        row = id_matches[0]
+        warning = validate_accuracy_testing_case(sheet, schema, row)
+        if warning:
+            return sheet, None, warning
+        return sheet, row, ""
+
+    if schema["kind"] == "legacy" and "Resume Dataset" in workbook.sheetnames:
         dataset = workbook["Resume Dataset"]
         for data_row in range(5, dataset.max_row + 1):
             dataset_resume_id = normalize_text(str(dataset.cell(row=data_row, column=1).value or ""))
@@ -3680,39 +3991,63 @@ def find_accuracy_testing_row(workbook, analysis: dict[str, Any]) -> tuple[Any |
                 os.path.basename(str(dataset.cell(row=data_row, column=4).value or ""))
             )
             if uploaded_key and fake_file_name and uploaded_key == fake_file_name:
-                for row in range(5, min(sheet.max_row, 34) + 1):
-                    if normalize_text(str(sheet.cell(row=row, column=1).value or "")) == dataset_resume_id:
-                        if not normalize_text(str(sheet.cell(row=row, column=2).value or "")):
-                            return sheet, None, "The matching test case needs an Expected Role before testing."
+                for row in range(first_data_row, last_data_row + 1):
+                    row_resume_id = normalize_text(
+                        str(sheet.cell(row=row, column=columns["test_id"]).value or "")
+                    )
+                    if row_resume_id == dataset_resume_id:
+                        warning = validate_accuracy_testing_case(sheet, schema, row)
+                        if warning:
+                            return sheet, None, warning
                         return sheet, row, ""
 
-    return sheet, None, (
-        "The uploaded resume is not registered in Accuracy Testing. "
-        "Set its Source File or include its prepared test ID in the filename before running the test."
-    )
+    return sheet, None, ACCURACY_TESTING_UNREGISTERED_WARNING
 
 
 def compact_accuracy_testing_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
     role_recommendation = analysis.get("role_recommendation") or {}
     job_analysis = analysis.get("job_description_analysis") or {}
+    tested_at = (
+        analysis.get("accuracy_tested_at")
+        or analysis.get("queued_at")
+        or analysis.get("generated_at")
+        or datetime.now().astimezone().isoformat()
+    )
+    top_role_matches = list(
+        analysis.get("top_role_matches")
+        or role_recommendation.get("top_role_matches")
+        or []
+    )[:3]
     return {
+        "analysis_id": analysis.get("analysis_id"),
         "uploaded_resume_name": analysis.get("uploaded_resume_name"),
         "target_role": analysis.get("target_role"),
         "selected_role": analysis.get("selected_role"),
         "matching_percentage": analysis.get("matching_percentage"),
         "summary": analysis.get("summary"),
         "feedback": analysis.get("feedback"),
+        "generated_at": analysis.get("generated_at"),
+        "accuracy_tested_at": tested_at,
+        "job_source": dict(analysis.get("job_source") or {}),
+        "top_role_matches": top_role_matches,
         "job_description_analysis": {
             "missing_keywords": list(job_analysis.get("missing_keywords") or [])[:12],
             "matched_keywords": list(job_analysis.get("matched_keywords") or [])[:12],
         },
         "role_recommendation": {
+            "selected_role": role_recommendation.get("selected_role"),
+            "selected_database_role": role_recommendation.get("selected_database_role"),
+            "detected_database_role": role_recommendation.get("detected_database_role"),
             "recommended_role": role_recommendation.get("recommended_role"),
             "recommended_database_role": role_recommendation.get("recommended_database_role"),
+            "selected_score": role_recommendation.get("selected_score"),
+            "detected_score": role_recommendation.get("detected_score"),
+            "recommended_score": role_recommendation.get("recommended_score"),
+            "top_role_matches": top_role_matches,
             "recommended_missing_keywords": list(role_recommendation.get("recommended_missing_keywords") or [])[:12],
             "reason_summary": role_recommendation.get("reason_summary"),
         },
-        "queued_at": datetime.now().isoformat(),
+        "queued_at": analysis.get("queued_at") or datetime.now().astimezone().isoformat(),
     }
 
 
@@ -3747,28 +4082,610 @@ def clear_pending_accuracy_testing_analyses() -> None:
         os.remove(pending_path)
 
 
-def write_accuracy_testing_analysis_row(workbook, analysis: dict[str, Any]) -> tuple[int | None, str]:
+ACCURACY_TESTING_HISTORY_SHEET = "Test Run History"
+ACCURACY_TESTING_HISTORY_TABLE = "TestRunHistoryTable"
+ACCURACY_TESTING_HISTORY_HEADERS = (
+    "Run #",
+    "Tested At",
+    "Test ID",
+    "Test Mode",
+    "Source File",
+    "Selected Role",
+    "Expected Role",
+    "Evidence Basis",
+    "Expected Fit",
+    "ATS Score",
+    "Recommended Role",
+    "System Fit",
+    "Result",
+    "Recommendation Score",
+    "Top 3 Role Matches",
+    "Matched Keywords",
+    "Missing Keywords",
+    "Recommendation Reason",
+)
+ACCURACY_TESTING_HISTORY_MAX_TEXT = 32700
+ACCURACY_TESTING_HISTORY_ILLEGAL_CHARACTERS = re.compile(
+    r"[\x00-\x08\x0B\x0C\x0E-\x1F]"
+)
+
+
+def sanitize_accuracy_history_text(value: Any, limit: int = ACCURACY_TESTING_HISTORY_MAX_TEXT) -> str:
+    """Return a safe, bounded Excel cell string for test-run history."""
+    if value is None:
+        return ""
+    if isinstance(value, (dict, list, tuple, set)):
+        try:
+            text = json.dumps(value, ensure_ascii=False, default=str)
+        except (TypeError, ValueError):
+            text = str(value)
+    else:
+        text = str(value)
+    text = ACCURACY_TESTING_HISTORY_ILLEGAL_CHARACTERS.sub(" ", text).strip()
+    if text.startswith(("=", "+", "-", "@")):
+        # Keep externally supplied workbook text from being interpreted as a
+        # formula when the history sheet is opened in Excel.
+        text = "'" + text
+    return text[: max(0, min(int(limit), ACCURACY_TESTING_HISTORY_MAX_TEXT))]
+
+
+def get_accuracy_history_keywords(analysis: dict[str, Any], key: str) -> str:
+    job_analysis = analysis.get("job_description_analysis") or {}
+    role_recommendation = analysis.get("role_recommendation") or {}
+    values = list(job_analysis.get(key) or [])
+    if not values and key == "matched_keywords":
+        values = list(role_recommendation.get("matched_resume_signals") or [])
+    if not values and key == "missing_keywords":
+        values = list(role_recommendation.get("recommended_missing_keywords") or [])
+
+    unique_values: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        cleaned = sanitize_accuracy_history_text(value, 160)
+        comparison_key = normalize_match_text(cleaned)
+        if not cleaned or comparison_key in seen:
+            continue
+        seen.add(comparison_key)
+        unique_values.append(cleaned)
+        if len(unique_values) >= 20:
+            break
+    return sanitize_accuracy_history_text(", ".join(unique_values), 3000)
+
+
+def format_accuracy_history_top_matches(analysis: dict[str, Any]) -> str:
+    role_recommendation = analysis.get("role_recommendation") or {}
+    matches = list(
+        analysis.get("top_role_matches")
+        or role_recommendation.get("top_role_matches")
+        or []
+    )[:3]
+    formatted: list[str] = []
+    for position, match in enumerate(matches, start=1):
+        if not isinstance(match, dict):
+            continue
+        raw_role = match.get("role") or match.get("database_role") or ""
+        if isinstance(raw_role, dict):
+            raw_role = raw_role.get("role_name") or raw_role.get("name") or ""
+        role = sanitize_accuracy_history_text(raw_role, 180)
+        if not role:
+            continue
+
+        fit_result = match.get("fit_result") or {}
+        raw_score = match.get("score")
+        if raw_score is None:
+            raw_score = match.get("confidence_score")
+        if raw_score is None and isinstance(fit_result, dict):
+            raw_score = fit_result.get("combined_score")
+        try:
+            numeric_score = float(raw_score)
+        except (TypeError, ValueError):
+            numeric_score = math.nan
+
+        rank = match.get("rank") or position
+        try:
+            rank_label = str(int(rank))
+        except (TypeError, ValueError):
+            rank_label = str(position)
+        if math.isfinite(numeric_score):
+            formatted.append(f"{rank_label}. {role} ({numeric_score:.2f})")
+        else:
+            formatted.append(f"{rank_label}. {role}")
+    return sanitize_accuracy_history_text("; ".join(formatted), 4000)
+
+
+def get_accuracy_history_recommendation_score(analysis: dict[str, Any]) -> float | None:
+    role_recommendation = analysis.get("role_recommendation") or {}
+    job_source = analysis.get("job_source") or {}
+    raw_score = role_recommendation.get("recommended_score")
+    if raw_score is None:
+        raw_score = job_source.get("confidence_score")
+    try:
+        score = float(raw_score)
+    except (TypeError, ValueError):
+        return None
+    return round(score, 2) if math.isfinite(score) else None
+
+
+def get_accuracy_history_timestamp(analysis: dict[str, Any]) -> datetime:
+    """Return the original test time as an Excel-safe local naive datetime."""
+    raw_timestamp = (
+        analysis.get("accuracy_tested_at")
+        or analysis.get("queued_at")
+        or analysis.get("generated_at")
+    )
+    if isinstance(raw_timestamp, datetime):
+        tested_at = raw_timestamp
+    else:
+        timestamp_text = str(raw_timestamp or "").strip()
+        if timestamp_text.endswith("Z"):
+            timestamp_text = timestamp_text[:-1] + "+00:00"
+        try:
+            tested_at = datetime.fromisoformat(timestamp_text) if timestamp_text else datetime.now()
+        except ValueError:
+            tested_at = datetime.now()
+
+    if tested_at.tzinfo is not None:
+        local_timezone = datetime.now().astimezone().tzinfo
+        tested_at = tested_at.astimezone(local_timezone).replace(tzinfo=None)
+    return tested_at
+
+
+def get_accuracy_system_fit(selected_role: Any, recommended_role: Any) -> str:
+    """Return the system's broad selected-role fit without supplying ground truth."""
+    selected_family = get_role_family(normalize_text(str(selected_role or "")))
+    recommended_family = get_role_family(normalize_text(str(recommended_role or "")))
+    return (
+        "MATCH"
+        if selected_family and recommended_family and selected_family == recommended_family
+        else "NOT MATCH"
+    )
+
+
+def initialize_accuracy_testing_history_sheet(sheet) -> None:
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side  # type: ignore
+
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    header_font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin_border = Border(bottom=Side(style="thin", color="A6A6A6"))
+
+    for column, header in enumerate(ACCURACY_TESTING_HISTORY_HEADERS, start=1):
+        cell = sheet.cell(row=1, column=column)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    widths = (9, 20, 14, 16, 38, 28, 28, 48, 14, 12, 30, 14, 12, 21, 55, 45, 45, 72)
+    for column, width in enumerate(widths, start=1):
+        sheet.column_dimensions[sheet.cell(row=1, column=column).column_letter].width = width
+    sheet.row_dimensions[1].height = 32
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = "A1:R1"
+    sheet.sheet_view.showGridLines = False
+    sheet.sheet_properties.tabColor = "1F4E78"
+
+
+def ensure_accuracy_testing_history_sheet(workbook) -> tuple[Any | None, str]:
+    created = False
+    if ACCURACY_TESTING_HISTORY_SHEET in workbook.sheetnames:
+        sheet = workbook[ACCURACY_TESTING_HISTORY_SHEET]
+    else:
+        try:
+            sheet = workbook.create_sheet(ACCURACY_TESTING_HISTORY_SHEET)
+        except (AttributeError, TypeError, ValueError) as error:
+            return None, f"Could not create the Test Run History sheet: {error}"
+        created = True
+
+    existing_headers = [
+        normalize_text(str(sheet.cell(row=1, column=column).value or ""))
+        for column in range(1, len(ACCURACY_TESTING_HISTORY_HEADERS) + 1)
+    ]
+    if created or not any(existing_headers):
+        initialize_accuracy_testing_history_sheet(sheet)
+    elif existing_headers != list(ACCURACY_TESTING_HISTORY_HEADERS):
+        return None, (
+            "Test Run History headers do not match the required A:R history layout. "
+            "Restore the history headers before running another accuracy test."
+        )
+    for other_sheet in getattr(workbook, "worksheets", []):
+        if other_sheet is sheet:
+            continue
+        if ACCURACY_TESTING_HISTORY_TABLE in other_sheet.tables:
+            return None, (
+                f"Excel table name {ACCURACY_TESTING_HISTORY_TABLE} is already used "
+                "on another worksheet."
+            )
+    return sheet, ""
+
+
+def get_next_accuracy_history_position(sheet) -> tuple[int, int]:
+    """Return the next run number and row without relying on formatted rows."""
+    maximum_run_number = 0
+    last_run_row = 1
+    for row in range(2, int(getattr(sheet, "max_row", 1) or 1) + 1):
+        value = sheet.cell(row=row, column=1).value
+        if value is None or (isinstance(value, str) and not value.strip()):
+            continue
+        last_run_row = row
+        if isinstance(value, bool):
+            continue
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(numeric_value):
+            maximum_run_number = max(maximum_run_number, int(numeric_value))
+    return maximum_run_number + 1, last_run_row + 1
+
+
+def style_accuracy_testing_history_row(sheet, row: int) -> None:
+    from openpyxl.styles import Alignment, Font, PatternFill  # type: ignore
+
+    for column in range(1, len(ACCURACY_TESTING_HISTORY_HEADERS) + 1):
+        cell = sheet.cell(row=row, column=column)
+        cell.font = Font(name="Arial", size=10, color="1F1F1F")
+        cell.alignment = Alignment(
+            horizontal="center" if column in {1, 2, 3, 4, 9, 10, 12, 13, 14} else "left",
+            vertical="top",
+            wrap_text=column in {5, 6, 7, 8, 11, 15, 16, 17, 18},
+        )
+    sheet.cell(row=row, column=2).number_format = "yyyy-mm-dd hh:mm:ss"
+    sheet.cell(row=row, column=10).number_format = "0.00"
+    sheet.cell(row=row, column=14).number_format = "0.00"
+    result_cell = sheet.cell(row=row, column=13)
+    result_style = {
+        "PASS": ("2E7D32", "E2F0D9"),
+        "REVIEW": ("C62828", "FCE8E6"),
+        "UNREVIEWED": ("9C6500", "FFF2CC"),
+    }.get(str(result_cell.value or "").upper(), ("1F1F1F", "FFFFFF"))
+    result_cell.font = Font(
+        name="Arial",
+        size=10,
+        bold=True,
+        color=result_style[0],
+    )
+    result_cell.fill = PatternFill(
+        "solid",
+        fgColor=result_style[1],
+    )
+    sheet.row_dimensions[row].height = 45
+
+
+def extend_accuracy_testing_history_table(workbook, sheet, last_row: int) -> str:
+    from openpyxl.worksheet.table import Table, TableStyleInfo  # type: ignore
+
+    table = sheet.tables.get(ACCURACY_TESTING_HISTORY_TABLE)
+    if table is None:
+        for other_sheet in workbook.worksheets:
+            if other_sheet is sheet:
+                continue
+            if ACCURACY_TESTING_HISTORY_TABLE in other_sheet.tables:
+                return (
+                    f"Excel table name {ACCURACY_TESTING_HISTORY_TABLE} is already used "
+                    "on another worksheet."
+                )
+        table = Table(
+            displayName=ACCURACY_TESTING_HISTORY_TABLE,
+            ref=f"A1:R{last_row}",
+        )
+        table.tableStyleInfo = TableStyleInfo(
+            name="TableStyleMedium2",
+            showFirstColumn=False,
+            showLastColumn=False,
+            showRowStripes=True,
+            showColumnStripes=False,
+        )
+        sheet.add_table(table)
+    else:
+        table.ref = f"A1:R{last_row}"
+    sheet.auto_filter.ref = f"A1:R{last_row}"
+    return ""
+
+
+def append_accuracy_testing_history_values(
+    workbook,
+    analysis: dict[str, Any],
+    *,
+    test_id: Any,
+    test_mode: str,
+    source_file: Any,
+    selected_role: Any,
+    expected_role: Any,
+    evidence: Any,
+    expected_fit: str,
+    score: float,
+    recommended_role: str,
+    system_fit: str,
+    result: str,
+) -> tuple[int | None, str]:
+    """Append one immutable history record from prepared or unreviewed data."""
+    history_sheet, warning = ensure_accuracy_testing_history_sheet(workbook)
+    if warning or history_sheet is None:
+        return None, warning
+
+    role_recommendation = analysis.get("role_recommendation") or {}
+    recommendation_reason = (
+        role_recommendation.get("reason_summary")
+        or analysis.get("summary")
+        or analysis.get("feedback")
+        or ""
+    )
+    run_number, history_row = get_next_accuracy_history_position(history_sheet)
+    values: tuple[Any, ...] = (
+        run_number,
+        get_accuracy_history_timestamp(analysis),
+        sanitize_accuracy_history_text(test_id, 120),
+        sanitize_accuracy_history_text(test_mode, 40),
+        sanitize_accuracy_history_text(source_file, 500),
+        sanitize_accuracy_history_text(selected_role, 300),
+        sanitize_accuracy_history_text(expected_role, 300),
+        sanitize_accuracy_history_text(evidence, 5000),
+        sanitize_accuracy_history_text(expected_fit, 40),
+        score,
+        sanitize_accuracy_history_text(recommended_role, 300),
+        sanitize_accuracy_history_text(system_fit, 40),
+        sanitize_accuracy_history_text(result, 40),
+        get_accuracy_history_recommendation_score(analysis),
+        format_accuracy_history_top_matches(analysis),
+        get_accuracy_history_keywords(analysis, "matched_keywords"),
+        get_accuracy_history_keywords(analysis, "missing_keywords"),
+        sanitize_accuracy_history_text(recommendation_reason, 8000),
+    )
+    for column, value in enumerate(values, start=1):
+        history_sheet.cell(row=history_row, column=column).value = value
+    style_accuracy_testing_history_row(history_sheet, history_row)
+    warning = extend_accuracy_testing_history_table(workbook, history_sheet, history_row)
+    if warning:
+        return None, warning
+    return history_row, ""
+
+
+def append_accuracy_testing_history_row(
+    workbook,
+    prepared_sheet,
+    schema: dict[str, Any],
+    prepared_row: int,
+    analysis: dict[str, Any],
+    score: float,
+    recommended_role: str,
+    system_fit: str,
+) -> tuple[int | None, str]:
+    columns = schema["columns"]
+    mode = normalize_accuracy_testing_mode(
+        prepared_sheet.cell(row=prepared_row, column=columns["test_mode"]).value
+    )
+    test_mode = "Selected role" if mode == "selected_role" else "Auto-detect"
+    test_id = prepared_sheet.cell(row=prepared_row, column=columns["test_id"]).value
+    source_file = prepared_sheet.cell(row=prepared_row, column=columns["source_file"]).value
+    selected_role = prepared_sheet.cell(row=prepared_row, column=columns["selected_role"]).value
+    expected_role = prepared_sheet.cell(row=prepared_row, column=columns["expected_role"]).value
+    evidence = prepared_sheet.cell(row=prepared_row, column=columns["evidence"]).value
+    expected_fit = normalize_text(
+        str(prepared_sheet.cell(row=prepared_row, column=columns["expected_fit"]).value or "")
+    ).upper()
+
+    if mode == "selected_role":
+        result = "PASS" if expected_fit == system_fit else "REVIEW"
+    else:
+        expected_key = normalize_text(str(expected_role or "")).casefold()
+        recommended_key = normalize_text(str(recommended_role or "")).casefold()
+        result = "PASS" if expected_key and expected_key == recommended_key else "REVIEW"
+
+    return append_accuracy_testing_history_values(
+        workbook,
+        analysis,
+        test_id=test_id,
+        test_mode=test_mode,
+        source_file=source_file,
+        selected_role=selected_role,
+        expected_role=expected_role,
+        evidence=evidence,
+        expected_fit=expected_fit,
+        score=score,
+        recommended_role=recommended_role,
+        system_fit=system_fit,
+        result=result,
+    )
+
+
+def get_unregistered_accuracy_test_id(analysis: dict[str, Any]) -> str:
+    raw_analysis_id = analysis.get("analysis_id")
+    if isinstance(raw_analysis_id, bool):
+        return ""
+    try:
+        analysis_id = int(raw_analysis_id)
+    except (TypeError, ValueError):
+        return ""
+    return f"AN-{analysis_id}" if analysis_id > 0 else ""
+
+
+def append_unregistered_accuracy_testing_history_row(
+    workbook,
+    analysis: dict[str, Any],
+    score: float,
+    recommended_role: str,
+) -> tuple[int | None, str]:
+    selected_role = normalize_text(str(analysis.get("selected_role") or ""))
+    mode = get_accuracy_analysis_mode(analysis)
+    system_fit = (
+        get_accuracy_system_fit(selected_role, recommended_role)
+        if mode == "selected_role"
+        else ""
+    )
+    return append_accuracy_testing_history_values(
+        workbook,
+        analysis,
+        test_id=get_unregistered_accuracy_test_id(analysis),
+        test_mode="Selected role" if mode == "selected_role" else "Auto-detect",
+        source_file=os.path.basename(str(analysis.get("uploaded_resume_name") or "")),
+        selected_role=selected_role,
+        expected_role="",
+        evidence="",
+        expected_fit="",
+        score=score,
+        recommended_role=recommended_role,
+        system_fit=system_fit,
+        result="UNREVIEWED",
+    )
+
+
+def write_accuracy_testing_analysis(
+    workbook,
+    analysis: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str]:
+    """Record an analysis and return explicit prepared/history row metadata."""
     sheet, row, warning = find_accuracy_testing_row(workbook, analysis)
-    if warning or sheet is None or row is None:
+    unregistered = warning == ACCURACY_TESTING_UNREGISTERED_WARNING
+    if sheet is None:
+        return None, warning
+
+    schema = get_accuracy_testing_schema(sheet)
+    if schema is None:
+        return None, "Accuracy Testing headers were not recognised."
+    if warning and not (unregistered and schema["kind"] == "combined"):
         return None, warning
 
     recommended_role = get_analysis_recommended_role(analysis)
     if not recommended_role:
         return None, "The analysis did not contain a role recommendation."
 
-    sheet.cell(row=row, column=3).value = recommended_role
-    sheet.cell(row=row, column=4).value = float(analysis.get("matching_percentage") or 0)
+    raw_score = analysis.get("matching_percentage")
+    try:
+        score = float(raw_score)
+    except (TypeError, ValueError):
+        return None, "The analysis did not contain a valid ATS score."
+    if not math.isfinite(score):
+        return None, "The analysis did not contain a valid ATS score."
 
-    sheet.cell(row=row, column=8).value = build_accuracy_missing_keywords_note(analysis)
+    if unregistered:
+        history_row, history_warning = append_unregistered_accuracy_testing_history_row(
+            workbook,
+            analysis,
+            score,
+            recommended_role,
+        )
+        if history_warning or history_row is None:
+            return None, history_warning
+        return {
+            "prepared_row": None,
+            "history_row": history_row,
+            "history_only": True,
+            "history_result": "UNREVIEWED",
+        }, ""
+
+    if row is None:
+        return None, warning or "The prepared accuracy testing row could not be resolved."
+
+    columns = schema["columns"]
+
+    if schema["kind"] == "combined":
+        mode = normalize_accuracy_testing_mode(
+            sheet.cell(row=row, column=columns["test_mode"]).value
+        )
+        if mode == "selected_role":
+            selected_role = normalize_text(
+                str(sheet.cell(row=row, column=columns["selected_role"]).value or "")
+            )
+            system_fit = get_accuracy_system_fit(selected_role, recommended_role)
+        else:
+            # Auto-detect accuracy is calculated by the workbook's exact-role
+            # formula in Check (Expected Role versus Recommended Role).
+            system_fit = ""
+
+        history_sheet, history_warning = ensure_accuracy_testing_history_sheet(workbook)
+        if history_warning or history_sheet is None:
+            return None, history_warning
+
+        sheet.cell(row=row, column=columns["ats_score"]).value = score
+        sheet.cell(row=row, column=columns["recommended_role"]).value = recommended_role
+        sheet.cell(row=row, column=columns["system_fit"]).value = system_fit or None
+        history_row, history_warning = append_accuracy_testing_history_row(
+            workbook,
+            sheet,
+            schema,
+            row,
+            analysis,
+            score,
+            recommended_role,
+            system_fit,
+        )
+        if history_warning or history_row is None:
+            return None, history_warning
+        history_result = workbook[ACCURACY_TESTING_HISTORY_SHEET].cell(
+            row=history_row,
+            column=13,
+        ).value
+        return {
+            "prepared_row": row,
+            "history_row": history_row,
+            "history_only": False,
+            "history_result": history_result,
+        }, ""
+
+    if schema["kind"] == "simplified":
+        target_role = normalize_text(
+            str(sheet.cell(row=row, column=columns["target_role"]).value or "")
+        )
+        recommended_family = get_role_family(recommended_role)
+        target_family = get_role_family(target_role)
+        system_answer = (
+            "MATCH"
+            if recommended_family and target_family and recommended_family == target_family
+            else "NOT MATCH"
+        )
+
+        role_recommendation = analysis.get("role_recommendation") or {}
+        reason = normalize_text(
+            role_recommendation.get("reason_summary")
+            or analysis.get("summary")
+            or analysis.get("feedback")
+            or ""
+        )
+        keyword_note = build_accuracy_missing_keywords_note(analysis)
+        feedback_parts = [f"Recommended role: {recommended_role}"]
+        if reason:
+            feedback_parts.append(reason)
+        if keyword_note:
+            feedback_parts.append(keyword_note)
+
+        sheet.cell(row=row, column=columns["ats_score"]).value = score
+        sheet.cell(row=row, column=columns["ats_feedback"]).value = "\n".join(feedback_parts)[:1000]
+        sheet.cell(row=row, column=columns["system_answer"]).value = system_answer
+        return {
+            "prepared_row": row,
+            "history_row": None,
+            "history_only": False,
+            "history_result": None,
+        }, ""
+
+    sheet.cell(row=row, column=columns["recommended_role"]).value = recommended_role
+    sheet.cell(row=row, column=columns["ats_score"]).value = score
+
+    sheet.cell(row=row, column=columns["keyword_notes"]).value = build_accuracy_missing_keywords_note(analysis)
     role_recommendation = analysis.get("role_recommendation") or {}
-    sheet.cell(row=row, column=9).value = normalize_text(
+    sheet.cell(row=row, column=columns["explanation_notes"]).value = normalize_text(
         role_recommendation.get("reason_summary")
         or analysis.get("summary")
         or analysis.get("feedback")
         or ""
     )[:500]
 
-    return row, ""
+    return {
+        "prepared_row": row,
+        "history_row": None,
+        "history_only": False,
+        "history_result": None,
+    }, ""
+
+
+def write_accuracy_testing_analysis_row(workbook, analysis: dict[str, Any]) -> tuple[int | None, str]:
+    """Compatibility wrapper returning only the prepared Accuracy Testing row."""
+    result, warning = write_accuracy_testing_analysis(workbook, analysis)
+    if warning or result is None:
+        return None, warning
+    return result.get("prepared_row"), ""
 
 
 def update_accuracy_testing_workbook(analysis: dict[str, Any]) -> dict[str, Any]:
@@ -3784,6 +4701,7 @@ def update_accuracy_testing_workbook(analysis: dict[str, Any]) -> dict[str, Any]
     workbook_path = os.path.abspath(ACCURACY_TESTING_WORKBOOK)
     if not os.path.exists(workbook_path):
         return {
+            "accuracy_testing_attempted": True,
             "accuracy_testing_saved": False,
             "accuracy_testing_warning": f"Accuracy testing workbook was not found: {workbook_path}",
         }
@@ -3792,32 +4710,63 @@ def update_accuracy_testing_workbook(analysis: dict[str, Any]) -> dict[str, Any]
         from openpyxl import load_workbook  # type: ignore
     except ImportError:
         return {
+            "accuracy_testing_attempted": True,
             "accuracy_testing_saved": False,
             "accuracy_testing_warning": "Install openpyxl to auto-update the Excel testing workbook.",
         }
 
     workbook = None
+    current_result: dict[str, Any] | None = None
     try:
         workbook = load_workbook(workbook_path)
         pending_items = load_pending_accuracy_testing_analyses()
         saved_rows: list[int] = []
+        saved_history_rows: list[int] = []
         for pending_analysis in pending_items:
-            row, warning = write_accuracy_testing_analysis_row(workbook, pending_analysis)
-            if warning or row is None:
+            pending_result, warning = write_accuracy_testing_analysis(
+                workbook,
+                pending_analysis,
+            )
+            if warning or pending_result is None:
                 workbook.close()
-                return {"accuracy_testing_saved": False, "accuracy_testing_warning": warning}
-            saved_rows.append(row)
+                return {
+                    "accuracy_testing_attempted": True,
+                    "accuracy_testing_saved": False,
+                    "accuracy_testing_warning": warning
+                    or "A queued accuracy testing result could not be recorded.",
+                }
+            pending_row = pending_result.get("prepared_row")
+            pending_history_row = pending_result.get("history_row")
+            if isinstance(pending_row, int):
+                saved_rows.append(pending_row)
+            if isinstance(pending_history_row, int):
+                saved_history_rows.append(pending_history_row)
 
-        row, warning = write_accuracy_testing_analysis_row(workbook, analysis)
-        if warning or row is None:
+        current_result, warning = write_accuracy_testing_analysis(workbook, analysis)
+        if warning or current_result is None:
             workbook.close()
-            return {"accuracy_testing_saved": False, "accuracy_testing_warning": warning}
-        saved_rows.append(row)
+            return {
+                "accuracy_testing_attempted": True,
+                "accuracy_testing_saved": False,
+                "accuracy_testing_warning": warning
+                or "The accuracy testing result could not be recorded.",
+            }
+        row = current_result.get("prepared_row")
+        history_row = current_result.get("history_row")
+        if isinstance(row, int):
+            saved_rows.append(row)
+        if isinstance(history_row, int):
+            saved_history_rows.append(history_row)
 
         try:
+            from openpyxl.workbook.properties import CalcProperties  # type: ignore
+
+            if workbook.calculation is None:
+                workbook.calculation = CalcProperties()
+            workbook.calculation.calcMode = "auto"
             workbook.calculation.fullCalcOnLoad = True
             workbook.calculation.forceFullCalc = True
-        except AttributeError:
+        except (AttributeError, ImportError):
             pass
 
         workbook.save(workbook_path)
@@ -3825,9 +4774,14 @@ def update_accuracy_testing_workbook(analysis: dict[str, Any]) -> dict[str, Any]
         if pending_items:
             clear_pending_accuracy_testing_analyses()
         return {
+            "accuracy_testing_attempted": True,
             "accuracy_testing_saved": True,
             "accuracy_testing_row": row,
+            "accuracy_testing_history_row": history_row,
+            "accuracy_testing_history_only": bool(current_result.get("history_only")),
+            "accuracy_testing_history_result": current_result.get("history_result"),
             "accuracy_testing_saved_rows": saved_rows,
+            "accuracy_testing_saved_history_rows": saved_history_rows,
             "accuracy_testing_pending_flushed": len(pending_items),
             "accuracy_testing_workbook": workbook_path,
         }
@@ -3841,6 +4795,7 @@ def update_accuracy_testing_workbook(analysis: dict[str, Any]) -> dict[str, Any]
             queue_accuracy_testing_analysis(analysis)
         except OSError as error:
             return {
+                "accuracy_testing_attempted": True,
                 "accuracy_testing_saved": False,
                 "accuracy_testing_pending": False,
                 "accuracy_testing_warning": (
@@ -3849,12 +4804,17 @@ def update_accuracy_testing_workbook(analysis: dict[str, Any]) -> dict[str, Any]
                 ),
             }
         return {
+            "accuracy_testing_attempted": True,
             "accuracy_testing_saved": False,
             "accuracy_testing_pending": True,
+            "accuracy_testing_history_only": (
+                bool(current_result.get("history_only")) if current_result else None
+            ),
             "accuracy_testing_warning": "Excel workbook is open. Result was queued; close ats_resume_fyp_testing.xlsx and run one more analysis to flush pending results.",
         }
     except OSError as error:
         return {
+            "accuracy_testing_attempted": True,
             "accuracy_testing_saved": False,
             "accuracy_testing_warning": f"Could not update accuracy testing workbook: {error}",
         }
@@ -3973,6 +4933,29 @@ def repair_character_spaced_pdf_text(value: str) -> str:
     return repaired
 
 
+OBVIOUS_JOBSEEKER_TEMPLATE_ADVICE_PATTERNS = (
+    re.compile(
+        r"^\s*(?:how to|tips?\s+(?:for|on)|guide\s+to)\s+"
+        r"(?:find|finding|land|search(?:ing)?\s+for|apply(?:ing)?\s+for)\s+"
+        r"(?:a\s+|the\s+|your\s+)?(?:job|jobs|work|employment)\b",
+        re.I,
+    ),
+    re.compile(r"^\s*(?:for\s+more\s+)?(?:job|career)\s+(?:search|hunting)\s+(?:tips?|advice|guide)\b", re.I),
+    re.compile(r"^\s*(?:resume|cv|curriculum\s+vitae)\s+(?:writing\s+)?(?:tips?|advice|guide|template\s+instructions?)\b", re.I),
+    re.compile(r"^\s*how\s+to\s+(?:write|format|improve|tailor)\s+(?:a\s+|an\s+|your\s+)?(?:resume|cv)\b", re.I),
+    re.compile(r"^\s*(?:use|download|edit|customi[sz]e|fill\s+in|complete)\s+(?:this\s+|the\s+)?(?:resume|cv)\s+template\b", re.I),
+    re.compile(r"^\s*(?:replace|insert|enter)\s+(?:this\s+|the\s+)?(?:sample\s+|placeholder\s+)?(?:text|content|details?|information)\b", re.I),
+    re.compile(r"^\s*(?:click|tap)\s+here\s+to\b", re.I),
+)
+
+
+def is_obvious_jobseeker_template_advice_line(value: str) -> bool:
+    """Identify generic template instructions without removing resume evidence."""
+
+    line = normalize_text(value)
+    return bool(line) and any(pattern.search(line) for pattern in OBVIOUS_JOBSEEKER_TEMPLATE_ADVICE_PATTERNS)
+
+
 def clean_resume_source_text(value: str) -> str:
     cleaned = repair_character_spaced_pdf_text(str(value or ""))
     cleaned = sanitize_resume_text_artifacts(cleaned)
@@ -3984,6 +4967,11 @@ def clean_resume_source_text(value: str) -> str:
     cleaned = re.sub(r"\s+\)", ")", cleaned)
     cleaned = re.sub(r"\r\n?", "\n", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = "\n".join(
+        line
+        for line in cleaned.splitlines()
+        if not is_obvious_jobseeker_template_advice_line(line)
+    )
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 
@@ -5250,9 +6238,8 @@ def build_generated_resume_plain_text(draft: dict[str, Any]) -> str:
     if draft.get("is_sample_resume") or draft.get("sample_only"):
         lines.extend(
             [
-                "EXAMPLE ONLY - SAMPLE RESUME - NOT THE USER'S RESUME",
-                f"Sample target role: {draft.get('sample_target_role') or draft.get('target_role') or 'Target Role'}",
-                "Replace every example with your own verified information before use.",
+                "FICTIONAL EXAMPLE - NOT THE USER'S RESUME - NOT FOR SUBMISSION",
+                f"Target role: {draft.get('sample_target_role') or draft.get('target_role') or 'Target Role'}",
                 "",
             ]
         )
@@ -5332,8 +6319,8 @@ def build_generated_resume_html(draft: dict[str, Any]) -> str:
         sample_target = draft.get("sample_target_role") or draft.get("target_role") or "Target Role"
         sample_banner_html = (
             '<aside class="example-banner" role="note">'
-            '<strong>EXAMPLE ONLY - SAMPLE RESUME</strong>'
-            f'<span>Target example: {html_escape(str(sample_target))}. This is not the user\'s resume. Replace every example with verified personal information.</span>'
+            '<strong>FICTIONAL EXAMPLE - NOT FOR SUBMISSION</strong>'
+            f'<span>Target role: {html_escape(str(sample_target))}. This is not the user\'s resume and was not generated from the user\'s experience.</span>'
             "</aside>"
         )
 
@@ -5513,9 +6500,9 @@ def build_generated_resume_pdf_buffer(draft: dict[str, Any]) -> BytesIO:
         sample_target = draft.get("sample_target_role") or draft.get("target_role") or "Target Role"
         story.append(
             Paragraph(
-                "EXAMPLE ONLY - SAMPLE RESUME<br/>"
+                "FICTIONAL EXAMPLE - NOT FOR SUBMISSION<br/>"
                 + html_escape(str(sample_target))
-                + " example; this is not the user's resume.",
+                + "; this is not the user's resume and was not generated from the user's experience.",
                 styles["example_banner"],
             )
         )
@@ -6224,7 +7211,14 @@ def get_resume_sample_decision(analysis: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
-    """Return deterministic, explicitly fictional example content for a role family."""
+    """Return a polished, deterministic fictional resume for a role family.
+
+    The surrounding resume renderer carries the fictional/not-for-submission
+    disclaimer.  The resume sections themselves intentionally read like a
+    finished professional example: instructions and fill-in tokens inside the
+    document made the low-match preview look like a worksheet rather than a
+    useful resume reference.
+    """
 
     role = normalize_text(target_role) or "Technology Professional"
     normalized_role = normalize_match_text(role)
@@ -6234,190 +7228,186 @@ def build_sample_resume_role_profile(target_role: str) -> dict[str, Any]:
         skills = ["Figma", "Wireframing", "Prototyping", "User Research", "Usability Testing", "Accessibility", "Design Systems", "HTML", "CSS"]
         focus = "user research, accessible interaction design, prototypes, and evidence-based design decisions"
         experience = [
-            "Interviewed [N] representative users, mapped their highest-friction tasks, and translated the findings into prioritised user stories and journey maps.",
-            "Designed and tested a [N]-screen Figma prototype, documenting how two design iterations improved example task completion from [A]% to [B]%.",
-            "Specified responsive states, WCAG accessibility checks, and [N] reusable components for developer handoff, reducing example clarification requests by [X]%.",
+            "Interviewed 18 users across three cohorts, mapped their highest-friction tasks, and translated the findings into prioritised user stories and journey maps.",
+            "Designed and tested a 14-screen Figma prototype; two design iterations improved task completion from 68% to 91%.",
+            "Specified responsive states, WCAG accessibility checks, and 24 reusable components for developer handoff, reducing clarification requests by 35%.",
         ]
         projects = [
-            "Student Services Redesign - recruited [N] test users, mapped two key journeys, validated a clickable Figma prototype, and summarised findings with before-and-after task metrics.",
-            "Accessible Design System - documented [N] reusable components, keyboard and error states, contrast evidence, and implementation guidance for a sample engineering team.",
-            "Mobile Checkout Usability Study - planned [N] moderated sessions, coded recurring usability problems, and prioritised design changes by severity and user impact.",
+            "Student Services Redesign - recruited 12 test users, mapped two key journeys, validated a clickable Figma prototype, and reported before-and-after task metrics.",
+            "Accessible Design System - documented 24 reusable components, keyboard and error states, contrast evidence, and implementation guidance for an engineering team.",
+            "Mobile Checkout Usability Study - planned 10 moderated sessions, coded recurring usability problems, and prioritised design changes by severity and user impact.",
         ]
-        certification = "Google UX Design or another verified UX credential"
+        certification = "Google UX Design Professional Certificate (2025)"
         education_focus = "User Experience Design"
-        achievement = "improved an example prototype's task-completion rate after usability testing"
+        achievement = "Raised prototype task completion from 68% to 91% through two evidence-led design iterations."
     elif any(term in normalized_role for term in ("cyber", "security analyst", "security engineer", "information security", "soc analyst")):
         family = "Cybersecurity"
         skills = ["Network Security", "Linux", "Python", "SIEM", "Wireshark", "OWASP", "Vulnerability Assessment", "Incident Response", "Identity and Access Management"]
         focus = "security monitoring, vulnerability assessment, incident documentation, and defensive controls"
         experience = [
-            "Triaged [N] sample SIEM security alerts in an authorised lab, correlated host and network indicators, and documented severity, evidence, and escalation decisions.",
-            "Assessed a deliberately vulnerable application against OWASP risks, validated [N] findings, and prioritised remediation by likelihood and business impact.",
-            "Refined a sample detection rule and incident playbook, reducing lab false positives from [A]% to [B]% while retaining documented test coverage.",
+            "Triaged 240 SIEM security alerts in an authorised lab, correlated host and network indicators, and documented severity, evidence, and escalation decisions.",
+            "Assessed a deliberately vulnerable application against OWASP risks, validated 11 findings, and prioritised remediation by likelihood and business impact.",
+            "Refined a detection rule and incident playbook, reducing lab false positives from 34% to 12% while retaining documented test coverage.",
         ]
         projects = [
-            "Security Monitoring Lab - collected Linux, authentication, and network logs; created [N] SIEM queries; and verified alert escalation with repeatable test cases.",
-            "Web Security Assessment - tested an authorised lab application, recorded reproducible evidence for [N] findings, and produced a risk-ranked remediation report.",
-            "Incident Response Tabletop - built a fictional ransomware scenario, assigned containment and recovery actions, and documented [N] lessons from the post-incident review.",
+            "Security Monitoring Lab - collected Linux, authentication, and network logs; created 16 SIEM queries; and verified alert escalation with repeatable test cases.",
+            "Web Security Assessment - tested an authorised lab application, recorded reproducible evidence for 11 findings, and produced a risk-ranked remediation report.",
+            "Incident Response Tabletop - built a ransomware scenario, assigned containment and recovery actions, and documented 8 lessons from the post-incident review.",
         ]
-        certification = "CompTIA Security+ or another verified security credential"
+        certification = "CompTIA Security+ (2025)"
         education_focus = "Cybersecurity"
-        achievement = "reduced false-positive alerts in an example lab by refining a documented detection rule"
+        achievement = "Reduced lab false-positive alerts from 34% to 12% by refining a documented detection rule."
     elif any(term in normalized_role for term in ("cloud", "devops", "site reliability", "platform engineer", "release engineer")):
         family = "Cloud / DevOps"
         skills = ["Linux", "Git", "Docker", "Kubernetes", "CI/CD", "GitHub Actions", "Terraform", "AWS", "Monitoring", "Scripting"]
         focus = "automated delivery, reproducible infrastructure, containerised services, and operational monitoring"
         experience = [
-            "Containerised a sample web service and built a CI/CD pipeline for linting, [N] automated tests, image scanning, and repeatable deployment.",
-            "Provisioned [N] example cloud resources with Terraform, applying versioned configuration, least-privilege access, and a tested rollback procedure.",
-            "Defined availability and error-rate indicators, created actionable alerts, and reduced example recovery time from [A] minutes to [B] minutes during drills.",
+            "Containerised a web service and built a CI/CD pipeline for linting, 86 automated tests, image scanning, and repeatable deployment.",
+            "Provisioned 14 cloud resources with Terraform, applying versioned configuration, least-privilege access, and a tested rollback procedure.",
+            "Defined availability and error-rate indicators, created actionable alerts, and reduced recovery time from 28 minutes to 9 minutes during drills.",
         ]
         projects = [
-            "Container Deployment Pipeline - packaged a sample API with Docker, automated [N] quality gates in GitHub Actions, and measured deployment lead time before and after automation.",
-            "Infrastructure Monitoring Lab - provisioned example resources, instrumented latency and error metrics, and tested [N] alert and recovery scenarios.",
-            "Highly Available Web Service - designed a fictional multi-zone deployment, documented scaling and backup choices, and load-tested it to [N] requests per second.",
+            "Container Deployment Pipeline - packaged an API with Docker, automated six quality gates in GitHub Actions, and reduced deployment lead time from 22 minutes to 8 minutes.",
+            "Infrastructure Monitoring Lab - provisioned cloud resources, instrumented latency and error metrics, and tested 12 alert and recovery scenarios.",
+            "Highly Available Web Service - designed a multi-zone deployment, documented scaling and backup choices, and load-tested it to 1,200 requests per second.",
         ]
-        certification = "AWS Cloud Practitioner, Azure Fundamentals, or another verified cloud credential"
+        certification = "AWS Certified Cloud Practitioner (2025)"
         education_focus = "Cloud Computing"
-        achievement = "shortened an example deployment workflow by automating repeatable validation steps"
+        achievement = "Cut deployment lead time by 64% through automated quality gates and repeatable release steps."
     elif any(term in normalized_role for term in ("network", "infrastructure engineer", "systems administrator", "system administrator")):
         family = "Network / Infrastructure"
         skills = ["TCP/IP", "Routing", "Switching", "VLAN", "DNS", "DHCP", "Linux", "Windows Server", "Wireshark", "Network Troubleshooting"]
         focus = "network configuration, infrastructure monitoring, fault isolation, and technical documentation"
         experience = [
-            "Configured an example [N]-device segmented network with VLANs, addressing, DHCP, and access controls, then recorded successful connectivity tests.",
-            "Analysed packet captures and service logs to isolate [N] simulated DNS, routing, and access-control faults and document their root causes.",
-            "Created a monitoring and escalation checklist that reduced example fault-isolation time from [A] minutes to [B] minutes during lab exercises.",
+            "Configured a 36-device segmented network with VLANs, addressing, DHCP, and access controls, then recorded successful connectivity tests.",
+            "Analysed packet captures and service logs to isolate 12 simulated DNS, routing, and access-control faults and document their root causes.",
+            "Created a monitoring and escalation checklist that reduced fault-isolation time from 42 minutes to 16 minutes during lab exercises.",
         ]
         projects = [
-            "Campus Network Lab - designed an example topology for [N] departments with VLAN segmentation, routing, addressing tables, and verification evidence.",
-            "Infrastructure Health Dashboard - tracked availability, latency, and packet loss for [N] sample services and linked alerts to incident notes.",
-            "Branch Connectivity Simulation - configured redundant routes and failover checks, then documented recovery results across [N] controlled outage scenarios.",
+            "Campus Network Lab - designed a topology for 6 departments with VLAN segmentation, routing, addressing tables, and verification evidence.",
+            "Infrastructure Health Dashboard - tracked availability, latency, and packet loss for 18 services and linked alerts to incident notes.",
+            "Branch Connectivity Simulation - configured redundant routes and failover checks, then documented recovery results across 9 controlled outage scenarios.",
         ]
-        certification = "Cisco CCNA or another verified networking credential"
+        certification = "Cisco Certified Network Associate (CCNA) (2025)"
         education_focus = "Network Engineering"
-        achievement = "reduced example incident diagnosis time by introducing a documented troubleshooting checklist"
+        achievement = "Reduced incident diagnosis time by 62% with a documented troubleshooting and escalation checklist."
     elif any(term in normalized_role for term in ("database", "dba", "sql developer", "data engineer")):
         family = "Database"
         skills = ["SQL", "MySQL", "PostgreSQL", "Data Modelling", "Schema Design", "Indexing", "Query Optimisation", "Backup and Recovery", "Stored Procedures"]
         focus = "relational data modelling, reliable database operations, query performance, and data integrity"
         experience = [
-            "Designed an example [N]-table relational schema, normalised key entities, and added constraints, roles, and validation rules to protect data integrity.",
-            "Diagnosed [N] sample slow queries with execution plans and indexing, recording latency improvements from [A] ms to [B] ms.",
-            "Automated a backup-and-restore verification routine and documented recovery-point and recovery-time results across [N] controlled tests.",
+            "Designed a 14-table relational schema, normalised key entities, and added constraints, roles, and validation rules to protect data integrity.",
+            "Diagnosed 8 slow queries with execution plans and indexing, reducing median latency from 840 ms to 190 ms.",
+            "Automated a backup-and-restore verification routine and documented recovery-point and recovery-time results across 6 controlled tests.",
         ]
         projects = [
-            "Inventory Database - modelled example products, suppliers, transactions, permissions, and audit history across [N] related tables and documented representative SQL queries.",
-            "Database Recovery Lab - scripted backup, restore, integrity checks, and recovery verification for [N] sample failure scenarios.",
-            "Query Performance Study - generated a fictional [N]-row workload, compared execution plans, and reported evidence-based indexing trade-offs.",
+            "Inventory Database - modelled products, suppliers, transactions, permissions, and audit history across 14 related tables and documented representative SQL queries.",
+            "Database Recovery Lab - scripted backup, restore, integrity checks, and recovery verification for 6 failure scenarios.",
+            "Query Performance Study - generated a 250,000-row workload, compared execution plans, and reported evidence-based indexing trade-offs.",
         ]
-        certification = "Oracle Database SQL, Microsoft Azure Data Fundamentals, or another verified database credential"
+        certification = "Microsoft Certified: Azure Data Fundamentals (2025)"
         education_focus = "Database Systems"
-        achievement = "improved an example query's measured response time after indexing and execution-plan review"
+        achievement = "Improved median query response time by 77% through indexing and execution-plan review."
     elif any(term in normalized_role for term in ("quality assurance", "qa", "tester", "test engineer", "software test")):
         family = "Quality Assurance / Testing"
         skills = ["Test Planning", "Manual Testing", "Test Automation", "Selenium", "Postman", "API Testing", "Pytest", "Regression Testing", "Defect Tracking", "Git"]
         focus = "risk-based test design, reproducible defect reports, API validation, and regression automation"
         experience = [
-            "Derived [N] example positive, negative, and boundary test cases from acceptance criteria and linked each result to traceable evidence.",
-            "Reported [N] reproducible defects with severity, environment, steps, expected and actual results, and verification status.",
-            "Automated a sample UI regression flow and API checks, increasing example repeatable coverage from [A]% to [B]% while documenting residual risks.",
+            "Derived 64 positive, negative, and boundary test cases from acceptance criteria and linked each result to traceable evidence.",
+            "Reported 23 reproducible defects with severity, environment, steps, expected and actual results, and verification status.",
+            "Automated a UI regression flow and API checks, increasing repeatable coverage from 38% to 76% while documenting residual risks.",
         ]
         projects = [
-            "Web Application Test Suite - created [N] example UI, API, boundary, and regression tests with versioned data and a pass/fail results report.",
-            "Defect Quality Dashboard - summarised [N] sample defects by severity, ageing, retest status, escape rate, and release risk.",
-            "API Contract Test Project - validated authentication, schemas, error responses, and rate limits across [N] sample endpoints using Postman or Pytest.",
+            "Web Application Test Suite - created 64 UI, API, boundary, and regression tests with versioned data and a pass/fail results report.",
+            "Defect Quality Dashboard - summarised 23 defects by severity, ageing, retest status, escape rate, and release risk.",
+            "API Contract Test Project - validated authentication, schemas, error responses, and rate limits across 15 endpoints using Postman and Pytest.",
         ]
-        certification = "ISTQB Foundation Level or another verified software-testing credential"
+        certification = "ISTQB Certified Tester Foundation Level (2025)"
         education_focus = "Software Quality Assurance"
-        achievement = "increased example regression coverage after converting repeated checks into automated tests"
+        achievement = "Doubled repeatable regression coverage by converting recurring UI and API checks into automated tests."
     elif any(term in normalized_role for term in ("help desk", "service desk", "it support", "support specialist", "computer technician", "desktop support")):
         family = "IT Support"
         skills = ["Windows", "Linux", "Microsoft 365", "Active Directory", "Hardware Troubleshooting", "Networking", "Ticketing Systems", "Remote Support", "Technical Documentation"]
         focus = "user support, systematic troubleshooting, ticket ownership, account administration, and clear documentation"
         experience = [
-            "Resolved [N] example hardware, software, account, and connectivity tickets using documented diagnostics, ownership, and user confirmation.",
-            "Administered sample Microsoft 365 and Active Directory accounts under least-privilege procedures and recorded [N] auditable changes.",
-            "Published [N] knowledge-base articles that reduced example repeat requests by [X]% and improved first-response consistency in simulations.",
+            "Resolved 120 hardware, software, account, and connectivity tickets using documented diagnostics, ownership, and user confirmation.",
+            "Administered Microsoft 365 and Active Directory accounts under least-privilege procedures and recorded 45 auditable changes.",
+            "Published 18 knowledge-base articles that reduced repeat requests by 24% and improved first-response consistency.",
         ]
         projects = [
-            "Support Knowledge Base - organised [N] example solutions for account, device, printer, and network issues with symptoms and verification steps.",
-            "Asset and Ticket Tracker - recorded [N] sample devices, ownership, warranty, ticket priority, status, and resolution history.",
-            "Service Desk Improvement Study - categorised [N] fictional tickets, identified the top recurring cause, and measured the effect of a revised triage checklist.",
+            "Support Knowledge Base - organised 18 solutions for account, device, printer, and network issues with symptoms and verification steps.",
+            "Asset and Ticket Tracker - recorded 160 devices, ownership, warranty, ticket priority, status, and resolution history.",
+            "Service Desk Improvement Study - categorised 300 tickets, identified the top recurring cause, and measured the effect of a revised triage checklist.",
         ]
-        certification = "CompTIA A+ or another verified IT-support credential"
+        certification = "CompTIA A+ (2025)"
         education_focus = "Information Technology"
-        achievement = "improved example first-response consistency by introducing a documented triage checklist"
+        achievement = "Reduced repeat support requests by 24% through concise knowledge-base articles and consistent triage."
     elif any(term in normalized_role for term in ("data analyst", "data scientist", "machine learning", "artificial intelligence", " ai ", "ai engineer", "business intelligence", "research scientist")):
         family = "Data / AI"
         skills = ["Python", "SQL", "Pandas", "NumPy", "Data Cleaning", "Statistics", "Data Visualisation", "Power BI", "Machine Learning", "Model Evaluation"]
         focus = "data preparation, exploratory analysis, visual reporting, reproducible modelling, and measured evaluation"
         experience = [
-            "Cleaned an example [N]-row dataset with Python and SQL, documented missing-value and outlier decisions, and validated [N] data-quality checks.",
-            "Explored sample trends and built a Power BI dashboard with [N] decision-focused measures, filters, and written interpretation for a fictional stakeholder.",
-            "Compared sample baseline and machine-learning models using a held-out test set, cross-validation, and precision, recall, F1, and error analysis.",
+            "Cleaned an 85,000-row dataset with Python and SQL, documented missing-value and outlier decisions, and validated 27 data-quality checks.",
+            "Explored sales trends and built a Power BI dashboard with 12 decision-focused measures, filters, and written interpretation for stakeholders.",
+            "Compared 3 baseline and machine-learning models using a held-out test set, cross-validation, precision, recall, F1, and error analysis.",
         ]
         projects = [
-            "Sales Insight Dashboard - transformed [N] example transactions with SQL, defined [N] business measures, and presented trends with data-quality and interpretation notes.",
-            "Classification Evaluation Project - trained sample baseline models, prevented train-test leakage, and reported precision, recall, F1, confusion-matrix errors, and limitations.",
-            "Forecasting Investigation - compared [N] sample approaches against a naive baseline and documented validation design, error metrics, assumptions, and failure cases.",
+            "Sales Insight Dashboard - transformed 85,000 transactions with SQL, defined 12 business measures, and presented trends with data-quality and interpretation notes.",
+            "Classification Evaluation Project - trained 3 baseline models, prevented train-test leakage, and reported precision, recall, F1, confusion-matrix errors, and limitations.",
+            "Forecasting Investigation - compared 4 approaches against a naive baseline and documented validation design, error metrics, assumptions, and failure cases.",
         ]
-        certification = "Microsoft Power BI Data Analyst, Google Data Analytics, or another verified data credential"
+        certification = "Microsoft Certified: Power BI Data Analyst Associate (2025)"
         education_focus = "Data Science"
-        achievement = "reduced an example reporting workflow's preparation time after creating a reproducible data-cleaning pipeline"
+        achievement = "Reduced monthly reporting preparation time by 58% with a reproducible data-cleaning pipeline."
     elif any(term in normalized_role for term in ("software", "developer", "programmer", "web", "frontend", "backend", "full stack", "mobile")):
         family = "Software Development"
         skills = ["Java", "Python", "HTML", "CSS", "JavaScript", "SQL", "Git", "REST API", "Software Testing", "Debugging", "System Design"]
         focus = "software development, database-backed applications, API integration, testing, and maintainable design"
         experience = [
-            "Implemented [N] example user stories for a database-backed web application, including validation, authentication, and documented REST API integration.",
-            "Designed and optimised [N] API endpoints and SQL queries, recording response-time changes from [A] ms to [B] ms under a repeatable test workload.",
-            "Resolved [N] sample defects, added unit and integration tests, and increased example automated coverage from [A]% to [B]% before handover.",
+            "Implemented 18 user stories for a database-backed web application, including validation, authentication, and documented REST API integration.",
+            "Designed and optimised 9 API endpoints and SQL queries, reducing median response time from 420 ms to 160 ms under a repeatable test workload.",
+            "Resolved 27 defects, added unit and integration tests, and increased automated coverage from 46% to 81% before handover.",
         ]
         projects = [
-            "Issue Tracker Web App - implemented example role-based authentication, CRUD and search workflows, validation, [N] REST endpoints, and automated tests.",
-            "Library Management System - designed an example relational schema and borrowing workflow, documented API contracts, and verified [N] business-rule test cases.",
-            "Team Scheduling Service - built a fictional API with conflict detection, pagination, structured errors, and [N] unit and integration tests in a CI workflow.",
+            "Issue Tracker Web App - implemented role-based authentication, CRUD and search workflows, validation, 9 REST endpoints, and automated tests.",
+            "Library Management System - designed a relational schema and borrowing workflow, documented API contracts, and verified 32 business-rule test cases.",
+            "Team Scheduling Service - built an API with conflict detection, pagination, structured errors, and 41 unit and integration tests in a CI workflow.",
         ]
-        certification = "a verified software-development or cloud credential"
+        certification = "AWS Certified Cloud Practitioner (2025)"
         education_focus = "Software Engineering"
-        achievement = "improved an example application's measured test coverage after adding automated regression tests"
+        achievement = "Raised automated test coverage from 46% to 81% while reducing median API response time by 62%."
     else:
         family = "Technology"
         skills = ["Programming Fundamentals", "SQL", "Git", "Testing", "Problem Solving", "Technical Documentation", "Requirements Analysis", "Data Literacy"]
         focus = "technical problem solving, documented requirements, testing, data handling, and collaborative delivery"
         experience = [
-            "Translated [N] example requirements into prioritised acceptance criteria and a tested prototype, documenting assumptions, decisions, and limitations.",
-            "Tracked [N] sample tasks and defects in Git, communicated blockers and progress, and prepared a reproducible technical handover.",
-            "Measured an example process baseline, implemented one controlled improvement, and reported the result from [A] minutes to [B] minutes.",
+            "Translated 16 stakeholder requirements into prioritised acceptance criteria and a tested prototype, documenting assumptions, decisions, and limitations.",
+            "Tracked 28 tasks and defects in Git, communicated blockers and progress, and prepared a reproducible technical handover.",
+            "Measured a process baseline, implemented one controlled improvement, and reduced completion time from 18 minutes to 7 minutes.",
         ]
         projects = [
-            "Technology Portfolio Project - built an example solution with versioned source, [N] traceable tests, setup instructions, architecture notes, and documented limitations.",
-            "Process Improvement Prototype - mapped an example workflow, identified [N] pain points, implemented a small digital improvement, and compared before-and-after measures.",
-            "Requirements-to-Test Case Study - converted [N] fictional stakeholder needs into user stories, acceptance tests, and a concise validation report.",
+            "Technology Portfolio Project - built a solution with versioned source, 34 traceable tests, setup instructions, architecture notes, and documented limitations.",
+            "Process Improvement Prototype - mapped an operational workflow, identified 7 pain points, implemented a focused digital improvement, and compared before-and-after measures.",
+            "Requirements-to-Test Case Study - converted 16 stakeholder needs into user stories, acceptance tests, and a concise validation report.",
         ]
-        certification = "a verified credential relevant to the selected technology role"
+        certification = "Microsoft Certified: Azure Fundamentals (2025)"
         education_focus = "Information Technology"
-        achievement = "improved an example workflow after measuring a baseline and validating the revised process"
+        achievement = "Reduced a measured workflow from 18 minutes to 7 minutes after validating a focused process improvement."
 
-    example_prefix = "Example content only: "
     sections = {
         "professional_summary": (
-            f"{example_prefix}a candidate profile targeting {role}, demonstrating {focus}. "
-            "Replace this summary with a truthful overview supported by your own evidence."
+            f"Early-career {role} with hands-on experience in {focus}. "
+            "Delivers well-documented work, validates outcomes with measurable evidence, "
+            "and collaborates effectively across technical and non-technical teams."
         ),
         "technical_skills": skills,
         "skill_groups": categorize_resume_skills(skills),
-        "experience_bullets": [f"Example experience bullet: {item}" for item in experience],
-        "projects": [f"Example project: {item}" for item in projects],
-        "certifications": [
-            f"Example certification placeholder: {certification}; include it only if you actually earned it."
-        ],
-        "achievements": [
-            f"Example achievement placeholder: {achievement}; replace this with your verified result and metric."
-        ],
+        "experience_bullets": experience,
+        "projects": projects,
+        "certifications": [certification],
+        "achievements": [achievement],
         "education": [
-            f"Example education placeholder: Bachelor of Computer Science ({education_focus}) - Example University (2024 - 2027)."
+            f"Bachelor of Computer Science ({education_focus}) - University of Technology Sarawak (2021 - 2024)."
         ],
         "keyword_targets": [],
     }
@@ -6476,11 +7466,11 @@ def build_sample_resume_payload(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "target_role": role,
         "candidate": {
-            "name": "Sample Candidate",
-            "email": "candidate@example.com",
-            "phone": "+60 12 345 6789",
-            "links": ["https://linkedin.com/in/sample-cs-candidate", "https://github.com/sample-cs-candidate"],
-            "link_labels": ["LinkedIn: linkedin.com/in/sample-cs-candidate", "GitHub: github.com/sample-cs-candidate"],
+            "name": "Avery Tan",
+            "email": "avery.tan@example.com",
+            "phone": "+60 12 555 0148",
+            "links": [],
+            "link_labels": [],
         },
         "source": {
             "uploaded_resume_name": analysis.get("uploaded_resume_name"),
@@ -6498,13 +7488,13 @@ def build_sample_resume_payload(
         ],
         "template": {
             **template_profile,
-            "name": f"Example {sample_profile['family']} ATS Template",
-            "experience_heading": "Example Experience",
-            "project_heading": "Example Projects",
-            "certification_heading": "Example Certification Placeholder",
-            "achievement_heading": "Example Achievement Placeholder",
-            "skills_heading": "Example Technical Skills",
-            "education_heading": "Example Education Placeholder",
+            "name": f"Fictional {sample_profile['family']} ATS Resume",
+            "experience_heading": "Selected Technical Experience",
+            "project_heading": "Projects",
+            "certification_heading": "Certifications",
+            "achievement_heading": "Achievements",
+            "skills_heading": "Technical Skills",
+            "education_heading": "Education",
             "inspired_by": [
                 "single-column ATS resume structure",
                 "compact technical skills grouping",
