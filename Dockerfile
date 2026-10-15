@@ -5,7 +5,7 @@ COPY package.json package-lock.json tailwind.config.js ./
 COPY frontend ./frontend
 RUN npm ci && npm run build:css
 
-# Railway runs Flask; the same service serves the frontend and API.
+# The Flask service serves both the frontend and API.
 FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -29,5 +29,5 @@ USER appuser
 
 EXPOSE 8080
 # One worker keeps the job catalogue's process-local cache consistent after edits.
-# Railway supplies PORT; the fallback allows local Docker use.
+# Hosting platforms supply PORT; the fallback allows local Docker use.
 CMD ["sh", "-c", "exec gunicorn --chdir backend app:app --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 4 --timeout 120"]

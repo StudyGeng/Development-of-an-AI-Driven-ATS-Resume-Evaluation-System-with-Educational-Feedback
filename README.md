@@ -101,7 +101,7 @@ Install these before running the project:
 - Node.js 18 or newer and npm (for the Tailwind CSS build)
 - Tesseract OCR, optional, only needed for PNG/JPG resume-image OCR
 
-For a fresh Supabase PostgreSQL database and Railway hosting, use [DEPLOY_SUPABASE.md](DEPLOY_SUPABASE.md).
+For the existing Supabase PostgreSQL database, use [DEPLOY_RENDER_FREE.md](DEPLOY_RENDER_FREE.md) for a free Render web service. The [Railway guide](DEPLOY_SUPABASE.md) is also available.
 
 ## Setup
 
@@ -401,7 +401,7 @@ All responses receive a Content Security Policy, clickjacking protection, MIME-s
 
 ## Important Database Note
 
-For a fresh Supabase PostgreSQL testing database and a Flask deployment on Railway, follow [DEPLOY_SUPABASE.md](DEPLOY_SUPABASE.md). The MySQL settings below apply when `DATABASE_URL` is absent.
+For Supabase PostgreSQL hosting, follow [DEPLOY_RENDER_FREE.md](DEPLOY_RENDER_FREE.md) or the [Railway guide](DEPLOY_SUPABASE.md). The MySQL settings below apply when `DATABASE_URL` is absent.
 
 When running locally, this setting means the app connects to MySQL on your own computer:
 
