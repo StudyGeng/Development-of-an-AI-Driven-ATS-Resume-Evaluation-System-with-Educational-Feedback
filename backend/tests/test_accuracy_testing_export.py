@@ -842,6 +842,81 @@ class AccuracyTestingWorkbookTests(unittest.TestCase):
         self.assertEqual(history.cell(2, 13).value, "PASS")
         self.assertEqual(history.cell(3, 13).value, "REVIEW")
 
+    def test_selected_role_review_required_exports_not_match_even_for_same_role(self):
+        workbook, sheet = prepared_combined_workbook(expected_fit="NOT MATCH")
+        analysis = rich_selected_analysis(recommended_role="Software Developer")
+        analysis["role_recommendation"].update(
+            {
+                "match_status": "review_required",
+                "human_review_required": True,
+                "review_threshold": 35.0,
+                "explicit_non_it_headline": True,
+                "non_it_headline": "Staff Pharmacist",
+            }
+        )
+
+        row, warning = app_module.write_accuracy_testing_analysis_row(workbook, analysis)
+
+        self.assertEqual((row, warning), (12, ""))
+        self.assertEqual(sheet.cell(12, 8).value, "Software Developer")
+        self.assertEqual(sheet.cell(12, 9).value, "NOT MATCH")
+        history = workbook["Test Run History"]
+        self.assertEqual(history.cell(2, 11).value, "Software Developer")
+        self.assertEqual(history.cell(2, 12).value, "NOT MATCH")
+        self.assertEqual(history.cell(2, 13).value, "PASS")
+
+    def test_auto_no_suitable_role_exports_explicit_sentinel(self):
+        workbook, sheet = prepared_combined_workbook(
+            test_id="AUTO-NO-01",
+            test_mode="Auto-detect",
+            selected_role="",
+            expected_role="NO SUITABLE ROLE",
+            expected_fit="",
+        )
+        analysis = sample_analysis(
+            matching_percentage=30.57,
+            recommended_role="Computer Programmer",
+        )
+        analysis["selected_role"] = ""
+        analysis["role_recommendation"].update(
+            {
+                "match_status": "no_suitable_role",
+                "human_review_required": True,
+                "closest_role": "Computer Programmer",
+                "closest_role_score": 30.57,
+            }
+        )
+
+        row, warning = app_module.write_accuracy_testing_analysis_row(workbook, analysis)
+
+        self.assertEqual((row, warning), (12, ""))
+        self.assertEqual(sheet.cell(12, 8).value, "NO SUITABLE ROLE")
+        self.assertIsNone(sheet.cell(12, 9).value)
+        history = workbook["Test Run History"]
+        self.assertEqual(history.cell(2, 11).value, "NO SUITABLE ROLE")
+        self.assertEqual(history.cell(2, 13).value, "PASS")
+
+    def test_unregistered_no_suitable_role_stays_unreviewed(self):
+        workbook, _ = prepared_combined_workbook()
+        analysis = unregistered_analysis(recommended_role="Computer Programmer")
+        analysis["role_recommendation"].update(
+            {
+                "match_status": "no_suitable_role",
+                "human_review_required": True,
+                "closest_role": "Computer Programmer",
+                "closest_role_score": 30.57,
+            }
+        )
+
+        result, warning = app_module.write_accuracy_testing_analysis(workbook, analysis)
+
+        self.assertEqual(warning, "")
+        self.assertEqual(result["history_result"], "UNREVIEWED")
+        history = workbook["Test Run History"]
+        self.assertEqual(history.cell(2, 11).value, "NO SUITABLE ROLE")
+        self.assertEqual(history.cell(2, 12).value, "")
+        self.assertEqual(history.cell(2, 13).value, "UNREVIEWED")
+
     def test_history_position_uses_max_numeric_run_and_last_nonblank_run_row(self):
         workbook, _ = prepared_combined_workbook()
         history = add_history_sheet(workbook)
@@ -941,6 +1016,14 @@ class AccuracyTestingWorkbookTests(unittest.TestCase):
                 "selected_database_role": "Data Scientist",
                 "recommended_database_role": "Machine Learning Engineer",
                 "recommended_score": 91.5,
+                "match_status": "no_suitable_role",
+                "human_review_required": True,
+                "review_threshold": 35.0,
+                "explicit_non_it_headline": True,
+                "non_it_headline": "Staff Pharmacist",
+                "fallback_sample_role": "Cybersecurity Analyst",
+                "closest_role": "Machine Learning Engineer",
+                "closest_role_score": 31.25,
             }
         )
 
@@ -967,6 +1050,14 @@ class AccuracyTestingWorkbookTests(unittest.TestCase):
             "Machine Learning Engineer",
         )
         self.assertEqual(compact["role_recommendation"]["recommended_score"], 91.5)
+        self.assertEqual(compact["role_recommendation"]["match_status"], "no_suitable_role")
+        self.assertTrue(compact["role_recommendation"]["human_review_required"])
+        self.assertEqual(compact["role_recommendation"]["review_threshold"], 35.0)
+        self.assertTrue(compact["role_recommendation"]["explicit_non_it_headline"])
+        self.assertEqual(compact["role_recommendation"]["non_it_headline"], "Staff Pharmacist")
+        self.assertEqual(compact["role_recommendation"]["fallback_sample_role"], "Cybersecurity Analyst")
+        self.assertEqual(compact["role_recommendation"]["closest_role"], "Machine Learning Engineer")
+        self.assertEqual(compact["role_recommendation"]["closest_role_score"], 31.25)
         self.assertEqual(compact["top_role_matches"], analysis["top_role_matches"])
 
     def test_compact_queued_payload_is_sufficient_for_later_history_row(self):

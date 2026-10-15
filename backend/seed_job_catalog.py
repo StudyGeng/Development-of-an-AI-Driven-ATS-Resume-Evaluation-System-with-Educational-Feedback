@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
-from database import get_db_connection
+from database import get_db_connection, is_postgres_backend
 
 
 SCHEMA_VERSION = 1
@@ -78,7 +78,7 @@ def _require_text(value: Any, location: str, *, allow_empty: bool = False) -> st
 
 
 def validate_catalog(document: Mapping[str, Any]) -> dict[str, Any]:
-    """Validate and return a plain dictionary safe to insert into MySQL."""
+    """Validate and return a plain dictionary safe to insert into the database."""
     if not isinstance(document, Mapping):
         raise CatalogValidationError("catalogue root must be an object")
     _require_exact_fields(document, ROOT_FIELDS, "catalogue root")
@@ -329,10 +329,12 @@ def seed_catalog(
                 """
                 INSERT INTO job_roles (role_name, masco_description)
                 VALUES (%s, %s)
-                """,
+                """ + (" RETURNING id" if is_postgres_backend() else ""),
                 (role["role_name"], role["masco_description"] or None),
             )
-            role_ids[role["role_name"]] = int(cursor.lastrowid)
+            role_ids[role["role_name"]] = int(
+                cursor.fetchone()[0] if is_postgres_backend() else cursor.lastrowid
+            )
 
         requirement_values = [
             (

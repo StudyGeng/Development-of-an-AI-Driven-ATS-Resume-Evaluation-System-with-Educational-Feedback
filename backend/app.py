@@ -23,8 +23,11 @@ from typing import Any
 
 from database import (
     DatabaseError,
+    DatabaseErrors,
     get_db_connection,
+    is_postgres_backend,
     is_duplicate_entry_error,
+    utc_now_sql,
 )
 from data_cleaning import (
     build_job_data_cleaning_plan,
@@ -132,6 +135,19 @@ except ImportError:  # pragma: no cover - optional OCR dependency
 
 
 ROLE_RECOMMENDATION_MARGIN = 8.0
+ROLE_RANKING_VERSION = "2.2"
+ROLE_REQUIREMENT_FIT_WEIGHT = 0.55
+ROLE_EVIDENCE_WEIGHT = 0.10
+ROLE_TITLE_WEIGHT = 0.35
+ROLE_TITLE_HISTORY_DECAY = 0.85
+NON_IT_HEADLINE_REVIEW_THRESHOLD = 35.0
+AUTO_NO_MATCH_SAMPLE_ROLES = (
+    "Software Developer",
+    "Full Stack Developer",
+    "Business Data Analyst",
+    "Cybersecurity Analyst",
+    "Cloud Computing Solution Architect",
+)
 ROLE_FAMILY_ALIASES = {
     "computer programmer": "software_development",
     "programmer": "software_development",
@@ -539,10 +555,13 @@ SEMANTIC_KEYWORD_EQUIVALENTS = {
     "vulnerability": {"risk", "weakness", "exposure"},
 }
 STRICT_TECHNICAL_KEYWORD_EVIDENCE = {
+    "dotnet": {"dotnet"},
+    "jquery": {"jquery"},
     "sql": {"sql", "mysql", "postgresql", "sqlalchemy", "oracle", "plsql", "tsql"},
     "mysql": {"mysql"},
     "postgresql": {"postgresql"},
     "oracle": {"oracle"},
+    "tomcat": {"tomcat"},
 }
 SOFTWARE_DEVELOPER_EVIDENCE_GROUPS = [
     {"software", "develop", "program", "code", "python", "java", "javascript", "typescript", "c#", "c++"},
@@ -552,6 +571,39 @@ SOFTWARE_DEVELOPER_EVIDENCE_GROUPS = [
     {"design", "architecture", "system", "application", "platform"},
     {"git", "docker", "kubernetes", "aws", "azure", "gcp", "cloud", "deployment", "ci", "cd"},
 ]
+ROLE_SPECIFIC_SOFTWARE_EVIDENCE_GROUPS = {
+    "computer programmer": [
+        {"python", "java", "javascript", "typescript", "c#", "c++", "php", "ruby", "go", "kotlin", "swift", "code", "program"},
+        {"algorithm", "data structure", "complexity", "object oriented", "oop"},
+        {"develop", "implement", "build", "application", "software"},
+        {"test", "debug", "validation", "troubleshoot"},
+        {"git", "version control", "document", "maintain", "optimize", "refactor"},
+    ],
+    "software developer": [
+        {"python", "java", "javascript", "typescript", "c#", "c++", "php", "code", "program"},
+        {"software", "develop", "application", "system", "sdlc", "implement"},
+        {"api", "rest", "backend", "frontend", "database", "sql"},
+        {"test", "debug", "validation", "qa", "troubleshoot"},
+        {"git", "code review", "requirement", "document", "team"},
+        {"docker", "deployment", "ci", "cd", "cloud", "aws", "azure", "gcp"},
+    ],
+    "software designer": [
+        {"design", "architecture", "architect", "pattern"},
+        {"requirement", "specification", "model", "uml"},
+        {"ui", "ux", "interface", "prototype", "wireframe"},
+        {"software", "application", "system", "platform"},
+        {"document", "communication", "team", "stakeholder"},
+        {"validation", "evaluate", "test", "research"},
+    ],
+    "full stack developer": [
+        {"frontend", "html", "css", "javascript", "typescript", "react", "angular", "vue"},
+        {"backend", "server", "node", "flask", "django", "fastapi", "php", "java"},
+        {"api", "rest", "service", "integration"},
+        {"database", "sql", "mysql", "postgresql", "mongodb", "orm"},
+        {"authentication", "authorization", "security", "session"},
+        {"git", "test", "docker", "deployment", "ci", "cd", "cloud"},
+    ],
+}
 CYBERSECURITY_EVIDENCE_GROUPS = [
     {"cybersecurity", "cyber", "security", "information security", "network security", "soc"},
     {"threat", "risk", "mitigate", "malware", "virus", "attack", "vulnerability", "incident", "intrusion"},
@@ -1005,7 +1057,7 @@ def require_admin_json_response():
     """Require a live database user with current administrator permission."""
     try:
         current_user = get_authenticated_session_user()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while validating administrator access"}), 500
 
     if not current_user:
@@ -1019,7 +1071,7 @@ def authenticate_json_request() -> tuple[dict[str, Any] | None, Any | None]:
     """Return the live session user or a JSON authentication error."""
     try:
         current_user = get_authenticated_session_user()
-    except DatabaseError:
+    except DatabaseErrors:
         return None, (jsonify({"detail": "Database error while validating session"}), 500)
 
     if not current_user:
@@ -1379,9 +1431,9 @@ def create_email_pin(email: str, purpose: str) -> tuple[str, datetime, int]:
         connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
-            """
+            f"""
             UPDATE email_verification_pins
-            SET consumed_at = UTC_TIMESTAMP()
+            SET consumed_at = {utc_now_sql()}
             WHERE email = %s
               AND purpose = %s
               AND consumed_at IS NULL
@@ -1392,10 +1444,10 @@ def create_email_pin(email: str, purpose: str) -> tuple[str, datetime, int]:
             """
             INSERT INTO email_verification_pins (email, purpose, pin_hash, expires_at)
             VALUES (%s, %s, %s, %s)
-            """,
+            """ + (" RETURNING id" if is_postgres_backend() else ""),
             (email, purpose, pin_hash, expires_at),
         )
-        pin_id = int(cursor.lastrowid)
+        pin_id = int(cursor.fetchone()[0] if is_postgres_backend() else cursor.lastrowid)
         connection.commit()
         return pin, expires_at, pin_id
     except Exception:
@@ -1417,12 +1469,12 @@ def invalidate_email_pin(pin_id: int) -> bool:
         connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
-            "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+            f"UPDATE email_verification_pins SET consumed_at = {utc_now_sql()} WHERE id = %s",
             (int(pin_id),),
         )
         connection.commit()
         return True
-    except DatabaseError:
+    except DatabaseErrors:
         if connection is not None:
             connection.rollback()
         return False
@@ -1471,7 +1523,7 @@ def consume_email_pin(email: str, purpose: str, pin: str) -> tuple[bool, str]:
                 expires_at = expires_at.astimezone(timezone.utc).replace(tzinfo=None)
             if expires_at < utc_now_naive():
                 cursor.execute(
-                    "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+                    f"UPDATE email_verification_pins SET consumed_at = {utc_now_sql()} WHERE id = %s",
                     (pin_id,),
                 )
                 connection.commit()
@@ -1479,7 +1531,7 @@ def consume_email_pin(email: str, purpose: str, pin: str) -> tuple[bool, str]:
 
         if attempts >= EMAIL_PIN_MAX_ATTEMPTS:
             cursor.execute(
-                "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+                f"UPDATE email_verification_pins SET consumed_at = {utc_now_sql()} WHERE id = %s",
                 (pin_id,),
             )
             connection.commit()
@@ -1492,9 +1544,9 @@ def consume_email_pin(email: str, purpose: str, pin: str) -> tuple[bool, str]:
             next_attempts = attempts + 1
             if next_attempts >= EMAIL_PIN_MAX_ATTEMPTS:
                 cursor.execute(
-                    """
+                    f"""
                     UPDATE email_verification_pins
-                    SET attempts = %s, consumed_at = UTC_TIMESTAMP()
+                    SET attempts = %s, consumed_at = {utc_now_sql()}
                     WHERE id = %s
                     """,
                     (next_attempts, pin_id),
@@ -1513,7 +1565,7 @@ def consume_email_pin(email: str, purpose: str, pin: str) -> tuple[bool, str]:
             return False, "Invalid PIN."
 
         cursor.execute(
-            "UPDATE email_verification_pins SET consumed_at = UTC_TIMESTAMP() WHERE id = %s",
+            f"UPDATE email_verification_pins SET consumed_at = {utc_now_sql()} WHERE id = %s",
             (pin_id,),
         )
         connection.commit()
@@ -1662,6 +1714,28 @@ JOB_TITLE_MARKER_PATTERN = re.compile(
 NON_JOB_TITLE_PATTERN = re.compile(
     r"\b(?:bachelor|certificate|certification|college|degree|diploma|education|master|phd|"
     r"polytechnic|school|university)\b",
+    re.I,
+)
+RESUME_HEADLINE_PATTERN = re.compile(
+    # CSV and PDF cleaning can collapse layout spacing to one space, so the
+    # heading word is the boundary instead of relying on a visual tab width.
+    r"^\s*(?P<title>[A-Z][A-Z0-9/&+().,' -]{2,80}?)\s+"
+    r"(?:(?:professional|executive)\s+)?(?:summary|profile|objective)\b",
+    re.I | re.M,
+)
+RESUME_HEADLINE_JOB_MARKER_PATTERN = re.compile(
+    r"\b(?:accountant|administrator|analyst|architect|assistant|associate|coach|consultant|"
+    r"coordinator|developer|designer|director|engineer|executive|intern|lead|manager|nurse|"
+    r"officer|operator|pharmacist|programmer|representative|scientist|specialist|supervisor|"
+    r"support|teacher|technician|tester)\b",
+    re.I,
+)
+TECHNICAL_HEADLINE_PATTERN = re.compile(
+    r"\b(?:artificial intelligence|backend|bim|cad|cam|cloud|computer|cyber(?:security| security)?|"
+    r"data(?:base| science| scientist| analyst)?|devops|dotnet|front(?:end| end)|full[ -]?stack|"
+    r"ict|information (?:security|systems?|technology)|machine learning|network|programmer|"
+    r"software|systems? (?:administrator|analyst|engineer|programmer)|technical support|"
+    r"technologist|tester|testing|ui|ux|web)\b",
     re.I,
 )
 GENERIC_JOB_TITLE_TOKENS = {
@@ -1853,6 +1927,34 @@ def extract_most_recent_job_title(resume_text: str) -> str:
     return get_most_recent_job_title(extract_employment_entries(resume_text))
 
 
+def extract_explicit_resume_headline(resume_text: str) -> str:
+    """Return a prominent job headline only when the layout marks it as one.
+
+    This deliberately requires a job-title marker followed by a Summary/Profile/
+    Objective heading. Candidate names and ordinary first lines are not inferred
+    as job titles.
+    """
+
+    match = RESUME_HEADLINE_PATTERN.search((resume_text or "")[:1000])
+    if not match:
+        return ""
+    title = normalize_text(match.group("title")).strip(" |,-\u2013\u2014")
+    if not title or len(title.split()) > 10:
+        return ""
+    if not RESUME_HEADLINE_JOB_MARKER_PATTERN.search(title):
+        return ""
+    return title.title() if title.isupper() else title
+
+
+def is_explicit_non_it_resume_headline(value: str) -> bool:
+    headline = normalize_text(value)
+    return bool(
+        headline
+        and RESUME_HEADLINE_JOB_MARKER_PATTERN.search(headline)
+        and not TECHNICAL_HEADLINE_PATTERN.search(headline)
+    )
+
+
 def get_total_employment_months(entries: list[dict[str, Any]]) -> int | None:
     if not entries:
         return None
@@ -1928,6 +2030,86 @@ def has_exact_role_title_match(
     )
 
 
+def compute_career_role_title_match(
+    resume_text: str,
+    role_name: str,
+    employment_entries: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Score current and previous dated job titles without treating them equally.
+
+    The most recent title receives full credit. Each older title receives 85% of
+    the credit available to the title immediately before it. This lets genuine
+    prior experience support graduates and career changers, while keeping the
+    current job as the strongest title signal. Only the current title is allowed
+    to trigger the exact-title confidence floors elsewhere in the scorer.
+    """
+
+    entries = employment_entries
+    if entries is None:
+        entries = extract_employment_entries(resume_text)
+    headline = extract_explicit_resume_headline(resume_text)
+    explicit_non_it_headline = is_explicit_non_it_resume_headline(headline)
+    ordered_entries = sorted(
+        entries,
+        key=lambda item: (item["start"], item["end"]),
+        reverse=True,
+    )
+    if not ordered_entries:
+        if explicit_non_it_headline:
+            return {
+                "score": 0.0,
+                "available": True,
+                "most_recent_title": headline,
+                "matched_title": headline,
+                "matched_title_is_current": True,
+                "exact_current_title_match": False,
+                "signal_source": "non_it_headline",
+                "explicit_non_it_headline": True,
+                "non_it_headline": headline,
+            }
+        return {
+            "score": 0.0,
+            "available": False,
+            "most_recent_title": "",
+            "matched_title": "",
+            "matched_title_is_current": False,
+            "exact_current_title_match": False,
+            "signal_source": "unavailable",
+            "explicit_non_it_headline": False,
+            "non_it_headline": "",
+        }
+
+    most_recent_title = str(ordered_entries[0]["title"])
+    best_score = 0.0
+    best_title = most_recent_title
+    best_index = 0
+    for index, entry in enumerate(ordered_entries):
+        title = str(entry.get("title") or "")
+        raw_score = compute_role_title_match_score(resume_text, role_name, title)
+        recency_weight = ROLE_TITLE_HISTORY_DECAY**index
+        adjusted_score = raw_score * recency_weight
+        if adjusted_score > best_score:
+            best_score = adjusted_score
+            best_title = title
+            best_index = index
+
+    return {
+        "score": round(min(100.0, best_score), 2),
+        "available": True,
+        "most_recent_title": most_recent_title,
+        "matched_title": best_title,
+        "matched_title_is_current": best_index == 0,
+        "exact_current_title_match": has_exact_role_title_match(
+            resume_text,
+            role_name,
+            most_recent_title,
+        ),
+        "signal_source": "employment_title",
+        "explicit_non_it_headline": explicit_non_it_headline,
+        "non_it_headline": headline if explicit_non_it_headline else "",
+    }
+
+
 def compute_database_role_confidence_score(
     combined_score: float,
     role_evidence_score: float,
@@ -1935,22 +2117,22 @@ def compute_database_role_confidence_score(
     exact_title_match: bool,
     title_match_available: bool = True,
 ) -> float:
-    weighted_requirement_score = combined_score * 0.55
-    weighted_role_evidence_score = role_evidence_score * 0.20
+    weighted_requirement_score = combined_score * ROLE_REQUIREMENT_FIT_WEIGHT
+    weighted_role_evidence_score = role_evidence_score * ROLE_EVIDENCE_WEIGHT
     title_match_available = bool(title_match_available or exact_title_match)
     if title_match_available:
         adjusted_score = (
             weighted_requirement_score
             + weighted_role_evidence_score
-            + (title_match_score * 0.25)
+            + (title_match_score * ROLE_TITLE_WEIGHT)
         )
     else:
         # A parser miss is not evidence that the candidate held an unrelated
         # job. Redistribute the unavailable title component across the two
-        # evidence components while preserving their 55:20 ratio.
+        # evidence components while preserving their 55:10 ratio.
         adjusted_score = (
             weighted_requirement_score + weighted_role_evidence_score
-        ) / 0.75
+        ) / (ROLE_REQUIREMENT_FIT_WEIGHT + ROLE_EVIDENCE_WEIGHT)
 
     if exact_title_match:
         adjusted_score = max(adjusted_score, 70.0)
@@ -1965,7 +2147,8 @@ def compute_database_role_confidence_score(
 def rank_database_role_matches(resume_text: str, limit: int | None = None) -> list[dict[str, Any]]:
     roles, requirements_by_role = fetch_job_catalog()
     ranked_matches: list[dict[str, Any]] = []
-    most_recent_title = extract_most_recent_job_title(resume_text)
+    employment_entries = extract_employment_entries(resume_text)
+    most_recent_title = get_most_recent_job_title(employment_entries)
 
     for role in roles:
         requirements = requirements_by_role.get(int(role["id"]), [])
@@ -1981,9 +2164,14 @@ def rank_database_role_matches(resume_text: str, limit: int | None = None) -> li
             role_name,
             fit_result.get("important_keywords", []),
         )
-        title_match_score = compute_role_title_match_score(resume_text, role_name, most_recent_title)
-        exact_title_match = has_exact_role_title_match(resume_text, role_name, most_recent_title)
-        title_match_available = bool(normalize_match_text(most_recent_title))
+        title_result = compute_career_role_title_match(
+            resume_text,
+            role_name,
+            employment_entries,
+        )
+        title_match_score = float(title_result["score"])
+        exact_title_match = bool(title_result["exact_current_title_match"])
+        title_match_available = bool(title_result["available"])
         adjusted_score = compute_database_role_confidence_score(
             combined_score,
             role_evidence_score,
@@ -2004,6 +2192,19 @@ def rank_database_role_matches(resume_text: str, limit: int | None = None) -> li
                 "title_match_score": title_match_score,
                 "title_match_available": title_match_available,
                 "exact_title_match": exact_title_match,
+                "title_match_title": title_result["matched_title"],
+                "title_match_source": (
+                    "non_it_headline"
+                    if title_result.get("signal_source") == "non_it_headline"
+                    else (
+                        "unavailable"
+                        if not title_match_available
+                        else ("current" if title_result["matched_title_is_current"] else "previous")
+                    )
+                ),
+                "explicit_non_it_headline": bool(title_result.get("explicit_non_it_headline")),
+                "non_it_headline": title_result.get("non_it_headline") or "",
+                "most_recent_title": title_result.get("most_recent_title") or most_recent_title,
                 "fit_result": fit_result,
             }
         )
@@ -2915,21 +3116,44 @@ def compute_group_evidence_score(resume_text: str, evidence_groups: list[set[str
 
     resume_tokens = set(tokenize_canonical_keywords(resume_text))
     matched_groups = 0
+    matched_group_terms: set[str] = set()
 
     for group in evidence_groups:
         if any(keyword_matches_resume(term, resume_text, resume_tokens) for term in group):
             matched_groups += 1
+            matched_group_terms.update(group)
 
     group_score = (matched_groups / len(evidence_groups)) * 100.0
     impact_bonus = 0.0
-    if re.search(r"(\d+(?:\.\d+)?%|\d+\+|\$|users?|revenue|increased|reduced|improved|optimized|enabled|delivered)", resume_text, re.I):
-        impact_bonus = 8.0
+    impact_pattern = re.compile(
+        r"(\d+(?:\.\d+)?%|\d+\+|\$|users?|revenue|increased|reduced|improved|optimized|enabled|delivered)",
+        re.I,
+    )
+    for segment in re.split(r"[\n.!?;]+", resume_text):
+        if not impact_pattern.search(segment):
+            continue
+        segment_tokens = set(tokenize_canonical_keywords(segment))
+        if any(
+            keyword_matches_resume(term, segment, segment_tokens)
+            for term in matched_group_terms
+        ):
+            impact_bonus = 8.0
+            break
 
     return round(min(100.0, (group_score * 0.9) + impact_bonus), 2)
 
 
 def compute_role_evidence_score(resume_text: str, role_name: str, job_keywords: list[str]) -> float:
     role_context = normalize_match_text(role_name)
+    role_profile_key = {
+        "application developer": "software developer",
+        "fullstack developer": "full stack developer",
+        "programmer": "computer programmer",
+        "software engineer": "software developer",
+    }.get(role_context, role_context)
+    role_specific_groups = ROLE_SPECIFIC_SOFTWARE_EVIDENCE_GROUPS.get(role_profile_key)
+    if role_specific_groups:
+        return compute_group_evidence_score(resume_text, role_specific_groups)
     if any(term in role_context for term in ("cyber", "security", "forensic")):
         return compute_group_evidence_score(resume_text, CYBERSECURITY_EVIDENCE_GROUPS)
     if any(term in role_context for term in ("database", "oracle", "sql")):
@@ -3037,18 +3261,16 @@ def get_calibrated_job_fit_score(
         role_name,
         list(fit_result.get("important_keywords") or []),
     )
-    most_recent_title = extract_most_recent_job_title(resume_text)
-    title_match_score = compute_role_title_match_score(
+    title_result = compute_career_role_title_match(
         resume_text,
         role_name,
-        most_recent_title,
     )
     return compute_database_role_confidence_score(
         combined_score,
         role_evidence_score,
-        title_match_score,
-        has_exact_role_title_match(resume_text, role_name, most_recent_title),
-        bool(normalize_match_text(most_recent_title)),
+        float(title_result["score"]),
+        bool(title_result["exact_current_title_match"]),
+        bool(title_result["available"]),
     )
 
 
@@ -3117,7 +3339,7 @@ def build_top_role_match_items(
             confidence_label = "Limited evidence"
 
         if matched_keywords:
-            reason = "Strong evidence: " + ", ".join(matched_keywords[:5]) + "."
+            reason = "Evidence found: " + ", ".join(matched_keywords[:5]) + "."
         else:
             reason = "The resume has limited direct keyword evidence for this role."
         if missing_keywords:
@@ -3133,6 +3355,11 @@ def build_top_role_match_items(
                 "keyword_match": fit_result.get("keyword_overlap_score"),
                 "similarity_score": fit_result.get("similarity_score"),
                 "role_evidence_score": match.get("role_evidence_score"),
+                "title_match_score": match.get("title_match_score"),
+                "title_match_title": match.get("title_match_title"),
+                "title_match_source": match.get("title_match_source"),
+                "explicit_non_it_headline": bool(match.get("explicit_non_it_headline")),
+                "non_it_headline": match.get("non_it_headline"),
                 "matched_keywords": matched_keywords,
                 "missing_keywords": missing_keywords,
                 "is_selected_database_role": bool(selected_key and role_key == selected_key),
@@ -3243,7 +3470,84 @@ def build_role_recommendation(
     ]
     top_score_gap = round(abs(ranked_scores[0] - ranked_scores[1]), 2) if len(ranked_scores) == 2 else None
     is_close_match = bool(top_score_gap is not None and top_score_gap < 3.0)
-    if is_close_match:
+    selected_key = normalize_match_text(selected_label)
+    has_explicit_selection = bool(
+        selected_key
+        and selected_key not in {"selected role", "auto detect", "auto detect from resume", "sample role"}
+    )
+    explicit_non_it_match = next(
+        (
+            match
+            for match in (top_role_matches or [])
+            if bool(match.get("explicit_non_it_headline"))
+            or str(match.get("title_match_source") or "") == "non_it_headline"
+        ),
+        None,
+    )
+    explicit_non_it_headline = bool(explicit_non_it_match)
+    non_it_headline = normalize_text(
+        str(
+            (explicit_non_it_match or {}).get("non_it_headline")
+            or (
+                (explicit_non_it_match or {}).get("title_match_title")
+                if (explicit_non_it_match or {}).get("title_match_source") == "non_it_headline"
+                else ""
+            )
+        )
+    )
+    review_threshold = (
+        NON_IT_HEADLINE_REVIEW_THRESHOLD
+        if explicit_non_it_headline
+        else CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+    )
+
+    def score_needs_review(score: float | None) -> bool:
+        if score is None:
+            return False
+        return bool(
+            score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+            or (
+                explicit_non_it_headline
+                and score < NON_IT_HEADLINE_REVIEW_THRESHOLD
+            )
+        )
+
+    if (
+        has_explicit_selection
+        and score_needs_review(selected_score)
+    ):
+        match_status = "review_required"
+        human_review_required = True
+        reason_summary = (
+            f"The selected role has {selected_score:.2f}/100 evidence, below the applicable "
+            f"{review_threshold:.0f}/100 review threshold"
+            + (f" and the resume headline is {non_it_headline}." if non_it_headline else ".")
+            + " Treat this as REVIEW REQUIRED, "
+            "not as a confirmed match; the resume builder can show a separate selected-role example."
+        )
+    elif (
+        not has_explicit_selection
+        and score_needs_review(recommended_score)
+    ):
+        match_status = "no_suitable_role"
+        human_review_required = True
+        reason_summary = (
+            f"No database role reached the applicable {review_threshold:.0f}/100 evidence review threshold. "
+            f"The closest role was {recommended_database_role or 'unavailable'} at {recommended_score:.2f}/100, "
+            + (f"while the explicit resume headline is {non_it_headline}. " if non_it_headline else "")
+            + "It is shown only for human review and is not a confirmed recommendation."
+        )
+    elif recommended_database_role or selected_database_role:
+        match_status = "matched"
+        human_review_required = False
+    elif has_explicit_selection:
+        match_status = "custom_role"
+        human_review_required = False
+    else:
+        match_status = "unavailable"
+        human_review_required = True
+
+    if is_close_match and not human_review_required:
         reason_summary += (
             f" The top two roles are separated by only {top_score_gap:.2f} points, so this is a close evidence match; "
             "review both role descriptions instead of treating the first result as certain."
@@ -3259,6 +3563,13 @@ def build_role_recommendation(
         "selected_score": selected_score,
         "detected_score": detected_score,
         "recommended_score": recommended_score,
+        "match_status": match_status,
+        "human_review_required": human_review_required,
+        "review_threshold": review_threshold,
+        "explicit_non_it_headline": explicit_non_it_headline,
+        "non_it_headline": non_it_headline,
+        "closest_role": recommended_database_role,
+        "closest_role_score": recommended_score,
         "top_score_gap": top_score_gap,
         "is_close_match": is_close_match,
         "matched_resume_signals": matched_signals,
@@ -3334,10 +3645,30 @@ def build_part8_recommendation_module(analysis: dict[str, Any]) -> dict[str, Any
     experience_alignment = compatibility.get("experience_alignment")
     academic_rigor = compatibility.get("academic_rigor")
     resume_quality_score = compatibility.get("resume_quality", resume_quality.get("quality_score"))
+    match_status = normalize_match_text(str(role_recommendation.get("match_status") or ""))
+    human_review_required = bool(role_recommendation.get("human_review_required"))
+    fallback_sample_role = normalize_text(str(role_recommendation.get("fallback_sample_role") or ""))
 
     actions: list[dict[str, Any]] = []
 
-    if role_recommendation.get("is_different_from_selected") and selected_role:
+    if human_review_required:
+        selected_review = match_status == "review required" and bool(selected_role)
+        actions.append(
+            build_recommendation_action(
+                1,
+                "role_fit_review",
+                "Review the role evidence before choosing a target",
+                str(role_recommendation.get("reason_summary") or "The available role evidence is below the review threshold."),
+                (
+                    f"Use the separate {selected_role} example only as a learning reference and add only evidence you genuinely have."
+                    if selected_review
+                    else "Review the closest role cards manually. The resume builder will provide a clearly labelled fallback example, not rewrite unrelated experience."
+                ),
+                display_matched_signals[:5],
+                "role_review_gate",
+            )
+        )
+    elif role_recommendation.get("is_different_from_selected") and selected_role:
         actions.append(
             build_recommendation_action(
                 1,
@@ -3459,11 +3790,14 @@ def build_part8_recommendation_module(analysis: dict[str, Any]) -> dict[str, Any
         section_targets.append("resume format")
 
     strongest_action = actions[0]["title"] if actions else "review the resume evidence"
-    summary = (
-        f"Recommended role: {recommended_role}. Priority: {strongest_action}."
-        if recommended_role
-        else f"Priority: {strongest_action}."
-    )
+    if human_review_required:
+        summary = f"Review required: no role is confirmed. Priority: {strongest_action}."
+    else:
+        summary = (
+            f"Recommended role: {recommended_role}. Priority: {strongest_action}."
+            if recommended_role
+            else f"Priority: {strongest_action}."
+        )
     if display_missing_keywords:
         summary += " Main keyword targets: " + ", ".join(display_missing_keywords[:5]) + "."
     elif display_matched_signals:
@@ -3471,16 +3805,20 @@ def build_part8_recommendation_module(analysis: dict[str, Any]) -> dict[str, Any
 
     return {
         "stage": "Part 8 - Recommendation and generated resume support",
-        "status": "ready",
+        "status": "review_required" if human_review_required else "ready",
         "method": "Converts hybrid NLP text matching, weighted database requirements, missing keywords, score components, and ATS quality checks into user-facing improvement actions.",
         "recommended_role": recommended_role,
         "selected_role": selected_role,
         "summary": summary,
         "priority_actions": actions,
         "resume_generation_strategy": {
-            "target_role": recommended_role,
+            "target_role": fallback_sample_role if match_status == "no suitable role" and fallback_sample_role else recommended_role,
             "strategy_summary": (
-                f"Generate the ATS resume around {recommended_role}, keep proven resume signals, and add missing keywords only where the user can support them with real evidence."
+                (
+                    f"Show a clearly labelled {fallback_sample_role or 'technology'} example for learning; do not rewrite the unrelated resume as a matched CS resume."
+                    if match_status == "no suitable role"
+                    else f"Generate the ATS resume around {recommended_role}, keep proven resume signals, and add missing keywords only where the user can support them with real evidence."
+                )
             ),
             "sections_to_update": unique_clean_values(section_targets, 7),
             "keyword_targets": display_missing_keywords[:8],
@@ -3520,9 +3858,9 @@ def build_analysis_payload(
         academic_rigor,
         similarity_score,
     )
-    most_recent_job_title = str(resume_quality.get("most_recent_job_title") or "")
-    title_match_score = compute_role_title_match_score(resume_text, target_role, most_recent_job_title)
-    exact_title_match = has_exact_role_title_match(resume_text, target_role, most_recent_job_title)
+    title_result = compute_career_role_title_match(resume_text, target_role)
+    title_match_score = float(title_result["score"])
+    exact_title_match = bool(title_result["exact_current_title_match"])
     if (
         resume_quality_score >= 95
         and role_evidence >= 90
@@ -3578,7 +3916,7 @@ def build_analysis_payload(
             "ats_weighted_deduction": round(ats_quality_penalty * 0.20, 2),
             "tfidf_similarity": round(similarity_score, 2),
             "title_match": round(title_match_score),
-            "most_recent_job_title": most_recent_job_title or None,
+            "most_recent_job_title": title_result.get("most_recent_title") or None,
             "employment_duration_months": resume_quality.get("employment_duration_months"),
             "employment_duration_note": "Advisory extraction only; minimum-experience filtering is not applied without a structured job requirement.",
             "formula": "30% database requirement coverage + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF similarity, with a strong-evidence calibration floor",
@@ -3609,7 +3947,7 @@ def persist_analysis(payload: dict[str, Any], job_description: str, target_role:
                 resume_excerpt,
                 analysis_json
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """,
+            """ + (" RETURNING id" if is_postgres_backend() else ""),
             (
                 int(user_id),
                 payload.get("uploaded_resume_name", "resume.pdf"),
@@ -3621,7 +3959,7 @@ def persist_analysis(payload: dict[str, Any], job_description: str, target_role:
                 json.dumps(payload),
             ),
         )
-        analysis_id = int(cursor.lastrowid)
+        analysis_id = int(cursor.fetchone()[0] if is_postgres_backend() else cursor.lastrowid)
         connection.commit()
         return analysis_id
     except Exception:
@@ -3648,6 +3986,9 @@ def infer_accuracy_resume_id(uploaded_name: str) -> str:
 
 def get_analysis_recommended_role(analysis: dict[str, Any]) -> str:
     role_recommendation = analysis.get("role_recommendation") or {}
+    match_status = normalize_match_text(str(role_recommendation.get("match_status") or ""))
+    if match_status == "no suitable role":
+        return "NO SUITABLE ROLE"
     return normalize_text(
         role_recommendation.get("recommended_role")
         or role_recommendation.get("recommended_database_role")
@@ -4026,6 +4367,7 @@ def compact_accuracy_testing_analysis(analysis: dict[str, Any]) -> dict[str, Any
         "matching_percentage": analysis.get("matching_percentage"),
         "summary": analysis.get("summary"),
         "feedback": analysis.get("feedback"),
+        "review_status": analysis.get("review_status"),
         "generated_at": analysis.get("generated_at"),
         "accuracy_tested_at": tested_at,
         "job_source": dict(analysis.get("job_source") or {}),
@@ -4043,6 +4385,14 @@ def compact_accuracy_testing_analysis(analysis: dict[str, Any]) -> dict[str, Any
             "selected_score": role_recommendation.get("selected_score"),
             "detected_score": role_recommendation.get("detected_score"),
             "recommended_score": role_recommendation.get("recommended_score"),
+            "match_status": role_recommendation.get("match_status"),
+            "human_review_required": role_recommendation.get("human_review_required"),
+            "review_threshold": role_recommendation.get("review_threshold"),
+            "explicit_non_it_headline": role_recommendation.get("explicit_non_it_headline"),
+            "non_it_headline": role_recommendation.get("non_it_headline"),
+            "fallback_sample_role": role_recommendation.get("fallback_sample_role"),
+            "closest_role": role_recommendation.get("closest_role"),
+            "closest_role_score": role_recommendation.get("closest_role_score"),
             "top_role_matches": top_role_matches,
             "recommended_missing_keywords": list(role_recommendation.get("recommended_missing_keywords") or [])[:12],
             "reason_summary": role_recommendation.get("reason_summary"),
@@ -4230,8 +4580,18 @@ def get_accuracy_history_timestamp(analysis: dict[str, Any]) -> datetime:
     return tested_at
 
 
-def get_accuracy_system_fit(selected_role: Any, recommended_role: Any) -> str:
+def get_accuracy_system_fit(
+    selected_role: Any,
+    recommended_role: Any,
+    role_recommendation: dict[str, Any] | None = None,
+) -> str:
     """Return the system's broad selected-role fit without supplying ground truth."""
+    match_status = normalize_match_text(
+        str((role_recommendation or {}).get("match_status") or "")
+    )
+    if match_status in {"review required", "no suitable role"}:
+        return "NOT MATCH"
+
     selected_family = get_role_family(normalize_text(str(selected_role or "")))
     recommended_family = get_role_family(normalize_text(str(recommended_role or "")))
     return (
@@ -4510,7 +4870,11 @@ def append_unregistered_accuracy_testing_history_row(
     selected_role = normalize_text(str(analysis.get("selected_role") or ""))
     mode = get_accuracy_analysis_mode(analysis)
     system_fit = (
-        get_accuracy_system_fit(selected_role, recommended_role)
+        get_accuracy_system_fit(
+            selected_role,
+            recommended_role,
+            analysis.get("role_recommendation") or {},
+        )
         if mode == "selected_role"
         else ""
     )
@@ -4588,7 +4952,11 @@ def write_accuracy_testing_analysis(
             selected_role = normalize_text(
                 str(sheet.cell(row=row, column=columns["selected_role"]).value or "")
             )
-            system_fit = get_accuracy_system_fit(selected_role, recommended_role)
+            system_fit = get_accuracy_system_fit(
+                selected_role,
+                recommended_role,
+                analysis.get("role_recommendation") or {},
+            )
         else:
             # Auto-detect accuracy is calculated by the workbook's exact-role
             # formula in Check (Expected Role versus Recommended Role).
@@ -6236,10 +6604,12 @@ def build_generated_resume_plain_text(draft: dict[str, Any]) -> str:
     )
     lines: list[str] = []
     if draft.get("is_sample_resume") or draft.get("sample_only"):
+        sample_warning = normalize_text(str((draft.get("ats_notes") or [""])[0]))
         lines.extend(
             [
                 "FICTIONAL EXAMPLE - NOT THE USER'S RESUME - NOT FOR SUBMISSION",
                 f"Target role: {draft.get('sample_target_role') or draft.get('target_role') or 'Target Role'}",
+                sample_warning,
                 "",
             ]
         )
@@ -7120,9 +7490,6 @@ def get_top_role_generation_name(analysis: dict[str, Any]) -> str:
     return ""
 
 
-SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD = 50.0
-
-
 def is_explicit_resume_generation_role(value: Any) -> bool:
     normalized = normalize_match_text(str(value or ""))
     if not normalized:
@@ -7133,12 +7500,69 @@ def is_explicit_resume_generation_role(value: Any) -> bool:
     )
 
 
+def choose_fallback_sample_role(analysis: dict[str, Any]) -> str:
+    role_recommendation = (
+        analysis.get("role_recommendation")
+        if isinstance(analysis.get("role_recommendation"), dict)
+        else {}
+    )
+    stored_role = normalize_text(str(role_recommendation.get("fallback_sample_role") or ""))
+    if stored_role in AUTO_NO_MATCH_SAMPLE_ROLES:
+        return stored_role
+
+    top_role_names = [
+        normalize_text(str(item.get("role") or item.get("database_role") or ""))
+        for item in list(analysis.get("top_role_matches") or role_recommendation.get("top_role_matches") or [])[:3]
+        if isinstance(item, dict)
+    ]
+    seed = "|".join(
+        [
+            normalize_text(str(analysis.get("uploaded_resume_name") or "")),
+            normalize_text(str(analysis.get("resume_excerpt") or ""))[:500],
+            *top_role_names,
+        ]
+    ) or "career-navigator-fallback-example"
+    digest = hashlib.sha256(seed.encode("utf-8", errors="replace")).digest()
+    return AUTO_NO_MATCH_SAMPLE_ROLES[int.from_bytes(digest[:8], "big") % len(AUTO_NO_MATCH_SAMPLE_ROLES)]
+
+
+def analysis_has_explicit_non_it_headline(analysis: dict[str, Any]) -> bool:
+    role_recommendation = (
+        analysis.get("role_recommendation")
+        if isinstance(analysis.get("role_recommendation"), dict)
+        else {}
+    )
+    if role_recommendation.get("explicit_non_it_headline"):
+        return True
+    matches = analysis.get("top_role_matches") or role_recommendation.get("top_role_matches") or []
+    return any(
+        isinstance(item, dict)
+        and (
+            item.get("explicit_non_it_headline")
+            or item.get("title_match_source") == "non_it_headline"
+        )
+        for item in list(matches)[:3]
+    )
+
+
+def role_score_needs_human_review(score: float | None, explicit_non_it_headline: bool) -> bool:
+    if score is None:
+        return False
+    return bool(
+        score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+        or (
+            explicit_non_it_headline
+            and score < NON_IT_HEADLINE_REVIEW_THRESHOLD
+        )
+    )
+
+
 def get_resume_sample_decision(analysis: dict[str, Any]) -> dict[str, Any]:
     """Choose between a truthful rewrite and a clearly labelled sample resume.
 
     An explicitly selected role is evaluated using its own selected-role score,
-    not the score of the best detected role.  With no explicit selection, the
-    original conservative below-20 Top 3 fallback remains in effect.
+    not the score of the best detected role. Automatic analysis uses the same
+    conservative no-suitable-role disposition as the result page.
     """
 
     if not analysis:
@@ -7152,6 +7576,13 @@ def get_resume_sample_decision(analysis: dict[str, Any]) -> dict[str, Any]:
     selected_label = normalize_text(
         str(role_recommendation.get("selected_role") or analysis.get("selected_role") or "")
     )
+    match_status = normalize_match_text(str(role_recommendation.get("match_status") or ""))
+    explicit_non_it_headline = analysis_has_explicit_non_it_headline(analysis)
+    review_threshold = (
+        NON_IT_HEADLINE_REVIEW_THRESHOLD
+        if explicit_non_it_headline
+        else CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+    )
     if is_explicit_resume_generation_role(selected_label):
         selected_target = selected_label
         selected_database_target = normalize_text(
@@ -7162,36 +7593,46 @@ def get_resume_sample_decision(analysis: dict[str, Any]) -> dict[str, Any]:
         except (TypeError, ValueError):
             selected_score = None
 
-        if selected_score is not None and selected_score <= SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD:
+        if match_status == "review required" or role_score_needs_human_review(
+            selected_score,
+            explicit_non_it_headline,
+        ):
             top_scores = get_top_role_generation_scores(analysis)
             return {
                 "should_sample": True,
-                "reason_code": "selected_role_at_or_below_50",
+                "reason_code": "selected_role_review_required",
                 "target_role": selected_target,
                 "mapped_database_role": selected_database_target,
                 "evidence_score": selected_score,
-                "threshold": SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD,
+                "threshold": review_threshold,
                 "best_top_role_score": max(top_scores) if top_scores else None,
+                "selection_mode": "selected_role",
             }
         return {
             "should_sample": False,
-            "reason_code": "selected_role_above_50" if selected_score is not None else "selected_role_score_unavailable",
+            "reason_code": "selected_role_has_evidence" if selected_score is not None else "selected_role_score_unavailable",
             "target_role": selected_target,
             "mapped_database_role": selected_database_target,
             "evidence_score": selected_score,
-            "threshold": SELECTED_ROLE_SAMPLE_MATCH_THRESHOLD,
+            "threshold": review_threshold,
         }
 
     top_scores = get_top_role_generation_scores(analysis)
     if top_scores:
         best_score = max(top_scores)
+        no_suitable_role = match_status == "no suitable role" or role_score_needs_human_review(
+            best_score,
+            explicit_non_it_headline,
+        )
         return {
-            "should_sample": best_score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
-            "reason_code": "auto_detected_top_role_below_20" if best_score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD else "auto_detected_role_has_evidence",
-            "target_role": get_top_role_generation_name(analysis),
+            "should_sample": no_suitable_role,
+            "reason_code": "auto_detected_no_suitable_role" if no_suitable_role else "auto_detected_role_has_evidence",
+            "target_role": choose_fallback_sample_role(analysis) if no_suitable_role else get_top_role_generation_name(analysis),
             "evidence_score": best_score,
-            "threshold": CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+            "threshold": review_threshold,
             "best_top_role_score": best_score,
+            "closest_role": get_top_role_generation_name(analysis),
+            "selection_mode": "deterministic_fallback" if no_suitable_role else "detected_role",
         }
 
     if "matching_percentage" not in analysis:
@@ -7200,13 +7641,19 @@ def get_resume_sample_decision(analysis: dict[str, Any]) -> dict[str, Any]:
         score = float(analysis.get("matching_percentage") or 0)
     except (TypeError, ValueError):
         return {"should_sample": False}
+    no_suitable_role = match_status == "no suitable role" or role_score_needs_human_review(
+        score,
+        explicit_non_it_headline,
+    )
     return {
-        "should_sample": score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
-        "reason_code": "auto_detected_overall_score_below_20" if score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD else "auto_detected_role_has_evidence",
-        "target_role": get_top_role_generation_name(analysis),
+        "should_sample": no_suitable_role,
+        "reason_code": "auto_detected_no_suitable_role" if no_suitable_role else "auto_detected_role_has_evidence",
+        "target_role": choose_fallback_sample_role(analysis) if no_suitable_role else get_top_role_generation_name(analysis),
         "evidence_score": score,
-        "threshold": CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+        "threshold": review_threshold,
         "best_top_role_score": score,
+        "closest_role": get_top_role_generation_name(analysis),
+        "selection_mode": "deterministic_fallback" if no_suitable_role else "detected_role",
     }
 
 
@@ -7422,6 +7869,8 @@ def build_sample_resume_payload(
     reason_code: str = "auto_detected_top_role_below_20",
     evidence_score: float | None = None,
     generation_threshold: float = CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
+    selection_mode: str = "detected_role",
+    closest_role: str = "",
 ) -> dict[str, Any]:
     role = get_resume_generation_role(analysis, target_role) or get_top_role_generation_name(analysis) or "Software Developer"
     template_profile = select_resume_template_profile(role)
@@ -7442,16 +7891,31 @@ def build_sample_resume_payload(
     completeness = build_section_completeness(sections)
     sample_score = evidence_score if isinstance(evidence_score, (int, float)) else best_score
     score_text = f"{sample_score:.0f}/100" if isinstance(sample_score, (int, float)) else "not available"
-    selected_role_sample = reason_code == "selected_role_at_or_below_50"
+    selected_role_sample = reason_code in {
+        "selected_role_at_or_below_50",
+        "selected_role_review_required",
+    }
+    no_suitable_role_sample = reason_code == "auto_detected_no_suitable_role"
     if selected_role_sample:
         reason_note = (
-            f"EXAMPLE ONLY: the selected {role} role scored {score_text}, at or below the "
-            f"{generation_threshold:.0f}/100 evidence threshold. The uploaded resume was not rewritten "
+            f"EXAMPLE ONLY: the selected {role} role scored {score_text}, below the applicable "
+            f"{generation_threshold:.0f}/100 review threshold. The uploaded resume was not rewritten "
             "or presented as belonging to this field."
         )
         sample_reason = (
-            f"The selected {role} evidence score is {score_text}, at or below the "
-            f"{generation_threshold:.0f}/100 sample threshold."
+            f"The selected {role} evidence score is {score_text}, below the applicable "
+            f"{generation_threshold:.0f}/100 review threshold."
+        )
+    elif no_suitable_role_sample:
+        closest_text = normalize_text(closest_role) or "the closest database role"
+        reason_note = (
+            f"EXAMPLE ONLY: no suitable CS role was confirmed. {closest_text} scored {score_text}, below the "
+            f"applicable {generation_threshold:.0f}/100 review threshold. {role} was selected from the fallback "
+            "learning-example list and is not a job-match recommendation."
+        )
+        sample_reason = (
+            f"No suitable CS role was confirmed; {role} is a deterministic fallback learning example, "
+            "not a recommendation for the uploaded resume."
         )
     else:
         reason_note = (
@@ -7506,6 +7970,8 @@ def build_sample_resume_payload(
         "is_sample_resume": True,
         "sample_reason": sample_reason,
         "sample_reason_code": reason_code,
+        "sample_selection_mode": selection_mode,
+        "sample_closest_role": normalize_text(closest_role) or None,
         "sample_target_role": role,
         "sample_mapped_database_role": mapped_database_role or None,
         "sample_target_score": sample_score,
@@ -7520,6 +7986,8 @@ def build_sample_resume_payload(
             "evidence_score": sample_score,
             "threshold": generation_threshold,
             "comparison": "at_or_below" if selected_role_sample else "below",
+            "selection_mode": selection_mode,
+            "closest_role": normalize_text(closest_role) or None,
         },
         "generation_threshold": generation_threshold,
         "best_top_role_score": best_score,
@@ -7548,6 +8016,8 @@ def build_generated_resume_payload(
             reason_code=str(sample_decision.get("reason_code") or "auto_detected_top_role_below_20"),
             evidence_score=sample_decision.get("evidence_score"),
             generation_threshold=float(sample_decision.get("threshold") or CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD),
+            selection_mode=str(sample_decision.get("selection_mode") or "detected_role"),
+            closest_role=str(sample_decision.get("closest_role") or ""),
         )
 
     template_profile = select_resume_template_profile(role)
@@ -7805,7 +8275,7 @@ def send_auth_pin():
         return build_email_pin_rate_limit_response(error)
     except EmailPinConfigurationError:
         return jsonify({"detail": "Email verification is temporarily unavailable"}), 503
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while creating verification PIN"}), 500
     except (OSError, smtplib.SMTPException) as error:
         return jsonify({"detail": get_email_delivery_error_message(error)}), 502
@@ -7853,7 +8323,7 @@ def register_user():
             return jsonify({"detail": pin_detail}), 400
     except EmailPinRateLimitError as error:
         return build_email_pin_rate_limit_response(error)
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while verifying email PIN"}), 500
 
     hashed_password = generate_password_hash(password)
@@ -7864,19 +8334,19 @@ def register_user():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
-            """
+            f"""
             INSERT INTO users (full_name, email, password_hash, email_verified_at, is_admin)
-            VALUES (%s, %s, %s, UTC_TIMESTAMP(), %s)
-            """,
+            VALUES (%s, %s, %s, {utc_now_sql()}, %s)
+            """ + (" RETURNING id" if is_postgres_backend() else ""),
             (full_name, email, hashed_password, 1 if is_configured_admin_email(email) else 0),
         )
-        user_id = cursor.lastrowid
+        user_id = int(cursor.fetchone()["id"] if is_postgres_backend() else cursor.lastrowid)
         cursor.execute("SELECT id, full_name, email, email_verified_at, is_admin, created_at FROM users WHERE id = %s", (user_id,))
         created_user = cursor.fetchone()
         if not created_user:
             raise DatabaseError("Created user could not be reloaded")
         connection.commit()
-    except DatabaseError as error:
+    except DatabaseErrors as error:
         if connection is not None:
             connection.rollback()
         if is_duplicate_entry_error(error):
@@ -7942,7 +8412,7 @@ def reset_user_password():
         connection.commit()
     except EmailPinRateLimitError as error:
         return build_email_pin_rate_limit_response(error)
-    except DatabaseError:
+    except DatabaseErrors:
         if connection is not None:
             connection.rollback()
         return jsonify({"detail": "Database error while resetting password"}), 500
@@ -7988,7 +8458,7 @@ def login_user():
             cursor.execute("UPDATE users SET is_admin = 1 WHERE id = %s", (user["id"],))
             connection.commit()
             user["is_admin"] = 1
-    except DatabaseError:
+    except DatabaseErrors:
         if connection is not None:
             connection.rollback()
         return jsonify({"detail": "Database error while logging in"}), 500
@@ -8019,7 +8489,7 @@ def get_current_auth_session():
     """Reconcile browser UI state with the signed server session."""
     try:
         current_user = get_authenticated_session_user()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while validating session"}), 500
 
     if not current_user:
@@ -8215,7 +8685,7 @@ def get_admin_dashboard_insights():
         return admin_error
     try:
         return jsonify(build_admin_dashboard_payload())
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while building admin dashboard"}), 500
 
 
@@ -8281,7 +8751,7 @@ def update_admin_user(user_id: int):
         if not updated_user:
             raise DatabaseError("Updated user could not be reloaded")
         connection.commit()
-    except DatabaseError as error:
+    except DatabaseErrors as error:
         if connection is not None:
             connection.rollback()
         if is_duplicate_entry_error(error):
@@ -8325,7 +8795,7 @@ def delete_admin_user(user_id: int):
         cursor.execute("DELETE FROM resume_analyses WHERE user_id = %s", (user_id,))
         cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
         connection.commit()
-    except DatabaseError:
+    except DatabaseErrors:
         if connection is not None:
             connection.rollback()
         return jsonify({"detail": "Database error while deleting user"}), 500
@@ -8342,7 +8812,7 @@ def delete_admin_user(user_id: int):
 def list_resume_analyses():
     try:
         current_user = get_authenticated_session_user()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while loading analysis history"}), 500
 
     if not current_user:
@@ -8390,7 +8860,7 @@ def list_resume_analyses():
             (target_user_id,),
         )
         rows = cursor.fetchall()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while loading analysis history"}), 500
     finally:
         if cursor is not None:
@@ -8419,7 +8889,7 @@ def list_resume_analyses():
 def create_download_history():
     try:
         current_user = get_authenticated_session_user()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while validating session"}), 500
 
     if not current_user:
@@ -8451,7 +8921,7 @@ def create_download_history():
             safe_analysis_id,
             downloaded_file_name,
         )
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while saving download history"}), 500
 
     if outcome == "not_found":
@@ -8536,7 +9006,7 @@ def build_owned_generated_resume(
 
     try:
         ownership_status, analysis = load_owned_analysis_snapshot(int(current_user["id"]), analysis_id)
-    except DatabaseError:
+    except DatabaseErrors:
         return None, (jsonify({"detail": "Database error while loading the saved analysis"}), 500)
 
     if ownership_status == "not_found":
@@ -8637,7 +9107,7 @@ def generate_feedback_report_pdf():
 def list_job_roles():
     try:
         roles = fetch_job_roles()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while loading job roles"}), 500
 
     return jsonify({"count": len(roles), "roles": roles})
@@ -8669,7 +9139,7 @@ def get_job_requirements():
             return jsonify({"matched": False, "requested_role": requested_role, "match_type": match_type})
 
         requirements = fetch_job_requirements(int(matched_role["id"]))
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while loading job requirements"}), 500
 
     return jsonify(
@@ -8694,7 +9164,7 @@ def get_job_data_cleaning_report():
     try:
         role_rows, requirement_rows = fetch_raw_job_data_rows()
         report = build_job_data_quality_report(role_rows, requirement_rows)
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while building job data cleaning report"}), 500
 
     return jsonify(report)
@@ -8718,7 +9188,7 @@ def run_job_data_cleaning():
             return jsonify(
                 {
                     "applied": False,
-                    "message": "Dry run only. Send {\"apply\": true} to update MySQL rows.",
+                    "message": "Dry run only. Send {\"apply\": true} to update database rows.",
                     "report": report_before,
                     "plan_summary": plan["summary"],
                 }
@@ -8727,7 +9197,7 @@ def run_job_data_cleaning():
         applied_summary = apply_job_data_cleaning_plan(plan)
         cleaned_role_rows, cleaned_requirement_rows = fetch_raw_job_data_rows()
         report_after = build_job_data_quality_report(cleaned_role_rows, cleaned_requirement_rows)
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while running job data cleaning"}), 500
 
     return jsonify(
@@ -8755,7 +9225,7 @@ def get_job_data_insights():
             skill_vocabulary=DEFAULT_SKILL_DICTIONARY,
             stopwords=KEYWORD_STOPWORDS,
         )
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while building job data insights"}), 500
 
     return jsonify(insights)
@@ -8805,7 +9275,7 @@ def analysis_result_page():
 def job_data_insights_page():
     try:
         current_user = get_authenticated_session_user()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while validating administrator access"}), 500
 
     if not current_user or not is_user_admin(current_user):
@@ -8861,7 +9331,7 @@ def api_index():
 def analyze_file():
     try:
         current_user = get_authenticated_session_user()
-    except DatabaseError:
+    except DatabaseErrors:
         return jsonify({"detail": "Database error while validating session"}), 500
 
     if not current_user:
@@ -8930,13 +9400,13 @@ def analyze_file():
     if requested_target_role and requested_target_role != "selected role":
         try:
             selected_job = resolve_database_job_description(requested_target_role)
-        except DatabaseError:
+        except DatabaseErrors:
             selected_job = None
 
     try:
         ranked_role_matches = rank_database_role_matches(resume_text)
         top_role_matches = ranked_role_matches[:3]
-    except DatabaseError:
+    except DatabaseErrors:
         top_role_matches = []
 
     if not job_description:
@@ -8982,6 +9452,8 @@ def analyze_file():
             "detected_database_role": get_database_role_name(detected_job),
             "match_type": recommended_job.get("match_type"),
             "confidence_score": role_recommendation.get("recommended_score"),
+            "match_status": role_recommendation.get("match_status"),
+            "human_review_required": role_recommendation.get("human_review_required"),
             "reason": role_recommendation.get("reason_summary"),
         }
     elif selected_job:
@@ -8990,6 +9462,8 @@ def analyze_file():
             {
                 "selected_database_role": get_database_role_name(selected_job),
                 "detected_database_role": get_database_role_name(detected_job),
+                "match_status": role_recommendation.get("match_status"),
+                "human_review_required": role_recommendation.get("human_review_required"),
                 "reason": role_recommendation.get("reason_summary"),
             }
         )
@@ -9020,6 +9494,13 @@ def analyze_file():
     analysis["job_source"] = job_source
     analysis["role_recommendation"] = role_recommendation
     analysis["top_role_matches"] = role_recommendation.get("top_role_matches", [])
+    if role_recommendation.get("match_status") == "no_suitable_role":
+        role_recommendation["fallback_sample_role"] = choose_fallback_sample_role(analysis)
+    analysis["review_status"] = (
+        "REVIEW REQUIRED"
+        if role_recommendation.get("human_review_required")
+        else "ROLE MATCH AVAILABLE"
+    )
     analysis["resume_contact"] = extract_resume_contact(resume_text)
     analysis["recommendation_module"] = build_part8_recommendation_module(analysis)
 
@@ -9031,10 +9512,10 @@ def analyze_file():
             session_user_id,
         )
         analysis["history_saved"] = True
-    except DatabaseError:
+    except DatabaseErrors:
         analysis["analysis_id"] = None
         analysis["history_saved"] = False
-        analysis["history_warning"] = "Analysis completed, but it could not be saved to MySQL history."
+        analysis["history_warning"] = "Analysis completed, but it could not be saved to history."
 
     accuracy_testing_result = update_accuracy_testing_workbook(analysis)
     analysis.update(accuracy_testing_result)

@@ -298,7 +298,7 @@ class ResumeGenerationTests(unittest.TestCase):
             if separator:
                 self.assertNotIn(title, description)
 
-    def test_selected_role_at_50_returns_clearly_labelled_sample_for_selected_role(self):
+    def test_selected_non_it_resume_returns_labelled_sample_for_selected_role(self):
         unrelated_source = """
         AISHA BUSINESS USER
         Retail Operations Executive
@@ -310,12 +310,16 @@ class ResumeGenerationTests(unittest.TestCase):
             "role_recommendation": {
                 "selected_role": "Software Engineer",
                 "selected_database_role": "Software Developer",
-                "selected_score": 50,
+                "selected_score": 34,
                 "recommended_role": "IT Support Specialist",
+                "match_status": "review_required",
+                "human_review_required": True,
+                "explicit_non_it_headline": True,
+                "non_it_headline": "Retail Operations Executive",
                 "top_role_matches": [
                     {"role": "IT Support Specialist", "score": 72},
                     {"role": "Computer Technician", "score": 68},
-                    {"role": "Software Developer", "score": 50},
+                    {"role": "Software Developer", "score": 34},
                 ],
             },
         }
@@ -330,22 +334,26 @@ class ResumeGenerationTests(unittest.TestCase):
         self.assertTrue(draft["is_sample_resume"])
         self.assertEqual(draft["target_role"], "Software Engineer")
         self.assertEqual(draft["candidate"]["name"], "Avery Tan")
-        self.assertEqual(draft["sample_reason_code"], "selected_role_at_or_below_50")
+        self.assertEqual(draft["sample_reason_code"], "selected_role_review_required")
+        self.assertEqual(draft["sample_selection_mode"], "selected_role")
+        self.assertIsNone(draft["sample_closest_role"])
         self.assertEqual(draft["sample_target_role"], "Software Engineer")
         self.assertEqual(draft["sample_mapped_database_role"], "Software Developer")
-        self.assertEqual(draft["sample_target_score"], 50)
-        self.assertEqual(draft["sample_score_threshold"], 50)
+        self.assertEqual(draft["sample_target_score"], 34)
+        self.assertEqual(draft["sample_score_threshold"], 35)
         self.assertEqual(draft["best_top_role_score"], 72)
         self.assertEqual(
             draft["sample_metadata"],
             {
-                "reason_code": "selected_role_at_or_below_50",
+                "reason_code": "selected_role_review_required",
                 "target_role": "Software Engineer",
                 "mapped_database_role": "Software Developer",
                 "profile_basis_role": "Software Engineer",
-                "evidence_score": 50.0,
-                "threshold": 50.0,
+                "evidence_score": 34.0,
+                "threshold": 35.0,
                 "comparison": "at_or_below",
+                "selection_mode": "selected_role",
+                "closest_role": None,
             },
         )
         self.assertIn("FICTIONAL EXAMPLE - NOT THE USER'S RESUME - NOT FOR SUBMISSION", draft["plain_text"])
@@ -355,16 +363,19 @@ class ResumeGenerationTests(unittest.TestCase):
         self.assertNotIn("Retail Operations Executive", draft["plain_text"])
         self.assertNotIn("monthly sales reports", draft["html"])
 
-    def test_selected_role_above_50_keeps_truthful_user_resume_generation(self):
+    def test_genuine_selected_it_resume_below_55_keeps_truthful_generation(self):
         analysis = {
             "matching_percentage": 64,
             "selected_role": "Software Engineer",
             "role_recommendation": {
                 "selected_role": "Software Engineer",
                 "selected_database_role": "Software Developer",
-                "selected_score": 50.01,
+                "selected_score": 49.88,
                 "recommended_role": "Software Developer",
-                "top_role_matches": [{"role": "Software Developer", "score": 50.01}],
+                "match_status": "matched",
+                "human_review_required": False,
+                "explicit_non_it_headline": False,
+                "top_role_matches": [{"role": "Software Developer", "score": 49.88}],
             },
             "resume_summary": {"skills": ["Python"]},
             "job_description_analysis": {"matched_keywords": ["Python"], "missing_keywords": []},
@@ -381,8 +392,10 @@ class ResumeGenerationTests(unittest.TestCase):
         self.assertEqual(draft["candidate"]["name"], "Jane User")
         self.assertNotIn("EXAMPLE ONLY", draft["plain_text"])
 
-    def test_auto_detect_keeps_original_below_20_sample_rule(self):
+    def test_auto_detect_below_20_uses_deterministic_fallback_sample(self):
         low_analysis = {
+            "uploaded_resume_name": "unrelated-resume.pdf",
+            "resume_excerpt": "Retail operations and monthly sales reporting.",
             "matching_percentage": 19,
             "top_role_matches": [
                 {"role": "Data Analyst", "score": 19},
@@ -393,17 +406,86 @@ class ResumeGenerationTests(unittest.TestCase):
             low_analysis,
             "Unrelated source material",
         )
+        repeated_draft = app_module.build_generated_resume_payload(
+            low_analysis,
+            "Unrelated source material",
+        )
 
         self.assertTrue(low_draft["is_sample_resume"])
-        self.assertEqual(low_draft["target_role"], "Data Analyst")
-        self.assertEqual(low_draft["sample_reason_code"], "auto_detected_top_role_below_20")
+        self.assertIn(low_draft["target_role"], app_module.AUTO_NO_MATCH_SAMPLE_ROLES)
+        self.assertEqual(repeated_draft["target_role"], low_draft["target_role"])
+        self.assertEqual(low_draft["sample_reason_code"], "auto_detected_no_suitable_role")
+        self.assertEqual(low_draft["sample_selection_mode"], "deterministic_fallback")
+        self.assertEqual(low_draft["sample_closest_role"], "Data Analyst")
         self.assertEqual(low_draft["sample_target_score"], 19)
         self.assertEqual(low_draft["sample_score_threshold"], 20)
+        self.assertIn("not a recommendation", low_draft["sample_reason"])
 
         boundary_decision = app_module.get_resume_sample_decision(
             {"top_role_matches": [{"role": "Data Analyst", "score": 20}]}
         )
         self.assertFalse(boundary_decision["should_sample"])
+
+    def test_auto_non_it_resume_below_35_uses_fallback_not_confirmed_role(self):
+        analysis = {
+            "uploaded_resume_name": "staff-pharmacist.pdf",
+            "resume_excerpt": "Staff pharmacist with patient counselling experience.",
+            "role_recommendation": {
+                "recommended_role": "Software Developer",
+                "recommended_score": 34,
+                "match_status": "no_suitable_role",
+                "human_review_required": True,
+                "explicit_non_it_headline": True,
+                "non_it_headline": "Staff Pharmacist",
+            },
+            "top_role_matches": [
+                {
+                    "role": "Software Developer",
+                    "score": 34,
+                    "title_match_source": "non_it_headline",
+                    "explicit_non_it_headline": True,
+                }
+            ],
+        }
+
+        decision = app_module.get_resume_sample_decision(analysis)
+        repeated_decision = app_module.get_resume_sample_decision(analysis)
+        draft = app_module.build_generated_resume_payload(
+            analysis,
+            "STAFF PHARMACIST\nPatient counselling and medication dispensing.",
+        )
+
+        self.assertTrue(decision["should_sample"])
+        self.assertEqual(decision["reason_code"], "auto_detected_no_suitable_role")
+        self.assertEqual(decision["threshold"], 35)
+        self.assertEqual(decision["target_role"], repeated_decision["target_role"])
+        self.assertIn(decision["target_role"], app_module.AUTO_NO_MATCH_SAMPLE_ROLES)
+        self.assertEqual(decision["closest_role"], "Software Developer")
+        self.assertTrue(draft["is_sample_resume"])
+        self.assertEqual(draft["sample_selection_mode"], "deterministic_fallback")
+        self.assertNotIn("Staff Pharmacist", draft["plain_text"])
+        self.assertIn("not a job-match recommendation", draft["plain_text"])
+
+    def test_auto_titleless_it_resume_at_34_is_not_forced_to_sample(self):
+        decision = app_module.get_resume_sample_decision(
+            {
+                "uploaded_resume_name": "cs-student.pdf",
+                "resume_excerpt": "Built a Python Flask API and React application.",
+                "role_recommendation": {
+                    "recommended_role": "Software Developer",
+                    "recommended_score": 34,
+                    "match_status": "matched",
+                    "explicit_non_it_headline": False,
+                },
+                "top_role_matches": [
+                    {"role": "Software Developer", "score": 34}
+                ],
+            }
+        )
+
+        self.assertFalse(decision["should_sample"])
+        self.assertEqual(decision["reason_code"], "auto_detected_role_has_evidence")
+        self.assertEqual(decision["threshold"], 20)
 
     def test_explicit_selected_role_without_selected_score_is_not_guessed_from_top_role(self):
         decision = app_module.get_resume_sample_decision(
@@ -425,9 +507,10 @@ class ResumeGenerationTests(unittest.TestCase):
             {},
             "Software Engineer",
             72,
-            reason_code="selected_role_at_or_below_50",
-            evidence_score=45,
-            generation_threshold=50,
+            reason_code="selected_role_review_required",
+            evidence_score=19,
+            generation_threshold=20,
+            selection_mode="selected_role",
         )
 
         pdf_buffer = app_module.build_generated_resume_pdf_buffer(draft)
@@ -549,7 +632,11 @@ class ResumeGenerationTests(unittest.TestCase):
             "role_recommendation": {
                 "selected_role": "Software Engineer",
                 "selected_database_role": "Software Developer",
-                "selected_score": 45,
+                "selected_score": 34,
+                "match_status": "review_required",
+                "human_review_required": True,
+                "explicit_non_it_headline": True,
+                "non_it_headline": "Retail Operations Executive",
                 "top_role_matches": [{"role": "IT Support Specialist", "score": 70}],
             },
             "resume_excerpt": "Retail operations and monthly sales reporting.",
@@ -584,7 +671,9 @@ class ResumeGenerationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
         self.assertTrue(payload["is_sample_resume"])
-        self.assertEqual(payload["sample_target_score"], 45)
+        self.assertEqual(payload["sample_target_score"], 34)
+        self.assertEqual(payload["sample_score_threshold"], 35)
+        self.assertEqual(payload["sample_reason_code"], "selected_role_review_required")
         self.assertEqual(payload["target_role"], "Software Engineer")
 
     def test_generation_rejects_foreign_or_missing_analysis_id(self):
@@ -641,6 +730,8 @@ class ResumeGenerationTests(unittest.TestCase):
         self.assertEqual(recommendation["selected_score"], 34)
         self.assertEqual(len(recommendation["top_role_matches"]), 3)
         self.assertNotEqual(recommendation["selected_score"], selected_fit["combined_score"])
+        self.assertEqual(recommendation["match_status"], "matched")
+        self.assertFalse(recommendation["human_review_required"])
 
     def test_popular_role_aliases_use_the_matching_database_role_families(self):
         self.assertEqual(app_module.POPULAR_ROLE_ALIASES["data analyst"], "Business Data Analyst")

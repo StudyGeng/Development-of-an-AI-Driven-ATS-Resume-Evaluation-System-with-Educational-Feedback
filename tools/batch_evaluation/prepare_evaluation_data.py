@@ -522,12 +522,27 @@ def main() -> None:
         top1_role = str(top.get("role_name") or "")
         top1_score = float(top.get("recommendation_score") or 0)
         top2_score = float(second.get("recommendation_score") or 0)
+        explicit_non_it_headline = bool(top.get("explicit_non_it_headline"))
+        review_threshold = 35.0 if explicit_non_it_headline else 20.0
+        human_review_required = bool(
+            extraction_ok
+            and top
+            and (
+                top1_score < 20.0
+                or (explicit_non_it_headline and top1_score < 35.0)
+            )
+        )
+        system_disposition = (
+            "EXTRACTION FAILED"
+            if not extraction_ok
+            else ("NO SUITABLE ROLE" if human_review_required else "ROLE MATCH AVAILABLE")
+        )
         if not extraction_ok:
             outcome = "EXTRACTION FAILED"
         elif label["label_status"] == "EXCLUDED_INVALID_DOCUMENT":
             outcome = "EXCLUDED"
         elif label["label_status"] == "NEGATIVE_CONTROL":
-            outcome = "LOW SIGNAL" if top1_score < 20 else "FORCED RECOMMENDATION"
+            outcome = "NO SUITABLE ROLE" if human_review_required else "FALSE ROLE RECOMMENDATION"
         elif acceptable:
             best_rank = int(best["rank"]) if best else None
             outcome = "PASS TOP 1" if best_rank == 1 else ("PASS TOP 3" if best_rank and best_rank <= 3 else "MISS TOP 3")
@@ -546,6 +561,7 @@ def main() -> None:
             "extraction_status": "OK" if extraction_ok else "FAILED: NO EXTRACTABLE TEXT",
             "page_count": (record.get("extraction") or {}).get("page_count"),
             "word_count": int(record.get("text_word_count") or 0),
+            "role_ranking_version": str(record.get("role_ranking_version") or "unknown"),
             "most_recent_job_title": str(record.get("most_recent_job_title") or ""),
             "title_match_available": bool(top.get("title_match_available")),
             "label_status": label["label_status"],
@@ -559,6 +575,13 @@ def main() -> None:
             "top1_base_fit": float(top.get("base_fit_score") or 0),
             "top1_role_evidence": float(top.get("role_evidence_score") or 0),
             "top1_title_match": float(top.get("title_match_score") or 0),
+            "top1_title_match_title": str(top.get("title_match_title") or ""),
+            "top1_title_match_source": str(top.get("title_match_source") or "unavailable"),
+            "top1_explicit_non_it_headline": explicit_non_it_headline,
+            "top1_non_it_headline": str(top.get("non_it_headline") or ""),
+            "review_threshold": review_threshold,
+            "human_review_required": human_review_required,
+            "system_disposition": system_disposition,
             "top2_role": str(second.get("role_name") or ""),
             "top2_score": top2_score,
             "top3_role": str(third.get("role_name") or ""),
@@ -594,6 +617,11 @@ def main() -> None:
                     "title_match_score": float(role["title_match_score"]),
                     "title_match_available": bool(role["title_match_available"]),
                     "exact_title_match": bool(role["exact_title_match"]),
+                    "title_match_title": str(role.get("title_match_title") or ""),
+                    "title_match_source": str(role.get("title_match_source") or "unavailable"),
+                    "explicit_non_it_headline": bool(role.get("explicit_non_it_headline")),
+                    "non_it_headline": str(role.get("non_it_headline") or ""),
+                    "role_ranking_version": str(record.get("role_ranking_version") or "unknown"),
                     "keyword_overlap_score": float(role["keyword_overlap_score"]),
                     "similarity_score": float(role["similarity_score"]),
                 }
@@ -614,6 +642,7 @@ def main() -> None:
         "total_sources": len(rows),
         "csv_sources": sum(row["source_group"] == "Resume_CS_Only.csv" for row in rows),
         "pdf_sources": sum(row["source_group"] == "Resume_template" for row in rows),
+        "role_ranking_versions": sorted({row["role_ranking_version"] for row in rows}),
         "processed_with_95_roles": sum(row["run_status"] == "PROCESSED" for row in rows),
         "extraction_ok": sum(row["extraction_status"] == "OK" for row in rows),
         "extraction_failed": sum(row["extraction_status"] != "OK" for row in rows),
@@ -629,6 +658,8 @@ def main() -> None:
         "csv_human_review_required": sum(row["label_status"] == "HUMAN_REVIEW_REQUIRED" for row in rows),
         "negative_control_cases": len(negative),
         "negative_controls_below_20": sum(row["top1_score"] < 20 for row in negative),
+        "negative_controls_review_required": sum(row["human_review_required"] for row in negative),
+        "negative_controls_false_recommendations": sum(not row["human_review_required"] for row in negative),
         "negative_control_top1_scores": [row["top1_score"] for row in negative],
         "duplicate_pdf_groups": len(duplicate_hashes),
         "duplicate_pdf_copies": len(duplicate_copy_keys),

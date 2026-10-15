@@ -1690,11 +1690,18 @@ Download PDF
             const roleName = safeContext.roleName || safeContext.selectedRole || "the selected job";
             const scoreText = Number.isFinite(safeContext.selectedMatchScore)
                 ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "50/100 or below";
+                : "below the review threshold";
             contextNotice =
                 '<div class="lg:col-span-3 rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
-                    '<p class="font-bold text-on-error-container">More evidence is needed for ' + escapeHtml(roleName) + '.</p>' +
-                    '<p class="mt-2">Selected-role evidence: ' + escapeHtml(scoreText) + '. The three cards below remain the closest truthful matches from the uploaded resume, while the resume builder offers a clearly labelled learning example for the selected field.</p>' +
+                    '<p class="font-bold text-on-error-container">Review required: this resume does not sufficiently match ' + escapeHtml(roleName) + '.</p>' +
+                    '<p class="mt-2">Selected-role evidence: ' + escapeHtml(scoreText) + '. The cards below are evidence comparisons only. The builder offers a clearly labelled fictional example for the selected field and does not invent experience.</p>' +
+                '</div>';
+        } else if (safeContext.mode === "autoNoSuitableRole") {
+            const closestRole = safeContext.closestRole || "the closest database role";
+            contextNotice =
+                '<div class="lg:col-span-3 rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
+                    '<p class="font-bold text-on-error-container">No suitable CS role was confirmed — human review is required.</p>' +
+                    '<p class="mt-2">' + escapeHtml(closestRole) + ' is shown only as the closest evidence comparison, not as a job recommendation. The builder will use a separate fictional fallback example.</p>' +
                 '</div>';
         }
 
@@ -1711,7 +1718,8 @@ Download PDF
         container.innerHTML = contextNotice + cleanMatches.map((item, index) => {
             const rawScore = Number(item.score);
             const score = Number.isFinite(rawScore) ? clampPercent(rawScore) : 0;
-            const scoreLabel = Number.isFinite(rawScore) ? Math.round(score) + "/100" : "Pending";
+            const roundedScore = Math.round(score * 10) / 10;
+            const scoreLabel = Number.isFinite(rawScore) ? roundedScore + "/100" : "Pending";
             const rank = Number(item.rank || index + 1);
             const roleName = item.role || item.database_role || "Role match";
             const confidenceLabel = item.confidence_label || metricStatus(score);
@@ -1719,7 +1727,9 @@ Download PDF
             const missingKeywords = Array.isArray(item.missing_keywords) ? item.missing_keywords.filter(Boolean).slice(0, 3) : [];
             const isFinal = Boolean(item.is_final_recommended);
             const isSelected = Boolean(item.is_selected_database_role);
-            const reasonText = safeContext.mode === "autoDetectedRole"
+            const reasonText = safeContext.mode === "autoNoSuitableRole"
+                ? "Closest role for manual review; not a confirmed recommendation."
+                : safeContext.mode === "autoDetectedRole"
                 ? "Top detected role from resume evidence."
                 : (item.reason || "Ranked from resume keywords, weighted role requirements, and TF-IDF text similarity.");
             const cardClass = isFinal
@@ -1729,7 +1739,11 @@ Download PDF
                 ? "bg-primary text-on-primary"
                 : "bg-surface-container-high text-primary";
             const badges = [
-                isFinal ? '<span class="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[11px] font-bold">Used for ATS score</span>' : "",
+                isFinal
+                    ? '<span class="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[11px] font-bold">' +
+                        (safeContext.mode === "autoNoSuitableRole" ? "Closest evidence only" : "Used for ATS score") +
+                      '</span>'
+                    : "",
                 isSelected ? '<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-[11px] font-bold">Selected</span>' : ""
             ].filter(Boolean).join("");
             const matchedMarkup = matchedKeywords.length
@@ -2045,11 +2059,17 @@ Download PDF
         const missingKeywords = Array.isArray(safeOptions.missingKeywords)
             ? safeOptions.missingKeywords.filter(Boolean)
             : [];
-        let mode = hasSelectedRole ? "selectedRoleLow" : "autoDetectedRole";
-        if (hasSelectedRole && Number.isFinite(selectedMatchScore) && selectedMatchScore <= SELECTED_ROLE_EXAMPLE_THRESHOLD) {
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation.match_status);
+        const explicitNonItHeadline = hasExplicitNonItHeadline(roleRecommendation, topRoleMatches);
+        const reviewThreshold = getRoleReviewThreshold(roleRecommendation, explicitNonItHeadline);
+        const reviewRequired = Boolean(roleRecommendation.human_review_required)
+            || matchStatus === "review required"
+            || matchStatus === "no suitable role";
+        let mode = hasSelectedRole ? "selectedRoleFit" : "autoDetectedRole";
+        if (!hasSelectedRole && (matchStatus === "no suitable role" || reviewRequired)) {
+            mode = "autoNoSuitableRole";
+        } else if (hasSelectedRole && (matchStatus === "review required" || reviewRequired)) {
             mode = "selectedRoleExample";
-        } else if (hasSelectedRole && Number.isFinite(selectedMatchScore) && selectedMatchScore > SELECTED_ROLE_EXAMPLE_THRESHOLD) {
-            mode = "selectedRoleFit";
         }
 
         return {
@@ -2059,7 +2079,12 @@ Download PDF
             selectedRole,
             selectedMatchScore,
             topMatch,
-            missingKeywords
+            missingKeywords,
+            matchStatus,
+            reviewRequired,
+            reviewThreshold,
+            fallbackSampleRole: roleRecommendation.fallback_sample_role || "",
+            closestRole: roleRecommendation.closest_role || topRoleName || safeOptions.recommendedRole || ""
         };
     }
 
@@ -2122,7 +2147,7 @@ Download PDF
     function buildIssueActionText(item, context) {
         const baseSuggestion = item.suggestion || item.detail || "Review this section for ATS readability.";
         const safeContext = context || {};
-        if (safeContext.mode === "selectedRoleExample") {
+        if (safeContext.mode === "selectedRoleExample" || safeContext.mode === "autoNoSuitableRole") {
             return baseSuggestion;
         }
 
@@ -2148,10 +2173,17 @@ Download PDF
         if (safeContext.mode === "selectedRoleExample") {
             const scoreText = Number.isFinite(safeContext.selectedMatchScore)
                 ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "50/100 or below";
+                : "below the review threshold";
             return (
                 '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
-                    'Selected-role evidence is ' + escapeHtml(scoreText) + ' for ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "the selected job") + '. The analysis stays truthful, and the builder provides a separate example instead of inventing experience.' +
+                    'Selected-role evidence is ' + escapeHtml(scoreText) + ' for ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "the selected job") + '. This is REVIEW REQUIRED / NOT MATCH, and the builder provides a separate fictional example instead of inventing experience.' +
+                '</p>'
+            );
+        }
+        if (safeContext.mode === "autoNoSuitableRole") {
+            return (
+                '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
+                    'No suitable CS role was confirmed. Suggestions refer to the closest evidence comparison only and require human review.' +
                 '</p>'
             );
         }
@@ -2467,9 +2499,14 @@ Download PDF
         const safeBreakdown = scoreBreakdown || {};
         const band = getScoreMeaningBand(score);
         const isDifferentRole = Boolean(roleRecommendation && roleRecommendation.is_different_from_selected);
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation && roleRecommendation.match_status);
         const roleUsed = recommendedRole || "the recommended role";
         const selected = selectedRole || "the selected role";
-        const contextText = isDifferentRole
+        const contextText = matchStatus === "no suitable role"
+            ? " It uses " + roleUsed + " only as the closest evidence comparison for human review, not as a confirmed job recommendation."
+            : matchStatus === "review required"
+            ? " It measures evidence for " + selected + ", but the result is REVIEW REQUIRED / NOT MATCH."
+            : isDifferentRole
             ? " It is calculated for " + roleUsed + ", not " + selected + ", because the resume evidence matched that role better."
             : " The score is calculated for " + roleUsed + ", using the selected role and resume evidence.";
         const formula = safeBreakdown.formula || "30% database requirements + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF text similarity, with a strong-evidence calibration floor";
@@ -2719,7 +2756,35 @@ Download PDF
     }
 
     const CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD = 20;
-    const SELECTED_ROLE_EXAMPLE_THRESHOLD = 50;
+    const NON_IT_HEADLINE_REVIEW_THRESHOLD = 35;
+
+    function normalizeRoleMatchStatus(value) {
+        return String(value || "").toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function hasExplicitNonItHeadline(roleRecommendation, matches) {
+        if (roleRecommendation && roleRecommendation.explicit_non_it_headline) {
+            return true;
+        }
+        return (Array.isArray(matches) ? matches : []).some((item) => Boolean(
+            item && (item.explicit_non_it_headline || item.title_match_source === "non_it_headline")
+        ));
+    }
+
+    function getRoleReviewThreshold(roleRecommendation, explicitNonItHeadline) {
+        const supplied = Number(roleRecommendation && roleRecommendation.review_threshold);
+        if (Number.isFinite(supplied)) {
+            return supplied;
+        }
+        return explicitNonItHeadline ? NON_IT_HEADLINE_REVIEW_THRESHOLD : CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD;
+    }
+
+    function roleScoreNeedsReview(score, explicitNonItHeadline) {
+        return Number.isFinite(score) && (
+            score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+            || (explicitNonItHeadline && score < NON_IT_HEADLINE_REVIEW_THRESHOLD)
+        );
+    }
 
     function getTopRoleGenerationScores(result) {
         const roleRecommendation = result && result.role_recommendation ? result.role_recommendation : {};
@@ -2746,17 +2811,23 @@ Download PDF
         const selectedScore = selectedScoreValue === null || selectedScoreValue === undefined || selectedScoreValue === ""
             ? Number.NaN
             : Number(selectedScoreValue);
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation.match_status);
+        const explicitNonItHeadline = hasExplicitNonItHeadline(roleRecommendation, roleMatches);
+        const reviewThreshold = getRoleReviewThreshold(roleRecommendation, explicitNonItHeadline);
         if (
             isExplicitSelectedRole(selectedRole)
-            && Number.isFinite(selectedScore)
-            && selectedScore <= SELECTED_ROLE_EXAMPLE_THRESHOLD
+            && (
+                matchStatus === "review required"
+                || roleScoreNeedsReview(selectedScore, explicitNonItHeadline)
+            )
         ) {
             return {
                 showExample: true,
-                reason: "selected_role_low_match",
+                reason: "selected_role_review_required",
                 targetRole: selectedRole,
                 score: selectedScore,
-                threshold: SELECTED_ROLE_EXAMPLE_THRESHOLD
+                threshold: reviewThreshold,
+                selectionMode: "selected_role"
             };
         }
 
@@ -2766,31 +2837,44 @@ Download PDF
                 reason: "",
                 targetRole: selectedRole,
                 score: Number.isFinite(selectedScore) ? selectedScore : null,
-                threshold: SELECTED_ROLE_EXAMPLE_THRESHOLD
+                threshold: reviewThreshold
             };
         }
 
         const topScores = getTopRoleGenerationScores(safeResult);
         if (topScores.length) {
             const bestScore = Math.max(...topScores);
-            if (bestScore < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD) {
+            if (
+                matchStatus === "no suitable role"
+                || roleScoreNeedsReview(bestScore, explicitNonItHeadline)
+            ) {
                 return {
                     showExample: true,
-                    reason: "no_related_cs_role",
-                    targetRole: selectedRole || topRoleName || "Computer Science",
+                    reason: "auto_no_suitable_role",
+                    targetRole: String(roleRecommendation.fallback_sample_role || "Software Developer"),
                     score: bestScore,
-                    threshold: CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+                    threshold: reviewThreshold,
+                    closestRole: roleRecommendation.closest_role || topRoleName,
+                    selectionMode: "deterministic_fallback"
                 };
             }
         }
         const overallScore = Number(safeResult.matching_percentage);
-        if (!topScores.length && Number.isFinite(overallScore) && overallScore < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD) {
+        if (
+            !topScores.length
+            && (
+                matchStatus === "no suitable role"
+                || roleScoreNeedsReview(overallScore, explicitNonItHeadline)
+            )
+        ) {
             return {
                 showExample: true,
-                reason: "no_related_cs_role",
-                targetRole: selectedRole || topRoleName || "Computer Science",
+                reason: "auto_no_suitable_role",
+                targetRole: String(roleRecommendation.fallback_sample_role || "Software Developer"),
                 score: overallScore,
-                threshold: CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+                threshold: reviewThreshold,
+                closestRole: roleRecommendation.closest_role || topRoleName,
+                selectionMode: "deterministic_fallback"
             };
         }
         return {
@@ -3148,9 +3232,9 @@ Download PDF
                     : Number(scoreValue);
                 const scoreText = Number.isFinite(score) ? Math.round(score) + "/100" : "below the example threshold";
                 const targetRole = payload.sample_target_role || payload.target_role || exampleDecision.targetRole || "the selected role";
-                const reasonText = payload.sample_reason_code === "selected_role_at_or_below_50"
+                const reasonText = ["selected_role_at_or_below_50", "selected_role_review_required"].includes(payload.sample_reason_code)
                     ? "the selected-role evidence score is " + scoreText
-                    : "no sufficiently related CS role was detected (best evidence score " + scoreText + ")";
+                    : "no suitable CS role was confirmed (closest evidence score " + scoreText + "); this fallback role is not a job recommendation";
                 setGeneratedResumeStatus(
                     targetRole + " example shown because " + reasonText +
                         ". It uses complete fictional details and does not rewrite the user's unrelated experience."
@@ -3251,6 +3335,12 @@ Download PDF
         const selectedDatabaseRole = roleRecommendation.selected_database_role || "";
         const recommendedRole = roleRecommendation.recommended_role || result.target_role || selectedRole || "selected role";
         const detectedRole = roleRecommendation.detected_database_role || "";
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation.match_status);
+        const humanReviewRequired = Boolean(roleRecommendation.human_review_required)
+            || matchStatus === "review required"
+            || matchStatus === "no suitable role";
+        const closestRole = roleRecommendation.closest_role || recommendedRole;
+        const fallbackSampleRole = roleRecommendation.fallback_sample_role || "";
         const roleReason = roleRecommendation.reason_summary || "";
         const roleIsDifferent = Boolean(roleRecommendation.is_different_from_selected);
         const roleMatchIsClose = Boolean(roleRecommendation.is_close_match);
@@ -3314,7 +3404,9 @@ Download PDF
         setText("submissionTimeDisplay", formatSubmittedTime(submittedAt));
         setText(
             "submissionRoleDisplay",
-            roleIsDifferent && selectedRole
+            matchStatus === "no suitable role"
+                ? "No suitable role confirmed"
+                : roleIsDifferent && selectedRole
                 ? recommendedRole + " (recommended over " + selectedRole + ")"
                 : (recommendedRole || selectedRole || "No role selected")
         );
@@ -3326,7 +3418,9 @@ Download PDF
 
         if (aiSummary) {
             if (guidanceContext.mode === "selectedRoleExample") {
-                aiSummary.textContent = "More verified evidence is needed for " + (guidanceContext.roleName || selectedRole || "the selected job") + ".";
+                aiSummary.textContent = "Review required: the resume does not sufficiently match " + (guidanceContext.roleName || selectedRole || "the selected job") + ".";
+            } else if (guidanceContext.mode === "autoNoSuitableRole") {
+                aiSummary.textContent = "No suitable CS role was confirmed. The closest evidence requires human review.";
             } else if (guidanceContext.mode === "autoDetectedRole") {
                 aiSummary.textContent = "Top detected role: " + (guidanceContext.roleName || recommendedRole) + ".";
             } else {
@@ -3338,7 +3432,9 @@ Download PDF
 
         if (aiRecommendation) {
             if (guidanceContext.mode === "selectedRoleExample") {
-                aiRecommendation.textContent = "Review the truthful Top 3 alternatives, or use the selected-field example as a learning guide and add only evidence you genuinely have.";
+                aiRecommendation.textContent = "Treat the result as NOT MATCH. Use the selected-field fictional example only as a learning guide and add only evidence you genuinely have.";
+            } else if (guidanceContext.mode === "autoNoSuitableRole") {
+                aiRecommendation.textContent = "Review the closest role cards manually. The fallback resume is a fictional learning example, not a job recommendation.";
             } else if (guidanceContext.mode === "autoDetectedRole") {
                 aiRecommendation.textContent = "Notes use the Top 1 detected role because no job was selected.";
             } else {
@@ -3358,12 +3454,18 @@ Download PDF
         if (guidanceContext.mode === "selectedRoleExample") {
             const selectedScoreText = Number.isFinite(guidanceContext.selectedMatchScore)
                 ? Math.round(guidanceContext.selectedMatchScore) + "/100"
-                : "50/100 or below";
-            setText("roleFitHeadline", "More Evidence Needed For " + (guidanceContext.roleName || selectedRole || "Selected Job"));
-            setText("roleRecommendationSummary", "Selected-role evidence is " + selectedScoreText + ". The truthful Top 3 alternatives remain visible, and the resume builder will show a separate example for the selected field instead of inventing experience.");
-            setText("roleDecisionBadge", "Selected evidence 50 or below");
+                : "below the review threshold";
+            setText("roleFitHeadline", "Review Required: Not a Match for " + (guidanceContext.roleName || selectedRole || "Selected Job"));
+            setText("roleRecommendationSummary", "Selected-role evidence is " + selectedScoreText + ". Treat this result as NOT MATCH. The resume builder will show a separate fictional example for the selected field instead of inventing experience.");
+            setText("roleDecisionBadge", "REVIEW REQUIRED · NOT MATCH");
             setText("topRoleMatchesTitle", "Top 3 Resume-Matched Roles");
-            setText("topRoleMatchesBadge", "Truthful alternatives");
+            setText("topRoleMatchesBadge", "Evidence comparisons");
+        } else if (guidanceContext.mode === "autoNoSuitableRole") {
+            setText("roleFitHeadline", "No Suitable CS Role Confirmed");
+            setText("roleRecommendationSummary", (roleReason || "The available evidence is below the safe recommendation threshold.") + " " + (closestRole ? closestRole + " is only the closest evidence comparison." : "Human review is required."));
+            setText("roleDecisionBadge", "REVIEW REQUIRED");
+            setText("topRoleMatchesTitle", "Top 3 Closest Evidence Comparisons");
+            setText("topRoleMatchesBadge", "Not recommendations");
         } else if (guidanceContext.mode === "autoDetectedRole") {
             setText("roleFitHeadline", "Top Detected Role: " + (guidanceContext.roleName || recommendedRole));
             setText("roleRecommendationSummary", "No job was selected, so examples and notes use the Top 1 detected role from the resume.");
@@ -3386,14 +3488,20 @@ Download PDF
         }
         setText("selectedChoiceDisplay", selectedRole || "No role selected");
         setText("selectedDatabaseRoleDisplay", selectedDatabaseRole ? "Database role: " + selectedDatabaseRole : "No selected database role was used.");
-        setText("recommendedRoleDisplay", recommendedRole);
+        setText("recommendedRoleDisplay", matchStatus === "no suitable role" ? "No suitable role confirmed" : recommendedRole);
         setText(
             "recommendedRoleReasonDisplay",
-            detectedRole && detectedRole !== recommendedRole
+            matchStatus === "no suitable role"
+                ? "Closest evidence only: " + (closestRole || "not available") + ". Human review required."
+                : detectedRole && detectedRole !== recommendedRole
                 ? "Closest resume-detected role: " + detectedRole
                 : "Used for the final readiness score."
         );
-        if (roleIsDifferent) {
+        if (humanReviewRequired) {
+            setText("selectedRoleScoreDisplay", selectedRole ? "Selected role requires review and is recorded as NOT MATCH." : "No job was selected; no suitable role was confirmed.");
+            setText("recommendedRoleReasonDisplay", "Closest evidence only: " + (closestRole || "not available") + ". This is not a confirmed recommendation.");
+            setText("recommendedRoleScoreDisplay", "Human review required before choosing a target role.");
+        } else if (roleIsDifferent) {
             setText("selectedRoleScoreDisplay", "You selected this role. The Top 3 list below shows why another database role matched stronger.");
             setText("recommendedRoleReasonDisplay", "Used for the final ATS score because the resume evidence matches this database role more strongly.");
             setText("recommendedRoleScoreDisplay", "Final comparison role used in this result.");
@@ -3404,13 +3512,14 @@ Download PDF
         }
         setText(
             "futureAtsResumeText",
-            exampleDecision.reason === "selected_role_low_match"
-                ? "Your Top 3 matches remain based on the uploaded resume. Because evidence for " +
-                    (exampleDecision.targetRole || "the selected role") + " is " + Math.round(exampleDecision.score) +
-                    "/100, the builder will show a clearly labelled example for that target field instead of inventing experience."
+            exampleDecision.reason === "selected_role_review_required"
+                ? "Your Top 3 matches remain evidence comparisons. Because evidence for " +
+                    (exampleDecision.targetRole || "the selected role") + " is " +
+                    (Number.isFinite(exampleDecision.score) ? Math.round(exampleDecision.score) + "/100" : "below the review threshold") +
+                    ", the builder will show a clearly labelled fictional example for that target field instead of inventing experience."
                 : sampleResumeOnly
-                    ? "No sufficiently related CS role was detected, so the builder will show a clearly labelled learning example instead of rewriting this resume as a CS resume."
-                : "Generate an ATS resume draft for " + recommendedRole + " using the missing keywords, score evidence, and feedback from this analysis."
+                    ? "No suitable CS role was confirmed. The builder will show a clearly labelled " + (fallbackSampleRole || exampleDecision.targetRole || "technology") + " fallback learning example; it is not a job recommendation."
+                    : "Generate an ATS resume draft for " + recommendedRole + " using the missing keywords, score evidence, and feedback from this analysis."
         );
         const generatorReadyMessage = sampleResumeOnly
             ? "Ready to show a fictional " + (exampleDecision.targetRole || "target-role") + " example. Your original analysis and Top 3 matches remain unchanged."
@@ -3435,7 +3544,7 @@ Download PDF
             "generatorInputInsight",
             sampleResumeOnly
                 ? "Example target: " + (exampleDecision.targetRole || "CS role") +
-                    ". The example uses complete fictional details and does not replace the truthful Top 3 analysis."
+                    ". The example uses complete fictional details, is not a confirmed job recommendation, and does not replace the truthful evidence comparison."
                 : "Generator input: " + recommendedRole + ", matched signals, missing keywords, and ATS feedback."
         );
 

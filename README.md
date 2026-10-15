@@ -9,7 +9,7 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 - Resume upload for text-based PDF files
 - Optional PNG/JPG resume-image OCR when Tesseract is installed
 - ATS-style resume score and score breakdown
-- CS job-role matching using MySQL job requirements
+- CS job-role matching using the configured database's job requirements
 - Top 3 recommended role matches
 - Matched keywords and missing keywords
 - Resume quality checks for skills, education, experience, and formatting
@@ -25,7 +25,7 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 
 - Python
 - Flask
-- MySQL 8.x
+- MySQL 8.x for the local setup below, or Supabase PostgreSQL for testing and hosting
 - scikit-learn
 - pypdf
 - Pillow
@@ -39,12 +39,14 @@ Users can upload a resume, choose a target role, view an ATS-style score, check 
 
 The current matcher is a transparent hybrid NLP and rule-based system. It does not call an external AI API and it is not a self-trained classifier or LLM.
 
-1. MySQL supplies the job roles, MASCO descriptions, requirement types, importance weights, and job requirements.
+1. The configured database supplies the job roles, MASCO descriptions, requirement types, importance weights, and job requirements.
 2. The resume and requirements are normalized using skill aliases, word-form rules, and a curated set of related terms.
 3. TF-IDF measures lexical text similarity between the resume and each requirement/job description.
-4. Weighted requirement coverage, role-family evidence, title evidence, experience, education, and ATS-format checks are combined into the displayed scores.
+4. For automatic role ranking, base requirement fit contributes 55%, role-specific evidence contributes 10%, and dated employment-title relevance contributes 35%. When no dated employment title can be parsed, the available requirement and role-evidence components are renormalized instead of treating the missing title as a mismatch. The separate ATS-readiness score also considers experience, education, and document quality.
 
-Repeated keywords do not earn repeated requirement points, and TF-IDF uses binary term frequency so keyword stuffing cannot raise the lexical score simply by copying the same word many times. Clearly negated claims such as `no experience with Python` are not accepted as positive skill evidence. When a dated work entry can be parsed confidently, title relevance uses the most recent title instead of an older role elsewhere in the resume.
+Repeated keywords do not earn repeated requirement points, and TF-IDF uses binary term frequency so keyword stuffing cannot raise the lexical score simply by copying the same word many times. Clearly negated claims such as `no experience with Python` are not accepted as positive skill evidence. Dated employment titles are evaluated as career evidence: the most recent receives full title credit and each older entry receives 85% of the credit available to the entry before it. Only an exact current-title match can activate the existing exact-title confidence floor.
+
+Automatic role ranking also has a conservative human-review gate. Any closest-role score below 20 is reported as `NO SUITABLE ROLE`. When a prominent resume headline is explicitly from a non-IT field, the review threshold is 35; this stops resumes such as pharmacist or football-coach profiles from being presented as confirmed CS matches while preserving genuine titleless junior-IT resumes around the same score range. For an unrelated resume with a selected job, the result is `REVIEW REQUIRED / NOT MATCH` and the resume builder offers a clearly labelled fictional example for that selected job. With no selected job, it offers a deterministic fallback example from the supported CS sample families and clearly states that the fallback is not a job recommendation.
 
 Employment date ranges are currently advisory metadata. The application can report the total non-overlapping months it recognized, but it does not filter a candidate by duration because the job database has no structured `minimum_experience_months` field. Skill evidence is also not yet awarded with a universal “2 points in experience, 1 point in skills” rule; adding that rule safely requires reliable section-level parsing and evaluation against human-labelled resumes.
 
@@ -94,10 +96,12 @@ Training a model from scratch is not required. A future semantic upgrade can use
 Install these before running the project:
 
 - Python 3.10 or newer
-- MySQL 8.x
+- MySQL 8.x for the local setup below, or a Supabase PostgreSQL project
 - Git
 - Node.js 18 or newer and npm (for the Tailwind CSS build)
 - Tesseract OCR, optional, only needed for PNG/JPG resume-image OCR
+
+For a fresh Supabase PostgreSQL database and Railway hosting, use [DEPLOY_SUPABASE.md](DEPLOY_SUPABASE.md).
 
 ## Setup
 
@@ -254,7 +258,7 @@ The workbook contains the two original selected-role cases, seven professional a
 
 The summary reports selected-role accuracy and auto-detect exact-role accuracy separately. These are pilot test-set results, not proof of accuracy for all users or all roles. Every counted row needs independent ground truth prepared before the system result is viewed.
 
-Earlier workbook layouts are retained under `outputs/accuracy_evaluation/archive`; do not use them for current tests.
+The `outputs/accuracy_evaluation` folder retains only the live accuracy workbook and its eight named ATS test PDFs; obsolete workbook layouts are not used for current tests. Other evaluation artifacts are kept in their own purpose-specific subfolders under `outputs`.
 
 Automatic workbook export defaults to off, requires the explicit local setting `ACCURACY_TESTING_AUTO_EXPORT=1`, and is always disabled when `APP_ENV=production`. A hosted deployment therefore does not write evaluation data to a local Excel file.
 
@@ -397,15 +401,17 @@ All responses receive a Content Security Policy, clickjacking protection, MIME-s
 
 ## Important Database Note
 
+For a fresh Supabase PostgreSQL testing database and a Flask deployment on Railway, follow [DEPLOY_SUPABASE.md](DEPLOY_SUPABASE.md). The MySQL settings below apply when `DATABASE_URL` is absent.
+
 When running locally, this setting means the app connects to MySQL on your own computer:
 
 ```text
 MYSQL_HOST=127.0.0.1
 ```
 
-After hosting the Flask app online, `127.0.0.1` means the hosting server, not your laptop. If the hosted app needs to work when your laptop is off, use a cloud MySQL database and set the cloud database connection values in the hosting platform.
+After hosting the Flask app online, `127.0.0.1` means the hosting server, not your laptop. If the hosted app needs to work when your laptop is off, use a hosted database and set its connection values in the hosting platform.
 
-The application loads the public job catalogue with two queries, groups requirements by role in memory, and reuses a process-local snapshot for later analyses. A successful administrator job-data cleaning operation invalidates that snapshot immediately. The documented one-worker Gunicorn command keeps this behavior consistent; if you later add multiple workers, restart all workers after catalogue changes or add a shared cache-version signal so every worker refreshes. Seed imports or direct SQL changes made while the app is running also require an app restart. Each worker owns its own MySQL connection pool.
+The application loads the public job catalogue with two queries, groups requirements by role in memory, and reuses a process-local snapshot for later analyses. A successful administrator job-data cleaning operation invalidates that snapshot immediately. The documented one-worker Gunicorn command keeps this behavior consistent; if you later add multiple workers, restart all workers after catalogue changes or add a shared cache-version signal so every worker refreshes. Seed imports or direct SQL changes made while the app is running also require an app restart. Each worker owns its own database connection pool.
 
 For a hosted Flask deployment, run the commands from the project root so that the CSS and Python application are both built:
 

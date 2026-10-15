@@ -119,6 +119,127 @@ class AnalysisScoringTests(unittest.TestCase):
         self.assertEqual(app_module.extract_most_recent_job_title(text), "IT Technician")
         self.assertEqual(app_module.get_total_employment_months(entries), 12)
 
+    def test_career_title_match_credits_relevant_previous_dated_role(self):
+        text = """
+        PROFESSIONAL EXPERIENCE
+        SAINS, Kuching, Sarawak Jan 2023 - June 2023
+        Full-Stack Developer Intern
+        Developed and tested a responsive web application.
+
+        New Century, Sarikei, Sarawak July 2023 - Dec 2023
+        IT Technician
+        Troubleshot hardware and infrastructure issues.
+        """
+
+        result = app_module.compute_career_role_title_match(
+            text,
+            "Full Stack Developer",
+        )
+
+        self.assertTrue(result["available"])
+        self.assertEqual(result["most_recent_title"], "IT Technician")
+        self.assertEqual(result["matched_title"], "Full-Stack Developer Intern")
+        self.assertFalse(result["matched_title_is_current"])
+        self.assertFalse(result["exact_current_title_match"])
+        self.assertEqual(result["score"], 85.0)
+
+    def test_explicit_non_it_headline_is_negative_title_evidence(self):
+        text = """
+        STAFF PHARMACIST   PROFESSIONAL SUMMARY
+        Licensed pharmacist experienced in dispensing medication and counselling patients.
+        """
+
+        headline = app_module.extract_explicit_resume_headline(text)
+        result = app_module.compute_career_role_title_match(
+            text,
+            "Software Developer",
+        )
+
+        self.assertEqual(headline, "Staff Pharmacist")
+        self.assertTrue(app_module.is_explicit_non_it_resume_headline(headline))
+        self.assertTrue(result["available"])
+        self.assertEqual(result["score"], 0.0)
+        self.assertEqual(result["most_recent_title"], "Staff Pharmacist")
+        self.assertEqual(result["signal_source"], "non_it_headline")
+        self.assertTrue(result["explicit_non_it_headline"])
+
+    def test_non_it_headline_detection_supports_other_professional_titles(self):
+        text = """
+        ASSISTANT FOOTBALL COACH   PROFILE
+        Supported player development, training sessions, and match preparation.
+        """
+
+        headline = app_module.extract_explicit_resume_headline(text)
+
+        self.assertEqual(headline, "Assistant Football Coach")
+        self.assertTrue(app_module.is_explicit_non_it_resume_headline(headline))
+
+    def test_non_it_headline_survives_whitespace_collapsing(self):
+        cleaned = app_module.clean_resume_source_text(
+            "         STAFF PHARMACIST       Summary     "
+            "Patient counselling and medication dispensing."
+        )
+
+        headline = app_module.extract_explicit_resume_headline(cleaned)
+        result = app_module.compute_career_role_title_match(
+            cleaned,
+            "Software Developer",
+        )
+
+        self.assertEqual(headline, "Staff Pharmacist")
+        self.assertEqual(result["signal_source"], "non_it_headline")
+        self.assertTrue(result["explicit_non_it_headline"])
+
+    def test_non_it_headline_flag_is_kept_with_dated_employment(self):
+        text = (
+            "STAFF PHARMACIST Summary Patient counselling and medication dispensing."
+        )
+        employment_entries = [
+            {
+                "title": "Staff Pharmacist",
+                "start": app_module.datetime(2022, 1, 1),
+                "end": app_module.datetime(2024, 1, 1),
+            }
+        ]
+
+        result = app_module.compute_career_role_title_match(
+            text,
+            "Software Developer",
+            employment_entries,
+        )
+
+        self.assertEqual(result["signal_source"], "employment_title")
+        self.assertTrue(result["explicit_non_it_headline"])
+        self.assertEqual(result["non_it_headline"], "Staff Pharmacist")
+
+    def test_candidate_name_and_ordinary_summary_are_not_job_headlines(self):
+        name_first = """
+        NGU MING HENN
+        PROFESSIONAL SUMMARY
+        Computer Science student with Python and web application projects.
+        """
+        ordinary_summary = """
+        PROFESSIONAL SUMMARY
+        Software developer with Python and testing projects.
+        """
+
+        self.assertEqual(app_module.extract_explicit_resume_headline(name_first), "")
+        self.assertEqual(app_module.extract_explicit_resume_headline(ordinary_summary), "")
+
+    def test_technical_headline_does_not_trigger_non_it_penalty(self):
+        text = """
+        SOFTWARE DEVELOPER   PROFESSIONAL SUMMARY
+        Built Python APIs and tested web applications.
+        """
+
+        headline = app_module.extract_explicit_resume_headline(text)
+        result = app_module.compute_career_role_title_match(text, "Software Developer")
+
+        self.assertEqual(headline, "Software Developer")
+        self.assertFalse(app_module.is_explicit_non_it_resume_headline(headline))
+        self.assertFalse(result["available"])
+        self.assertEqual(result["signal_source"], "unavailable")
+
     def test_skills_heading_and_optional_profile_link_are_not_false_warnings(self):
         filler = " ".join(
             ["Documented operational procedures and prepared clear team reports for service delivery."] * 35
@@ -230,11 +351,64 @@ class AnalysisScoringTests(unittest.TestCase):
 
         self.assertLess(score, 70)
 
+    def test_role_specific_software_evidence_does_not_saturate_every_role(self):
+        text = (
+            "Built a React HTML frontend and Flask backend; integrated a REST API, "
+            "MySQL, authentication, and Docker deployment."
+        )
+
+        programmer = app_module.compute_role_evidence_score(text, "Computer Programmer", [])
+        developer = app_module.compute_role_evidence_score(text, "Software Developer", [])
+        designer = app_module.compute_role_evidence_score(text, "Software Designer", [])
+        full_stack = app_module.compute_role_evidence_score(text, "Full Stack Developer", [])
+
+        self.assertEqual(programmer, 36.0)
+        self.assertEqual(developer, 60.0)
+        self.assertEqual(designer, 15.0)
+        self.assertEqual(full_stack, 90.0)
+        self.assertGreater(full_stack, developer)
+        self.assertGreater(developer, designer)
+
+    def test_unrelated_business_impact_does_not_boost_technical_role_evidence(self):
+        technical_text = (
+            "Built a React HTML frontend and Flask backend; integrated a REST API, "
+            "MySQL, authentication, and Docker deployment."
+        )
+        unrelated_impact_text = technical_text + " Increased retail sales by 30%."
+
+        baseline = app_module.compute_role_evidence_score(
+            technical_text,
+            "Full Stack Developer",
+            [],
+        )
+        with_unrelated_impact = app_module.compute_role_evidence_score(
+            unrelated_impact_text,
+            "Full Stack Developer",
+            [],
+        )
+
+        self.assertEqual(baseline, 90.0)
+        self.assertEqual(with_unrelated_impact, baseline)
+
+    def test_specific_frameworks_require_direct_resume_evidence(self):
+        text = "Built a Java backend server with a React frontend and deployed the application."
+        tokens = set(app_module.tokenize_canonical_keywords(text))
+
+        self.assertFalse(app_module.keyword_matches_resume(".NET", text, tokens))
+        self.assertFalse(app_module.keyword_matches_resume("jQuery", text, tokens))
+        self.assertFalse(app_module.keyword_matches_resume("Tomcat", text, tokens))
+        self.assertTrue(app_module.keyword_matches_resume("Java", text, tokens))
+
     def test_exact_recent_title_outranks_unrelated_historical_evidence(self):
         current_title_role = app_module.compute_database_role_confidence_score(32.78, 50, 100, True)
         old_testing_role = app_module.compute_database_role_confidence_score(44.2, 98, 5.22, False)
 
         self.assertGreater(current_title_role, old_testing_role)
+
+    def test_current_exact_title_keeps_evidence_gated_confidence_floor(self):
+        score = app_module.compute_database_role_confidence_score(44.2, 98, 100, True)
+
+        self.assertEqual(score, 82.0)
 
     def test_missing_parsed_title_renormalizes_available_role_evidence(self):
         unavailable_title_score = app_module.compute_database_role_confidence_score(
@@ -252,8 +426,8 @@ class AnalysisScoringTests(unittest.TestCase):
             True,
         )
 
-        self.assertEqual(unavailable_title_score, 58.55)
-        self.assertEqual(mismatched_title_score, 43.91)
+        self.assertEqual(unavailable_title_score, 52.48)
+        self.assertEqual(mismatched_title_score, 34.11)
 
     def test_role_ranking_distinguishes_unavailable_title_from_mismatched_title(self):
         role = {"id": 1, "role_name": "Software Developer"}
@@ -274,9 +448,178 @@ class AnalysisScoringTests(unittest.TestCase):
             )[0]
 
         self.assertFalse(unavailable["title_match_available"])
-        self.assertEqual(unavailable["confidence_score"], 58.55)
+        self.assertEqual(unavailable["confidence_score"], 52.48)
         self.assertTrue(mismatched["title_match_available"])
         self.assertLess(mismatched["confidence_score"], unavailable["confidence_score"])
+
+    def test_selected_role_calibration_uses_career_title_evidence(self):
+        text = """
+        PROFESSIONAL EXPERIENCE
+        Example Company Jan 2023 - Jun 2023
+        Full-Stack Developer Intern
+        Built web applications.
+        Service Company Jul 2023 - Dec 2023
+        IT Technician
+        Supported infrastructure.
+        """
+        job_match = {"role": {"role_name": "Full Stack Developer"}}
+        fit_result = {"combined_score": 40.0, "important_keywords": []}
+
+        with patch.object(app_module, "compute_role_evidence_score", return_value=50.0):
+            score = app_module.get_calibrated_job_fit_score(text, job_match, fit_result)
+
+        self.assertEqual(score, 56.75)
+
+    def test_selected_non_it_resume_below_35_requires_review(self):
+        selected_job = {"role": {"role_name": "Software Developer"}}
+        ranked_matches = [
+            {
+                "role": {"role_name": "Software Developer"},
+                "confidence_score": 34.99,
+                "fit_result": {"combined_score": 40.0},
+                "title_match_source": "non_it_headline",
+                "title_match_title": "Staff Pharmacist",
+                "explicit_non_it_headline": True,
+            }
+        ]
+
+        recommendation = app_module.build_role_recommendation(
+            "Software Developer",
+            selected_job,
+            selected_job,
+            selected_job,
+            {"combined_score": 40.0},
+            {"combined_score": 40.0},
+            ranked_matches,
+        )
+
+        self.assertEqual(recommendation["match_status"], "review_required")
+        self.assertTrue(recommendation["human_review_required"])
+        self.assertEqual(recommendation["review_threshold"], 35.0)
+        self.assertEqual(recommendation["non_it_headline"], "Staff Pharmacist")
+        self.assertIn("REVIEW REQUIRED", recommendation["reason_summary"])
+
+    def test_auto_non_it_resume_below_35_has_no_suitable_role(self):
+        detected_job = {"role": {"role_name": "Software Developer"}}
+        ranked_matches = [
+            {
+                "role": {"role_name": "Software Developer"},
+                "confidence_score": 34.99,
+                "fit_result": {"combined_score": 40.0},
+                "title_match_source": "non_it_headline",
+                "title_match_title": "Assistant Football Coach",
+                "explicit_non_it_headline": True,
+            }
+        ]
+
+        recommendation = app_module.build_role_recommendation(
+            "",
+            None,
+            detected_job,
+            detected_job,
+            None,
+            {"combined_score": 40.0},
+            ranked_matches,
+        )
+
+        self.assertEqual(recommendation["match_status"], "no_suitable_role")
+        self.assertTrue(recommendation["human_review_required"])
+        self.assertEqual(recommendation["closest_role"], "Software Developer")
+        self.assertEqual(recommendation["closest_role_score"], 34.99)
+        self.assertIn("not a confirmed recommendation", recommendation["reason_summary"])
+
+    def test_universal_below_20_rule_does_not_need_non_it_headline(self):
+        detected_job = {"role": {"role_name": "Software Developer"}}
+        ranked_matches = [
+            {
+                "role": {"role_name": "Software Developer"},
+                "confidence_score": 19.99,
+                "fit_result": {"combined_score": 19.99},
+            }
+        ]
+
+        recommendation = app_module.build_role_recommendation(
+            "",
+            None,
+            detected_job,
+            detected_job,
+            None,
+            {"combined_score": 19.99},
+            ranked_matches,
+        )
+
+        self.assertEqual(recommendation["match_status"], "no_suitable_role")
+        self.assertEqual(recommendation["review_threshold"], 20.0)
+
+    def test_genuine_low_it_evidence_at_or_above_20_remains_a_match(self):
+        detected_job = {"role": {"role_name": "Software Developer"}}
+        ranked_matches = [
+            {
+                "role": {"role_name": "Software Developer"},
+                "confidence_score": 20.0,
+                "fit_result": {"combined_score": 20.0},
+                "title_match_source": "unavailable",
+                "explicit_non_it_headline": False,
+            }
+        ]
+
+        recommendation = app_module.build_role_recommendation(
+            "",
+            None,
+            detected_job,
+            detected_job,
+            None,
+            {"combined_score": 20.0},
+            ranked_matches,
+        )
+
+        self.assertEqual(recommendation["match_status"], "matched")
+        self.assertFalse(recommendation["human_review_required"])
+        self.assertEqual(recommendation["review_threshold"], 20.0)
+
+    def test_top_role_reason_uses_neutral_evidence_wording(self):
+        items = app_module.build_top_role_match_items(
+            [
+                {
+                    "role": {"role_name": "Software Developer"},
+                    "confidence_score": 48.43,
+                    "fit_result": {
+                        "matched_keywords": ["software", "develop"],
+                        "missing_keywords": ["debug"],
+                    },
+                }
+            ],
+            "",
+            "Software Developer",
+        )
+
+        self.assertEqual(items[0]["confidence_label"], "Moderate evidence")
+        self.assertTrue(items[0]["reason"].startswith("Evidence found:"))
+        self.assertNotIn("Strong evidence:", items[0]["reason"])
+
+    def test_top_role_score_display_keeps_one_decimal_near_label_thresholds(self):
+        frontend = (BACKEND_DIR.parent / "frontend" / "analysis_result.html").read_text(
+            encoding="utf-8"
+        )
+        renderer = frontend.split("function renderTopRoleMatches", 1)[1].split(
+            "function ",
+            1,
+        )[0]
+
+        self.assertIn("Math.round(score * 10) / 10", renderer)
+        self.assertNotIn('Math.round(score) + "/100"', renderer)
+
+    def test_frontend_uses_backend_review_status_without_blanket_50_gate(self):
+        frontend = (BACKEND_DIR.parent / "frontend" / "analysis_result.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('matchStatus === "review required"', frontend)
+        self.assertIn('matchStatus === "no suitable role"', frontend)
+        self.assertIn('mode = "autoNoSuitableRole"', frontend)
+        self.assertIn("No Suitable CS Role Confirmed", frontend)
+        self.assertIn("Closest evidence only", frontend)
+        self.assertNotIn("SELECTED_ROLE_EXAMPLE_THRESHOLD", frontend)
 
     def test_unrecognized_work_dates_are_an_advisory_quality_warning(self):
         text = """

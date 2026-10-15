@@ -120,10 +120,13 @@ styleTitle(
 );
 const methodRows = [
   ["Item", "Definition"],
-  ["Report date", "2026-10-08 (Asia/Kuala_Lumpur)"],
+  ["Report date", "2026-10-09 (Asia/Kuala_Lumpur)"],
   ["Corpus", "120 INFORMATION-TECHNOLOGY CSV resumes plus 85 PDFs from Resume_template; 205 total sources."],
   ["Production run", "Every source was ranked against all 95 database roles using backend/app.py. No analysis history or user database records were written."],
+  ["Scoring version", (summaryData.role_ranking_versions || ["unknown"]).join(", ")],
   ["Recommendation score", "Evidence-ranking score used to order roles. It is not a hiring probability, ATS readiness score, or calibrated accuracy percentage."],
+  ["Score composition", "55% base requirement fit, 10% role-specific evidence and 35% dated employment-title relevance. If no dated title is available, the 35% is redistributed across the 55:10 evidence components."],
+  ["Career-title rule", "The current dated title receives full title credit; each older dated title receives 85% of the credit available to the entry before it. Only an exact current-title match can activate an exact-title confidence floor."],
   ["Validated benchmark", "78 synthetic templates with independent mapped acceptable roles derived from their source folders and file content."],
   ["Provisional benchmark", "Real resumes and CSV source-title/family labels. These results are useful diagnostics but are not a final human-reviewed accuracy claim."],
   ["Top-1 / Top-3", "PASS when at least one independently acceptable role appears first or within the first three recommendations."],
@@ -131,7 +134,7 @@ const methodRows = [
   ["Excluded documents", "Two bad_resume PDFs are instructional packs containing several people, so they remain in run coverage but not role accuracy."],
   ["CSV title limitation", "The structured HTML contains job titles, but Resume_str lost layout. The production dated-employment parser found a title in 0 of 120 CSV rows."],
   ["PDF OCR limitation", "resume3.pdf is image-only and produced no extractable text. The PDF path does not perform OCR, so its role result is marked as an extraction failure."],
-  ["No-match limitation", "All six out-of-domain controls received an IT recommendation above the current <20 low-signal threshold. The system needs a calibrated reject/no-match gate."],
+  ["No-match gate", "Scores below 20 require human review. A prominent non-IT professional headline uses a 35-point review threshold. The closest role remains visible as evidence only and is not a confirmed recommendation."],
   ["Human review", "Select a confirmed expected role on Review Queue. Rank, score and review result then calculate from the stored 95-role ranking without rerunning."],
 ];
 writeMatrix(method, 5, 0, methodRows);
@@ -183,14 +186,15 @@ method.freezePanes.freezeRows(5);
 // All stored role rankings (205 x 95) support later human validation without a rerun.
 styleTitle(
   allRankings,
-  "M",
+  "R",
   "All stored role rankings",
   "Each resume has one row for every database role. Recommendation Score ranks roles; component scores explain the result.",
 );
 const rankingHeaders = [
   "Source Key", "Source Group", "Resume / File", "Rank", "Role Name", "Recommendation Score",
   "Base Fit", "Role Evidence", "Title Match", "Title Signal Available", "Exact Title Match",
-  "Keyword Overlap", "TF-IDF Similarity",
+  "Keyword Overlap", "TF-IDF Similarity", "Matched Employment Title", "Title Source",
+  "Explicit Non-IT Headline", "Non-IT Headline", "Scoring Version",
 ];
 writeMatrix(allRankings, 5, 0, [rankingHeaders]);
 const rankingValues = rankings.map((row) => [
@@ -207,17 +211,23 @@ const rankingValues = rankings.map((row) => [
   row.exact_title_match,
   row.keyword_overlap_score,
   row.similarity_score,
+  row.title_match_title,
+  row.title_match_source,
+  row.explicit_non_it_headline,
+  row.non_it_headline,
+  row.role_ranking_version,
 ]);
 writeMatrix(allRankings, 6, 0, rankingValues);
 const rankingLastRow = 5 + rankingValues.length;
-styleHeader(allRankings.getRange("A5:M5"));
-styleBody(allRankings.getRange(`A6:M${rankingLastRow}`));
+styleHeader(allRankings.getRange("A5:R5"));
+styleBody(allRankings.getRange(`A6:R${rankingLastRow}`));
 allRankings.getRange(`D6:D${rankingLastRow}`).format.numberFormat = "0";
 allRankings.getRange(`F6:I${rankingLastRow}`).format.numberFormat = "0.00";
 allRankings.getRange(`L6:M${rankingLastRow}`).format.numberFormat = "0.00";
 allRankings.getRange(`J6:K${rankingLastRow}`).format.horizontalAlignment = "center";
-allRankings.tables.add(`A5:M${rankingLastRow}`, true, "AllRankingsTable").style = "TableStyleMedium2";
-const rankingWidths = [26, 20, 42, 8, 50, 18, 13, 14, 13, 18, 15, 16, 16];
+allRankings.getRange(`P6:P${rankingLastRow}`).format.horizontalAlignment = "center";
+allRankings.tables.add(`A5:R${rankingLastRow}`, true, "AllRankingsTable").style = "TableStyleMedium2";
+const rankingWidths = [26, 20, 42, 8, 50, 18, 13, 14, 13, 18, 15, 16, 16, 44, 14, 20, 34, 14];
 rankingWidths.forEach((width, index) => setColumnWidth(allRankings, colLetter(index), width, rankingLastRow));
 allRankings.freezePanes.freezeRows(5);
 allRankings.freezePanes.freezeColumns(1);
@@ -225,7 +235,7 @@ allRankings.freezePanes.freezeColumns(1);
 // Main one-row-per-source audit table.
 styleTitle(
   allResults,
-  "AK",
+  "AS",
   "All resume results",
   "All 205 sources are present. Accuracy fields use independent labels; unlabelled rows stay in human review instead of being auto-approved.",
 );
@@ -237,6 +247,8 @@ const resultHeaders = [
   "Outcome", "Parsed Recent Job Title", "Title Signal Available", "Base Fit", "Role Evidence", "Title Match",
   "Top 1 Margin", "Duplicate Group", "Duplicate Copy", "Label Note", "Human Expected Role", "Human Review Status",
   "Human Notes",
+  "Scoring Version", "Top 1 Matched Employment Title", "Top 1 Title Source",
+  "Explicit Non-IT Headline", "Non-IT Headline", "Review Threshold", "Human Review Required", "System Disposition",
 ];
 writeMatrix(allResults, 5, 0, [resultHeaders]);
 const resultValues = rows.map((row) => [
@@ -277,11 +289,19 @@ const resultValues = rows.map((row) => [
   "",
   "UNREVIEWED",
   "",
+  row.role_ranking_version,
+  row.top1_title_match_title,
+  row.top1_title_match_source,
+  row.top1_explicit_non_it_headline,
+  row.top1_non_it_headline,
+  row.review_threshold,
+  row.human_review_required,
+  row.system_disposition,
 ]);
 writeMatrix(allResults, 6, 0, resultValues);
 const resultsLastRow = 5 + resultValues.length;
-styleHeader(allResults.getRange("A5:AK5"));
-styleBody(allResults.getRange(`A6:AK${resultsLastRow}`));
+styleHeader(allResults.getRange("A5:AS5"));
+styleBody(allResults.getRange(`A6:AS${resultsLastRow}`));
 allResults.getRange(`Q6:Q${resultsLastRow}`).format.numberFormat = "0.00";
 allResults.getRange(`S6:S${resultsLastRow}`).format.numberFormat = "0.00";
 allResults.getRange(`U6:U${resultsLastRow}`).format.numberFormat = "0.00";
@@ -291,6 +311,9 @@ allResults.getRange(`AB6:AE${resultsLastRow}`).format.numberFormat = "0.00";
 allResults.getRange(`I6:J${resultsLastRow}`).format.numberFormat = "0";
 allResults.getRange(`AA6:AA${resultsLastRow}`).format.horizontalAlignment = "center";
 allResults.getRange(`AG6:AG${resultsLastRow}`).format.horizontalAlignment = "center";
+allResults.getRange(`AO6:AO${resultsLastRow}`).format.horizontalAlignment = "center";
+allResults.getRange(`AQ6:AQ${resultsLastRow}`).format.numberFormat = "0";
+allResults.getRange(`AR6:AR${resultsLastRow}`).format.horizontalAlignment = "center";
 allResults.getRange(`AI6:AK${resultsLastRow}`).format.fill = colors.paleAmber;
 allResults.getRange(`AI6:AI${resultsLastRow}`).dataValidation = {
   rule: { type: "list", formula1: `'Method & Roles'!$J$6:$J$${5 + roleList.length}` },
@@ -306,22 +329,27 @@ allResults.getRange(`Y6:Y${resultsLastRow}`).conditionalFormats.add("containsTex
   text: "PASS",
   format: { fill: colors.paleGreen, font: { color: colors.green, bold: true } },
 });
-for (const warning of ["MISS", "FAILED", "FORCED"]) {
+for (const warning of ["MISS", "FAILED", "FORCED", "FALSE ROLE"]) {
   allResults.getRange(`Y6:Y${resultsLastRow}`).conditionalFormats.add("containsText", {
     text: warning,
     format: { fill: colors.paleRed, font: { color: colors.red, bold: true } },
   });
 }
-for (const pending of ["HUMAN", "UNREVIEWED"]) {
+for (const pending of ["HUMAN", "UNREVIEWED", "NO SUITABLE"]) {
   allResults.getRange(`Y6:Y${resultsLastRow}`).conditionalFormats.add("containsText", {
     text: pending,
     format: { fill: colors.paleAmber, font: { color: colors.amber, bold: true } },
   });
 }
-allResults.tables.add(`A5:AK${resultsLastRow}`, true, "AllResultsTable").style = "TableStyleMedium2";
+allResults.getRange(`AS6:AS${resultsLastRow}`).conditionalFormats.add("containsText", {
+  text: "NO SUITABLE ROLE",
+  format: { fill: colors.paleAmber, font: { color: colors.amber, bold: true } },
+});
+allResults.tables.add(`A5:AS${resultsLastRow}`, true, "AllResultsTable").style = "TableStyleMedium2";
 const resultWidths = [
   30, 20, 17, 22, 45, 44, 13, 27, 8, 10, 27, 16, 24, 45, 80, 46, 13, 46, 13,
-  46, 13, 18, 46, 18, 22, 44, 18, 12, 14, 12, 13, 16, 14, 62, 46, 20, 55,
+  46, 13, 18, 46, 18, 22, 44, 18, 12, 14, 12, 13, 16, 14, 62, 46, 20, 55, 14, 44, 14,
+  20, 34, 16, 18, 24,
 ];
 resultWidths.forEach((width, index) => setColumnWidth(allResults, colLetter(index), width, resultsLastRow));
 allResults.getRange(`M6:O${resultsLastRow}`).format.wrapText = true;
@@ -528,11 +556,17 @@ summary.getRange("H9:Q9").format = {
   font: { name: font, size: 10, bold: true, color: colors.white },
   verticalAlignment: "center",
 };
+const negativeScores = summaryData.negative_control_top1_scores || [];
+const negativeRange = negativeScores.length
+  ? `${Math.min(...negativeScores).toFixed(1)} to ${Math.max(...negativeScores).toFixed(1)}`
+  : "not available";
+const csvExactCases = summaryData.provisional_csv_exact?.cases || 0;
+const csvExactTop3 = summaryData.provisional_csv_exact?.top3_passes || 0;
 const findingTexts = [
   `Mapped templates: ${Math.round(summaryData.validated_template_raw.top1_accuracy * 1000) / 10}% Top-1 and ${Math.round(summaryData.validated_template_raw.top3_accuracy * 1000) / 10}% Top-3.`,
-  "DevOps / IT operations is the weakest template group: 1 of 6 Top-1 and 1 of 6 Top-3, driven by missing literal catalog roles.",
-  "CSV title structure was lost: the parser found 0 of 120 current titles, and all 5 exact source-title cases missed the Top 3.",
-  `All 6 out-of-domain controls still received an IT recommendation (${Math.min(...summaryData.negative_control_top1_scores).toFixed(1)} to ${Math.max(...summaryData.negative_control_top1_scores).toFixed(1)}).`,
+  `Unique mapped templates: ${Math.round(summaryData.validated_template_unique.top1_accuracy * 1000) / 10}% Top-1 and ${Math.round(summaryData.validated_template_unique.top3_accuracy * 1000) / 10}% Top-3 after duplicate copies are removed.`,
+  `CSV title structure was lost: the production parser found ${summaryData.csv_title_parser_available} of ${summaryData.csv_sources} dated current titles; ${csvExactTop3} of ${csvExactCases} exact source-title cases reached the Top 3.`,
+  `${summaryData.negative_controls_review_required} of ${summaryData.negative_control_cases} out-of-domain controls now return NO SUITABLE ROLE; closest-role evidence range ${negativeRange}.`,
   "One image-only PDF had no extractable text. PDF OCR is not implemented in the current upload path.",
   "Recommendation Score ranks evidence. It should not be read as a hiring probability or a validated accuracy percentage.",
 ];
@@ -541,7 +575,7 @@ findingTexts.forEach((finding, index) => {
   summary.mergeCells(`H${rowNumber}:Q${rowNumber}`);
   summary.getRange(`H${rowNumber}`).values = [[finding]];
   summary.getRange(`H${rowNumber}:Q${rowNumber}`).format = {
-    fill: index === 2 || index === 3 || index === 4 ? colors.paleAmber : colors.gray100,
+    fill: index === 3 ? colors.paleGreen : (index === 2 || index === 4 ? colors.paleAmber : colors.gray100),
     font: { name: font, size: 10, color: colors.gray900 },
     wrapText: true,
     verticalAlignment: "center",
@@ -613,9 +647,9 @@ if (chart.series.items.length >= 2) {
 
 summary.getRange("A34:G37").values = [
   ["Coverage checks", "Value", "Meaning", null, null, null, null],
-  ["PDF pages above one", summaryData.pdf_mult_page, "All pages were extracted; four PDFs contain more than one page.", null, null, null, null],
-  ["CSV titles parsed by production", summaryData.csv_title_parser_available, "0 of 120 because the plain-text dataset lost dated employment layout.", null, null, null, null],
-  ["Out-of-domain controls below score 20", summaryData.negative_controls_below_20, "0 of 6; every control received a role recommendation above the low-signal threshold.", null, null, null, null],
+  ["PDF pages above one", summaryData.pdf_mult_page, "Every extractable PDF page was processed; this value counts multi-page PDF sources.", null, null, null, null],
+  ["CSV titles parsed by production", summaryData.csv_title_parser_available, `${summaryData.csv_title_parser_available} of ${summaryData.csv_sources}; the plain-text dataset generally loses dated employment layout.`, null, null, null, null],
+  ["Out-of-domain controls sent to review", summaryData.negative_controls_review_required, `${summaryData.negative_controls_review_required} of ${summaryData.negative_control_cases} return NO SUITABLE ROLE under the version 2.2 review gate.`, null, null, null, null],
 ];
 summary.mergeCells("C34:G34");
 for (const rowNumber of [35, 36, 37]) {
@@ -644,6 +678,25 @@ for (const column of ["H", "I", "J", "K", "L", "M", "N", "O", "P", "Q"]) {
 // One final calculation precedes all final inspection, rendering, and export.
 workbook.recalculate();
 
+// Verify the editable review workflow in memory, then restore the delivered
+// row to UNREVIEWED before the final calculation and export.
+const reviewWorkflowRole = reviewRows[0]?.top1_role || "";
+reviewQueue.getRange("F6").values = [[reviewWorkflowRole]];
+workbook.recalculate();
+const reviewWorkflowValues = reviewQueue.getRange("F6:I6").values[0];
+if (
+  Number(reviewWorkflowValues[1]) !== 1
+  || Math.abs(Number(reviewWorkflowValues[2]) - Number(reviewRows[0]?.top1_score || 0)) > 0.01
+  || String(reviewWorkflowValues[3]) !== "PASS TOP 1"
+) {
+  throw new Error(`Review Queue recalc test failed: ${JSON.stringify(reviewWorkflowValues)}`);
+}
+reviewQueue.getRange("F6").values = [[""]];
+workbook.recalculate();
+if (String(reviewQueue.getRange("I6").values[0][0]) !== "UNREVIEWED") {
+  throw new Error("Review Queue restore test failed: row 6 did not return to UNREVIEWED.");
+}
+
 const summaryInspect = await workbook.inspect({
   kind: "region",
   sheetId: "Summary",
@@ -666,10 +719,10 @@ const formulaErrors = await workbook.inspect({
 await fs.mkdir(previewDir, { recursive: true });
 const previewSpecs = [
   ["Summary", "A1:Q37"],
-  ["All Results", "A1:AK20"],
+  ["All Results", "A1:AS20"],
   ["Review Queue", "A1:K22"],
   ["Role Metrics", `A1:L${Math.min(metricLastRow, 28)}`],
-  ["All Rankings", "A1:M22"],
+  ["All Rankings", "A1:R22"],
   ["Method & Roles", "A1:K36"],
 ];
 for (const [sheetName, range] of previewSpecs) {
@@ -697,6 +750,13 @@ const qa = {
   rankingRows: rankings.length,
   reviewRows: reviewRows.length,
   roleCount: roleList.length,
+  reviewWorkflowTest: {
+    selectedRole: reviewWorkflowRole,
+    calculatedRank: Number(reviewWorkflowValues[1]),
+    calculatedScore: Number(reviewWorkflowValues[2]),
+    calculatedResult: String(reviewWorkflowValues[3]),
+    restoredResult: String(reviewQueue.getRange("I6").values[0][0]),
+  },
   summaryInspect: summaryInspect.ndjson,
   reviewInspect: reviewInspect.ndjson,
   formulaErrors: formulaErrors.ndjson,

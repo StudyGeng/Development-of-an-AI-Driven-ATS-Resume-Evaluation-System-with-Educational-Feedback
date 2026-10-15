@@ -4,9 +4,9 @@ import argparse
 from collections.abc import Sequence
 
 if __package__:
-    from .database import init_mysql_database
+    from .database import init_mysql_database, init_postgres_database, is_postgres_backend
 else:
-    from database import init_mysql_database
+    from database import init_mysql_database, init_postgres_database, is_postgres_backend
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,9 +22,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     if args.command == "migrate":
-        init_mysql_database(create_database=args.create_database)
+        if is_postgres_backend():
+            if args.create_database:
+                parser.error("--create-database is only available for local MySQL setup")
+            init_postgres_database()
+        else:
+            init_mysql_database(create_database=args.create_database)
         print("Database migration completed successfully.")
         return 0
 
