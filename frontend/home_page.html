@@ -5,77 +5,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "on-surface": "#191c1d",
-                    "inverse-primary": "#acc7ff",
-                    "surface-container-high": "#e7e8e9",
-                    "on-secondary-fixed": "#001c39",
-                    "on-surface-variant": "#43474f",
-                    "surface-dim": "#d9dadb",
-                    "surface-container-highest": "#e1e3e4",
-                    "background": "#f8f9fa",
-                    "primary": "#002555",
-                    "on-error-container": "#93000a",
-                    "on-tertiary": "#ffffff",
-                    "outline": "#747780",
-                    "on-tertiary-fixed": "#2f1500",
-                    "on-secondary": "#ffffff",
-                    "on-primary-fixed-variant": "#28467b",
-                    "on-tertiary-container": "#db9860",
-                    "tertiary": "#3e1e00",
-                    "inverse-surface": "#2e3132",
-                    "tertiary-container": "#5e3000",
-                    "secondary": "#0060ac",
-                    "tertiary-fixed-dim": "#ffb77d",
-                    "surface-container": "#edeeef",
-                    "on-secondary-container": "#003e73",
-                    "surface-container-lowest": "#ffffff",
-                    "surface-bright": "#f8f9fa",
-                    "secondary-fixed-dim": "#a4c9ff",
-                    "primary-container": "#1b3b6f",
-                    "secondary-container": "#68abff",
-                    "surface-container-low": "#f3f4f5",
-                    "tertiary-fixed": "#ffdcc3",
-                    "outline-variant": "#c4c6d1",
-                    "on-tertiary-fixed-variant": "#6b3a09",
-                    "surface-tint": "#415e94",
-                    "on-primary": "#ffffff",
-                    "on-background": "#191c1d",
-                    "surface-variant": "#e1e3e4",
-                    "surface": "#f8f9fa",
-                    "secondary-fixed": "#d4e3ff",
-                    "inverse-on-surface": "#f0f1f2",
-                    "on-secondary-fixed-variant": "#004883",
-                    "on-primary-container": "#8aa7e1",
-                    "error": "#ba1a1a",
-                    "on-error": "#ffffff",
-                    "on-primary-fixed": "#001a41",
-                    "error-container": "#ffdad6",
-                    "primary-fixed-dim": "#acc7ff",
-                    "primary-fixed": "#d8e2ff"
-            },
-            "borderRadius": {
-                    "DEFAULT": "0.125rem",
-                    "lg": "0.25rem",
-                    "xl": "0.5rem",
-                    "full": "0.75rem"
-            },
-            "fontFamily": {
-                    "headline": ["Manrope"],
-                    "body": ["Inter"],
-                    "label": ["Inter"]
-            }
-          },
-        },
-      }
-    </script>
+<link rel="stylesheet" href="/tailwind.css">
 <script src="app_common.js"></script>
 <style>
         .material-symbols-outlined {
@@ -512,6 +442,9 @@
         }
         .market-role-strip {
             overflow: visible;
+            background:
+                radial-gradient(circle at top right, rgba(0, 96, 172, 0.10), transparent 42%),
+                linear-gradient(135deg, #ffffff 0%, #f6f9ff 100%);
         }
         .market-role-track {
             display: flex;
@@ -521,6 +454,7 @@
         }
         .job-role-btn {
             animation: marketRoleAppear 0.35s ease both;
+            box-shadow: 0 2px 8px rgba(0, 37, 85, 0.05);
         }
         .job-role-btn:nth-child(2) { animation-delay: 0.04s; }
         .job-role-btn:nth-child(3) { animation-delay: 0.08s; }
@@ -529,9 +463,123 @@
         .job-role-btn:nth-child(6) { animation-delay: 0.20s; }
         .job-role-btn:hover {
             transform: translateY(-1px);
+            border-color: #0060ac;
+            box-shadow: 0 5px 14px rgba(0, 96, 172, 0.12);
+        }
+        .role-combobox-shell {
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+        }
+        #rolePickerMeta {
+            background: rgba(104, 171, 255, 0.6);
+        }
+        .role-picker-search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        #customRoleInput {
+            width: 100%;
+            border: 0;
+            border-radius: 0.75rem;
+            background: transparent;
+            padding: 0.75rem 5rem 0.75rem 2.75rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+        #customRoleInput:focus {
+            border-color: transparent;
+            outline: none;
+            box-shadow: none;
+            --tw-ring-shadow: 0 0 #0000;
+        }
+        #clearRoleBtn {
+            right: 2.5rem;
+        }
+        #rolePickerToggleBtn {
+            right: 0.5rem;
+        }
+        .role-combobox-shell:focus-within {
+            border-color: #0060ac;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 96, 172, 0.13);
+        }
+        .role-picker-panel {
+            left: 0;
+            right: 0;
+            z-index: 40;
+            overflow: hidden;
+            box-shadow: 0 18px 45px rgba(0, 37, 85, 0.18);
+            animation: rolePickerAppear 0.16s ease both;
+        }
+        .role-picker-heading {
+            letter-spacing: 0.14em;
+        }
+        .role-picker-state {
+            padding: 1.25rem 0.75rem;
+        }
+        .role-picker-loading-icon {
+            animation: rolePickerSpin 0.9s linear infinite;
+        }
+        #roleSuggestionHint {
+            padding: 0.625rem 1rem;
+        }
+        .role-picker-list {
+            max-height: min(19rem, 42vh);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 96, 172, 0.35) transparent;
+        }
+        .role-picker-option {
+            display: flex;
+            width: 100%;
+            align-items: flex-start;
+            gap: 0.75rem;
+            border-radius: 0.75rem;
+            padding: 0.7rem 0.75rem;
+            color: #172033;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+        }
+        .role-picker-option:hover,
+        .role-picker-option[aria-selected="true"] {
+            background: #eaf3ff;
+            color: #002555;
+        }
+        .role-picker-option[aria-selected="true"] {
+            box-shadow: inset 3px 0 0 #0060ac;
+        }
+        .role-picker-option-description {
+            display: -webkit-box;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
+        }
+        .role-picker-chevron {
+            transition: transform 0.18s ease;
+        }
+        .role-picker-chevron.is-open {
+            transform: rotate(180deg);
+        }
+        @keyframes rolePickerAppear {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes rolePickerSpin {
+            to { transform: rotate(360deg); }
+        }
+        @media (max-width: 639px) {
+            .role-picker-list {
+                max-height: min(16rem, 38vh);
+            }
+            .role-picker-option-description {
+                -webkit-line-clamp: 2;
+            }
         }
         @media (prefers-reduced-motion: reduce) {
             .job-role-btn,
+            .role-picker-panel,
             .dashboard-reveal,
             .hero-score-card,
             .score-ring-progress,
@@ -552,18 +600,18 @@
 <!-- Top Navigation Bar -->
 <nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-<div class="text-lg sm:text-xl font-bold tracking-tighter text-blue-900 dark:text-white font-manrope truncate min-w-0" style="">UTS CS Career Navigator</div>
+<div class="text-lg sm:text-xl font-bold tracking-tighter text-blue-900 dark:text-white font-manrope truncate min-w-0">UTS CS Career Navigator</div>
 <div class="hidden md:flex items-center gap-8 font-manrope text-sm font-semibold tracking-tight">
-<a class="text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out active:scale-95 transition-transform" href="home_page.html" style="">Dashboard</a>
-<a class="text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out active:scale-95 transition-transform" href="analysis_result.html" style="">Results</a>
-<a class="hidden text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out active:scale-95 transition-transform" href="job_data_insights.html" data-admin-link style="">Admin Insights</a>
+<a class="text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out active:scale-95 transition-transform" href="home_page.html">Dashboard</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out active:scale-95 transition-transform" href="analysis_result.html">Results</a>
+<a class="hidden text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out active:scale-95 transition-transform" href="job_data_insights.html" data-admin-link>Admin Insights</a>
 </div>
 <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-<button class="material-symbols-outlined text-slate-600 dark:text-slate-400 hidden" id="accountStatusBtn" type="button" style="">account_circle</button>
-<button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" style="">Log In / Sign Up</button>
-<button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap" style="">History</button>
+<button class="material-symbols-outlined text-slate-600 dark:text-slate-400 hidden" id="accountStatusBtn" type="button">account_circle</button>
+<button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
+<button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
 <a class="md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="analysis_result.html" aria-label="Open analysis results" title="Analysis results">
-<span class="material-symbols-outlined text-base" style="">analytics</span>
+<span class="material-symbols-outlined text-base">analytics</span>
 </a>
 </div>
 </div>
@@ -573,18 +621,18 @@
 <!-- Hero Section -->
 <section class="dashboard-shell dashboard-hero mb-16 lg:mb-24">
 <div class="dashboard-reveal">
-<div class="inline-block bg-secondary-fixed text-on-secondary-fixed px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-6 font-label" style="">
+<div class="inline-block bg-secondary-fixed text-on-secondary-fixed px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-6 font-label">
                     AI-Powered Career Intelligence
                 </div>
-<h1 class="font-headline text-4xl sm:text-5xl md:text-7xl font-extrabold text-primary leading-tight mb-8 tracking-tighter" style="">
-                    The Scholar's Path to <span class="text-secondary" style="">Technical Mastery.</span>
+<h1 class="font-headline text-4xl sm:text-5xl md:text-7xl font-extrabold text-primary leading-tight mb-8 tracking-tighter">
+                    The Scholar's Path to <span class="text-secondary">Technical Mastery.</span>
 </h1>
-<p class="text-on-surface-variant text-lg md:text-xl max-w-2xl mb-10 leading-relaxed" style="">
+<p class="text-on-surface-variant text-lg md:text-xl max-w-2xl mb-10 leading-relaxed">
                     Designed specifically for CS graduates, our intelligence engine analyzes your resume with academic precision—transforming raw applications into optimized narratives for top-tier tech roles.
                 </p>
 <div class="flex flex-col sm:flex-row gap-4">
-<button class="bg-primary text-on-primary px-8 py-4 rounded-xl font-headline font-bold text-lg hover:shadow-lg transition-all active:scale-95 inline-flex items-center justify-center" id="evaluateResumeBtn" type="button" style="">Evaluate My Resume</button>
-<a id="viewSampleBtn" class="bg-surface-container-low text-primary px-8 py-4 rounded-xl font-headline font-semibold text-lg hover:bg-surface-container-high transition-all active:scale-95 inline-flex items-center justify-center" href="analysis_result.html" style="">View Sample Feedback</a>
+<button class="bg-primary text-on-primary px-8 py-4 rounded-xl font-headline font-bold text-lg hover:shadow-lg transition-all active:scale-95 inline-flex items-center justify-center" id="evaluateResumeBtn" type="button">Evaluate My Resume</button>
+<a id="viewSampleBtn" class="bg-surface-container-low text-primary px-8 py-4 rounded-xl font-headline font-semibold text-lg hover:bg-surface-container-high transition-all active:scale-95 inline-flex items-center justify-center" href="analysis_result.html">View Sample Feedback</a>
 </div>
 <p class="text-sm text-on-surface-variant mt-3" id="uploadHint">Click "Evaluate My Resume" to choose your target job and upload your resume file.</p>
 </div>
@@ -594,8 +642,8 @@
 <div class="surface-container-lowest editorial-shadow rounded-xl p-8 relative glass-panel hero-score-card">
 <div class="flex justify-between items-center mb-8">
 <div>
-<p class="text-label-md uppercase tracking-widest text-on-surface-variant font-semibold text-xs mb-1" style="">Overall Role Readiness</p>
-<h3 class="font-headline text-3xl font-bold text-primary" style="">87/100</h3>
+<p class="text-label-md uppercase tracking-widest text-on-surface-variant font-semibold text-xs mb-1">Overall Role Readiness</p>
+<h3 class="font-headline text-3xl font-bold text-primary">87/100</h3>
 </div>
 <div class="w-16 h-16 relative">
 <svg class="w-full h-full transform -rotate-90">
@@ -608,16 +656,16 @@
 <div class="p-4 bg-surface-container rounded-lg">
 <div class="flex items-center gap-3 mb-2">
 <span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
-<p class="font-headline text-sm font-bold" style="">Strong Keyword Match</p>
+<p class="font-headline text-sm font-bold">Strong Keyword Match</p>
 </div>
-<p class="text-xs text-on-surface-variant" style="">Systems Design and Kubernetes expertise are well-represented.</p>
+<p class="text-xs text-on-surface-variant">Systems Design and Kubernetes expertise are well-represented.</p>
 </div>
 <div class="p-4 bg-tertiary-fixed text-on-tertiary-fixed rounded-lg">
 <div class="flex items-center gap-3 mb-2">
-<span class="material-symbols-outlined text-tertiary text-sm" style="">warning</span>
-<p class="font-headline text-sm font-bold" style="">Improvement Needed</p>
+<span class="material-symbols-outlined text-tertiary text-sm">warning</span>
+<p class="font-headline text-sm font-bold">Improvement Needed</p>
 </div>
-<p class="text-xs opacity-80" style="">Quantify your impact in the "Google Cloud Project" section.</p>
+<p class="text-xs opacity-80">Quantify your impact in the "Google Cloud Project" section.</p>
 </div>
 </div>
 </div>
@@ -627,21 +675,21 @@
 <!-- Bento Grid Features -->
 <section class="dashboard-shell mb-20 md:mb-32">
 <div class="mb-16">
-<p class="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-4" style="">Our Core Competencies</p>
-<h2 class="font-headline text-4xl font-extrabold text-primary max-w-xl" style="">Intelligent Analysis Built for the Next Generation of Engineers.</h2>
+<p class="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-4">Our Core Competencies</p>
+<h2 class="font-headline text-4xl font-extrabold text-primary max-w-xl">Intelligent Analysis Built for the Next Generation of Engineers.</h2>
 </div>
 <div class="feature-grid">
 <!-- Resume Parsing -->
 <div class="feature-card feature-card-parser bg-surface-container-low rounded-xl overflow-hidden relative group dashboard-reveal dashboard-reveal-late professional-hover">
 <div class="relative z-10 max-w-xl">
 <div class="w-12 h-12 bg-primary text-on-primary rounded-xl flex items-center justify-center mb-6">
-<span class="material-symbols-outlined" style="">data_object</span>
+<span class="material-symbols-outlined">data_object</span>
 </div>
-<h3 class="font-headline text-2xl font-bold text-primary mb-4" style="">Semantic Resume Parsing</h3>
-<p class="text-on-surface-variant leading-relaxed mb-8" style="">Beyond simple text extraction, our system understands context. We map your CS coursework, GitHub contributions, and internships to industry-standard taxonomies.</p>
+<h3 class="font-headline text-2xl font-bold text-primary mb-4">NLP Resume Parsing</h3>
+<p class="text-on-surface-variant leading-relaxed mb-8">Beyond simple text extraction, our system understands context. We map your CS coursework, GitHub contributions, and internships to industry-standard taxonomies.</p>
 <div class="flex flex-wrap gap-3">
-<span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-medium" style="">LaTeX Support</span>
-<span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-medium" style="">Multi-format Parsing</span>
+<span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-medium">LaTeX Support</span>
+<span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-medium">Multi-format Parsing</span>
 </div>
 </div>
 <div class="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -653,10 +701,10 @@
 <span class="feature-step-badge feature-step-badge-dark">02</span>
 <div>
 <div class="w-12 h-12 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center mb-6">
-<span class="material-symbols-outlined" style="">dataset</span>
+<span class="material-symbols-outlined">dataset</span>
 </div>
-<h3 class="font-headline text-2xl font-bold mb-4" style="">JD Keyword Matching</h3>
-<p class="text-on-primary-container text-sm leading-relaxed" style="">Instantly compare your resume with database-backed CS role requirements. We identify missing technical stacks and soft skills for graduate tech roles.</p>
+<h3 class="font-headline text-2xl font-bold mb-4">JD Keyword Matching</h3>
+<p class="text-on-primary-container text-sm leading-relaxed">Instantly compare your resume with database-backed CS role requirements. We identify missing technical stacks and soft skills for graduate tech roles.</p>
 </div>
 <div class="live-network-visual mt-8 editorial-shadow" aria-label="Live animated keyword matching network">
 <img data-alt="conceptual visualization of abstract data nodes connecting in a network of blue light on a dark professional background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3_jd_iQ0wqyDIpWjpuFJaId9qKsYh8sta97BffD-0_qN7vcv38vMEC3Pj_nCDATPtkkp9wN7IWmCeF0w-0SlpqT_Uq-IHxWEvh548K6Nt7QeR_JInAB63n8pXEFl_uLr2leJidJ8jJVXQfPkQ_8NK0zvoGjU7_j2gpuYwLYdemRTiS60zY2Kia2wtSg5fWUcgj8D1ksd4Wi1qUn7gTiQpWvKfDC5UcNlnrd7qSi3aBnPK8TXUl0Wq38cMu9n3InJpB9kQXlEz3DE">
@@ -671,11 +719,11 @@
 <div class="absolute -right-12 -top-12 w-40 h-40 rounded-full border border-white/20"></div>
 <div class="relative z-10">
 <div class="w-12 h-12 bg-white/12 text-white rounded-xl flex items-center justify-center mb-6">
-<span class="material-symbols-outlined" style="">school</span>
+<span class="material-symbols-outlined">school</span>
 </div>
 <p class="text-xs uppercase tracking-[0.18em] font-bold text-secondary-fixed-dim mb-3">Guided Improvement</p>
-<h3 class="font-headline text-2xl font-bold mb-4" style="">Academic Mentorship</h3>
-<p class="text-white leading-relaxed font-semibold mb-0" style="">We don't just point out errors; we teach you how to write better technical narratives. Get curated resources to bridge skill gaps identified in your analysis.</p>
+<h3 class="font-headline text-2xl font-bold mb-4">Academic Mentorship</h3>
+<p class="text-white leading-relaxed font-semibold mb-0">We don't just point out errors; we teach you how to write better technical narratives. Get curated resources to bridge skill gaps identified in your analysis.</p>
 <div class="hidden space-y-2 text-sm">
 <div class="flex items-center gap-3">
 <span class="material-symbols-outlined text-secondary-fixed-dim text-base">edit_note</span>
@@ -696,24 +744,24 @@
 <div class="feature-card feature-card-ai bg-surface-container-lowest editorial-shadow rounded-xl flex flex-col md:flex-row gap-10 dashboard-reveal dashboard-reveal-late professional-hover relative overflow-hidden">
 <span class="feature-step-badge">04</span>
 <div class="flex-1">
-<h3 class="font-headline text-2xl font-bold text-primary mb-4" style="">The AI Intelligence Edge</h3>
-<p class="text-on-surface-variant text-sm mb-6" style="">Leveraging Large Language Models trained on successful placements at top tech firms to give you an unfair advantage.</p>
+<h3 class="font-headline text-2xl font-bold text-primary mb-4">Explainable ATS Intelligence</h3>
+<p class="text-on-surface-variant text-sm mb-6">Combines TF-IDF similarity, keyword coverage, role evidence, experience, education, and ATS format checks to produce transparent recommendations.</p>
 <ul class="space-y-4">
-<li class="flex items-start gap-3" style="">
-<span class="material-symbols-outlined text-secondary" style="">verified</span>
-<span class="text-sm font-medium" style="">Bullet point action-verb optimization</span>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary">verified</span>
+<span class="text-sm font-medium">Bullet point action-verb optimization</span>
 </li>
-<li class="flex items-start gap-3" style="">
-<span class="material-symbols-outlined text-secondary" style="">verified</span>
-<span class="text-sm font-medium" style="">Impact quantification suggestions</span>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary">verified</span>
+<span class="text-sm font-medium">Impact quantification suggestions</span>
 </li>
 </ul>
 </div>
 <div class="flex-1 min-h-[210px] bg-surface-container-low rounded-xl p-6 relative overflow-hidden">
-<img class="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-20" data-alt="modern minimalist office with glowing blue digital displays representing futuristic computer science research lab" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVDr1TUZVheaJipQBvUGfQs5cb1bk84HuvG2IOcMXVb_vsqH9ELymP1VPOJE0UmgcM9p3eUhtwoh3U20ArffjF8d2filPN-z7RNRAB5Lwxt4T6gG9MBNyM_DIYTjpXPT9QYuWinda7rf9Ga0aPxKtEmzM2Y6bIHGEb-JFrYxJEwf18vV7TTc4tA-FoCkzpYvMV7kM7qisD1Chba0bY7LPvn1ufsQFoLRYFGy7xSBd8FH9OoHfUxyxkomtxEhxOAbvcDdaAshbEcNU" style="">
+<img class="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-20" data-alt="modern minimalist office with glowing blue digital displays representing futuristic computer science research lab" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVDr1TUZVheaJipQBvUGfQs5cb1bk84HuvG2IOcMXVb_vsqH9ELymP1VPOJE0UmgcM9p3eUhtwoh3U20ArffjF8d2filPN-z7RNRAB5Lwxt4T6gG9MBNyM_DIYTjpXPT9QYuWinda7rf9Ga0aPxKtEmzM2Y6bIHGEb-JFrYxJEwf18vV7TTc4tA-FoCkzpYvMV7kM7qisD1Chba0bY7LPvn1ufsQFoLRYFGy7xSBd8FH9OoHfUxyxkomtxEhxOAbvcDdaAshbEcNU">
 <div class="relative z-10">
-<p class="text-[64px] font-headline font-extrabold text-secondary leading-none" id="interviewRateCounter" data-target="94" style="">0%</p>
-<p class="text-xs font-bold uppercase tracking-tighter text-on-surface" style="">Interview Rate Increase</p>
+<p class="text-[64px] font-headline font-extrabold text-secondary leading-none">6</p>
+<p class="text-xs font-bold uppercase tracking-tighter text-on-surface">Explainable scoring signals</p>
 </div>
 </div>
 </div>
@@ -725,7 +773,7 @@
 <div class="academic-panel rounded-2xl border border-outline-variant/60 p-6 md:p-10 lg:p-12">
 <div class="academic-visual overflow-hidden rounded-2xl editorial-shadow">
 <div class="academic-visual-image relative overflow-hidden">
-<img class="absolute inset-0 w-full h-full object-cover" data-alt="macro photography of crisp white printed paper with clean black typography and a blue ink pen resting on the margin" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQUNBCRuH4Hcpu_u2V3XOFzAKk6c14-NXIahr2ZXXs278MlIhnX_CdmMya3-f5N3oB9F1LERSh1WDh0qvff1lJY_g2qmvJAceZJB5WW29BzZqkcs9XkLn1HROCAKRLI_ik4SZLY1RoBAEPNXles6j3dw2MLqaU4gmzHFKOZ_V6XYAs2pBdAk2kVD_Tr_tPwV8xxi3AKjmG9uUskE4ICKLbyTENkJXaLrhVCzCEtZ104S1cmaNad1F7vS4tPddGXa-wfw5PgTtVZgw" style="">
+<img class="absolute inset-0 w-full h-full object-cover" data-alt="macro photography of crisp white printed paper with clean black typography and a blue ink pen resting on the margin" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQUNBCRuH4Hcpu_u2V3XOFzAKk6c14-NXIahr2ZXXs278MlIhnX_CdmMya3-f5N3oB9F1LERSh1WDh0qvff1lJY_g2qmvJAceZJB5WW29BzZqkcs9XkLn1HROCAKRLI_ik4SZLY1RoBAEPNXles6j3dw2MLqaU4gmzHFKOZ_V6XYAs2pBdAk2kVD_Tr_tPwV8xxi3AKjmG9uUskE4ICKLbyTENkJXaLrhVCzCEtZ104S1cmaNad1F7vS4tPddGXa-wfw5PgTtVZgw">
 </div>
 <div class="academic-caption p-5">
 <p class="text-xs uppercase tracking-[0.18em] font-bold text-secondary mb-2">ATS Ready Output</p>
@@ -733,9 +781,9 @@
 </div>
 </div>
 <div>
-<p class="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-5" style="">Built for Graduates</p>
-<h2 class="font-headline text-4xl lg:text-5xl font-extrabold text-primary mb-6 leading-tight" style="">A Digital Environment that Mirrors Academic Rigor.</h2>
-<p class="text-on-surface-variant mb-8 leading-relaxed max-w-2xl" style="">
+<p class="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-5">Built for Graduates</p>
+<h2 class="font-headline text-4xl lg:text-5xl font-extrabold text-primary mb-6 leading-tight">A Digital Environment that Mirrors Academic Rigor.</h2>
+<p class="text-on-surface-variant mb-8 leading-relaxed max-w-2xl">
             UTS CS Career Navigator keeps the workflow calm and report-focused: choose a role, upload a resume, read the evidence, then export a structured feedback report.
                     </p>
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
@@ -745,17 +793,17 @@
 </div>
 <div class="space-y-5">
 <div class="flex gap-5 border-t border-outline-variant/60 pt-5">
-<div class="shrink-0 w-10 h-10 rounded-xl bg-primary text-on-primary font-headline font-bold flex items-center justify-center" style="">01</div>
+<div class="shrink-0 w-10 h-10 rounded-xl bg-primary text-on-primary font-headline font-bold flex items-center justify-center">01</div>
 <div>
-<h4 class="font-headline font-bold text-lg mb-1" style="">Focused Evidence Flow</h4>
-<p class="text-sm text-on-surface-variant" style="">Scores, role-fit reasoning, missing keywords, and ATS quality issues are grouped into clear decision sections.</p>
+<h4 class="font-headline font-bold text-lg mb-1">Focused Evidence Flow</h4>
+<p class="text-sm text-on-surface-variant">Scores, role-fit reasoning, missing keywords, and ATS quality issues are grouped into clear decision sections.</p>
 </div>
 </div>
 <div class="flex gap-5 border-t border-outline-variant/60 pt-5">
-<div class="shrink-0 w-10 h-10 rounded-xl bg-secondary text-white font-headline font-bold flex items-center justify-center" style="">02</div>
+<div class="shrink-0 w-10 h-10 rounded-xl bg-secondary text-white font-headline font-bold flex items-center justify-center">02</div>
 <div>
-<h4 class="font-headline font-bold text-lg mb-1" style="">Report-Ready Export</h4>
-<p class="text-sm text-on-surface-variant" style="">The final feedback downloads as a table-based HTML report that can be opened, printed, or saved as PDF.</p>
+<h4 class="font-headline font-bold text-lg mb-1">Report-Ready Export</h4>
+<p class="text-sm text-on-surface-variant">The final feedback downloads as a table-based HTML report that can be opened, printed, or saved as PDF.</p>
 </div>
 </div>
 </div>
@@ -785,19 +833,36 @@
 <p class="text-xs uppercase tracking-[0.16em] font-bold text-secondary mb-3">Step 1</p>
 <p class="text-sm font-semibold text-on-surface mb-1">Target job role <span class="text-on-surface-variant font-normal">(optional)</span></p>
 <p class="text-xs text-on-surface-variant mb-3">Type the role you want, or choose one trending CS market role below.</p>
-<div id="customRoleWrapper">
-<label class="text-xs font-semibold text-on-surface mb-2 block" for="customRoleInput">Custom target role</label>
-<div class="relative">
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm pr-12" id="customRoleInput" type="text" list="dbRoleOptions" placeholder="Example: Cybersecurity Analyst, UI/UX Developer, Cloud Engineer">
-<button class="absolute right-2 top-1/2 -translate-y-1/2 hidden w-8 h-8 rounded-full bg-surface-container-high text-primary hover:bg-primary hover:text-on-primary transition-colors items-center justify-center" id="clearRoleBtn" type="button" title="Clear selected role">
-<span class="material-symbols-outlined text-base">close</span>
+<div class="relative" id="customRoleWrapper">
+<div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+<label class="text-xs font-semibold text-on-surface" for="customRoleInput">Search or enter a target role</label>
+<span class="rounded-full bg-secondary-container/60 px-2.5 py-1 text-[11px] font-semibold text-on-secondary-container" id="rolePickerMeta" aria-live="polite">Loading role list...</span>
+</div>
+<div class="role-combobox-shell relative rounded-xl border border-outline-variant bg-surface-container-lowest">
+<span class="material-symbols-outlined role-picker-search-icon pointer-events-none text-xl text-secondary" aria-hidden="true">search</span>
+<input class="w-full rounded-xl border-0 bg-transparent py-3 pl-11 pr-20 text-sm focus:ring-0" id="customRoleInput" type="text" placeholder="Search database roles or type your own" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="roleSuggestionList" aria-activedescendant="">
+<button class="absolute right-10 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface-container-high text-primary transition-colors hover:bg-primary hover:text-on-primary" id="clearRoleBtn" type="button" title="Clear selected role" aria-label="Clear selected role">
+<span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
+</button>
+<button class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container-high" id="rolePickerToggleBtn" type="button" aria-label="Browse database job roles" aria-expanded="false" aria-controls="roleSuggestionPanel">
+<span class="material-symbols-outlined role-picker-chevron text-xl" id="rolePickerChevron" aria-hidden="true">expand_more</span>
 </button>
 </div>
-<datalist id="dbRoleOptions"></datalist>
+<div class="role-picker-panel absolute left-0 right-0 z-40 mt-2 hidden rounded-2xl border border-outline-variant/70 bg-white" id="roleSuggestionPanel">
+<div class="flex items-center justify-between gap-3 border-b border-outline-variant/50 px-4 py-3">
+<div>
+<p class="role-picker-heading text-xs font-bold uppercase text-secondary">Database job roles</p>
+<p class="mt-0.5 text-xs text-on-surface-variant" id="roleSuggestionStatus" aria-live="polite">Loading available roles...</p>
+</div>
+<span class="material-symbols-outlined text-secondary" aria-hidden="true">work_outline</span>
+</div>
+<div class="role-picker-list p-2" id="roleSuggestionList" role="listbox" aria-label="Available target job roles"></div>
+<p class="border-t border-outline-variant/50 bg-surface-container-low px-4 py-2.5 text-[11px] leading-relaxed text-on-surface-variant" id="roleSuggestionHint">Choose a database role, or keep your own wording as a custom target.</p>
+</div>
 </div>
 <div class="mt-4">
 <div class="flex items-center justify-between gap-3">
-<p class="text-xs uppercase tracking-[0.16em] font-bold text-secondary">Popular market roles</p>
+<p class="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] font-bold text-secondary"><span class="material-symbols-outlined text-base" aria-hidden="true">trending_up</span>Popular market roles</p>
 <p class="text-xs text-on-surface-variant">Tap one to fill the role</p>
 </div>
 <div class="market-role-strip mt-3 rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-3" id="jobRoleButtons">
@@ -870,12 +935,12 @@
 <footer class="site-footer w-full py-10 md:py-12">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
 <div class="space-y-3">
-<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary-fixed-dim" style="">UTS CS Career Navigator</p>
+<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary-fixed-dim">UTS CS Career Navigator</p>
 <h2 class="font-headline text-2xl md:text-3xl font-extrabold text-white leading-tight max-w-xl">Academic ATS feedback for computer science graduates.</h2>
 <p class="hidden" aria-hidden="true">
           © 2026 UTS CS Career Navigator. Built for UTS Computer Science students.
                 </p>
-<p class="font-inter text-sm leading-relaxed text-white/70 max-w-2xl" style="">(c) 2026 UTS CS Career Navigator. Built for UTS Computer Science students.</p>
+<p class="font-inter text-sm leading-relaxed text-white/70 max-w-2xl">(c) 2026 UTS CS Career Navigator. Built for UTS Computer Science students.</p>
 </div>
 <div class="footer-link-row font-inter text-xs font-semibold">
 <button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openPrivacyPolicyBtn" type="button">Privacy Policy</button>
@@ -986,7 +1051,7 @@
 <div>
 <p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">Profile</p>
 <h3 class="font-headline text-2xl font-extrabold text-primary">Student Account Information</h3>
-<p class="text-sm text-on-surface-variant mt-2">View and update your profile details.</p>
+<p class="text-sm text-on-surface-variant mt-2">View your account details and securely change your password.</p>
 </div>
 <button class="text-on-surface-variant hover:text-primary" id="closeProfileModalBtn" type="button"><span class="material-symbols-outlined">close</span></button>
 </div>
@@ -994,15 +1059,15 @@
 <form class="space-y-4" id="profileForm">
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="profileNameInput">Full name</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profileNameInput" type="text" required>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-low text-sm" id="profileNameInput" type="text" readonly aria-readonly="true">
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="profileEmailInput">Email</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profileEmailInput" type="email" required>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-low text-sm" id="profileEmailInput" type="email" readonly aria-readonly="true">
 </div>
 <div>
-<label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordInput">New password (optional)</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profilePasswordInput" type="password" placeholder="Leave empty, or use 8+ chars with letter, number, special character">
+<label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordInput">New password</label>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profilePasswordInput" type="password" placeholder="8+ chars with letter, number, special character">
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordPinInput">Password change PIN</label>
@@ -1013,7 +1078,7 @@
 <p class="text-xs text-on-surface-variant mt-2">Required only when changing your password.</p>
 </div>
 <div class="flex flex-col sm:flex-row gap-3 pt-2">
-<button class="px-5 py-3 rounded-xl bg-primary text-on-primary font-bold" type="submit">Save Profile</button>
+<button class="px-5 py-3 rounded-xl bg-primary text-on-primary font-bold" type="submit">Update Password</button>
 <button class="px-5 py-3 rounded-xl bg-surface-container-low text-primary font-semibold" id="logoutBtn" type="button">Log Out</button>
 </div>
 </form>
@@ -1111,7 +1176,13 @@
   const customRoleWrapper = document.getElementById("customRoleWrapper");
   const customRoleInput = document.getElementById("customRoleInput");
   const clearRoleBtn = document.getElementById("clearRoleBtn");
-  const dbRoleOptions = document.getElementById("dbRoleOptions");
+  const rolePickerMeta = document.getElementById("rolePickerMeta");
+  const rolePickerToggleBtn = document.getElementById("rolePickerToggleBtn");
+  const rolePickerChevron = document.getElementById("rolePickerChevron");
+  const roleSuggestionPanel = document.getElementById("roleSuggestionPanel");
+  const roleSuggestionList = document.getElementById("roleSuggestionList");
+  const roleSuggestionStatus = document.getElementById("roleSuggestionStatus");
+  const roleSuggestionHint = document.getElementById("roleSuggestionHint");
   const jobDescriptionInput = document.getElementById("jobDescriptionInput");
   const resumeDropZone = document.getElementById("resumeDropZone");
   const uploadPdfBtn = document.getElementById("uploadPdfBtn");
@@ -1174,8 +1245,6 @@
   const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
     ? window.location.origin
     : "http://127.0.0.1:5000";
-  const APP_TITLE = "UTS CS Career Navigator Resume Analyzer";
-  const AUTH_MODE = "backend";
 
   let selectedRole = "";
   let selectedPdfFileName = "";
@@ -1188,8 +1257,12 @@
     "resumeRenderedPreviewName"
   ];
   let pendingAuthAction = "";
-  let isCustomRoleSelected = false;
   let databaseRoles = [];
+  let visibleDatabaseRoles = [];
+  let databaseRoleLoadState = "loading";
+  let isRolePickerOpen = false;
+  let activeRoleOptionIndex = -1;
+  let roleRequirementRequestId = 0;
   let customRoleLookupTimer = null;
   let lastAutoJobDescription = "";
 
@@ -1201,56 +1274,12 @@
     window.CareerNavigatorCommon.setAuthUser(user, updateAuthUi);
   }
 
-  function getLocalAuthUsers() {
-    return window.CareerNavigatorCommon.getLocalAuthUsers();
-  }
-
-  function saveLocalAuthUsers(users) {
-    window.CareerNavigatorCommon.saveLocalAuthUsers(users);
-  }
-
-  function seedLocalAuthUser() {
-    window.CareerNavigatorCommon.seedLocalAuthUser(AUTH_MODE);
-  }
-
   function getToastMessage(message, isError = false) {
-    if (!isError) {
-      return message;
-    }
-    return /try again/i.test(message) ? message : message + " Please try again.";
+    return window.CareerNavigatorCommon.getToastMessage(message, isError);
   }
 
   function showToast(message, type = "success") {
-    if (!message) {
-      return;
-    }
-    let toastStack = document.getElementById("appToastStack");
-    if (!toastStack) {
-      toastStack = document.createElement("div");
-      toastStack.id = "appToastStack";
-      toastStack.className = "toast-stack";
-      toastStack.setAttribute("aria-live", "polite");
-      document.body.appendChild(toastStack);
-    }
-
-    const toast = document.createElement("div");
-    toast.className = "app-toast app-toast-" + type;
-
-    const icon = document.createElement("span");
-    icon.className = "material-symbols-outlined";
-    icon.textContent = type === "error" ? "error" : type === "info" ? "info" : "check_circle";
-
-    const text = document.createElement("span");
-    text.textContent = message;
-
-    toast.appendChild(icon);
-    toast.appendChild(text);
-    toastStack.appendChild(toast);
-
-    window.setTimeout(() => {
-      toast.classList.add("app-toast-hide");
-      toast.addEventListener("animationend", () => toast.remove(), { once: true });
-    }, 3800);
+    window.CareerNavigatorCommon.showToast(message, type);
   }
 
   function updateAuthUi() {
@@ -1274,6 +1303,8 @@
       uploadHint.className = "text-sm text-on-surface-variant mt-3";
     }
   }
+
+  window.addEventListener("career-navigator-auth-changed", updateAuthUi);
 
   function setEvaluationStatus(message, isError = false) {
     if (evaluationStatusText) {
@@ -1299,21 +1330,7 @@
     }
   }
 
-  function getPasswordValidationMessage(password) {
-    if (!password || password.length < 8) {
-      return "Password must be at least 8 characters.";
-    }
-    if (!/[A-Za-z]/.test(password)) {
-      return "Password must include at least 1 letter.";
-    }
-    if (!/\d/.test(password)) {
-      return "Password must include at least 1 number.";
-    }
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      return "Password must include at least 1 special character, for example !, @, #, or $.";
-    }
-    return "";
-  }
+  const getPasswordValidationMessage = window.CareerNavigatorCommon.getPasswordValidationMessage;
 
   function clearAuthForms(options = {}) {
     const keepLoginEmail = options.keepLoginEmail || "";
@@ -1342,16 +1359,11 @@
   }
 
   function clearProfileSensitiveFields() {
-    if (profilePasswordInput) {
-      profilePasswordInput.value = "";
-    }
-    if (profilePasswordPinInput) {
-      profilePasswordPinInput.value = "";
-    }
-    if (profileMessage) {
-      profileMessage.classList.add("hidden");
-      profileMessage.textContent = "";
-    }
+    window.CareerNavigatorCommon.clearProfileSensitiveFields({
+      passwordInput: profilePasswordInput,
+      pinInput: profilePasswordPinInput,
+      message: profileMessage
+    });
   }
 
   function populateProfileForm() {
@@ -1359,13 +1371,13 @@
     if (!currentUser) {
       return;
     }
-    if (profileNameInput) {
-      profileNameInput.value = currentUser.full_name || "";
-    }
-    if (profileEmailInput) {
-      profileEmailInput.value = currentUser.email || "";
-    }
-    clearProfileSensitiveFields();
+    window.CareerNavigatorCommon.populateProfileForm(currentUser, {
+      nameInput: profileNameInput,
+      emailInput: profileEmailInput,
+      passwordInput: profilePasswordInput,
+      pinInput: profilePasswordPinInput,
+      message: profileMessage
+    });
   }
 
   function openProfileModal() {
@@ -1373,18 +1385,14 @@
       return;
     }
     populateProfileForm();
-    profileModal.classList.remove("hidden");
-    profileModal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("overflow-hidden");
+    window.CareerNavigatorCommon.setModalOpen(profileModal, true);
   }
 
   function closeProfileModal() {
     if (!profileModal) {
       return;
     }
-    profileModal.classList.add("hidden");
-    profileModal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("overflow-hidden");
+    window.CareerNavigatorCommon.setModalOpen(profileModal, false);
   }
 
   async function submitProfileUpdate(event) {
@@ -1395,88 +1403,47 @@
       return;
     }
 
-    const fullName = profileNameInput ? profileNameInput.value.trim() : "";
-    const email = profileEmailInput ? profileEmailInput.value.trim().toLowerCase() : "";
     const newPassword = profilePasswordInput ? profilePasswordInput.value : "";
     const passwordPin = profilePasswordPinInput ? profilePasswordPinInput.value.trim() : "";
 
-    if (!fullName || !email) {
-      setProfileMessage("Full name and email are required.", true, true);
+    if (!newPassword) {
+      setProfileMessage("Enter a new password before selecting Update Password.", true, true);
       return;
     }
-    const passwordIssue = newPassword ? getPasswordValidationMessage(newPassword) : "";
+    const passwordIssue = getPasswordValidationMessage(newPassword);
     if (passwordIssue) {
       setProfileMessage(passwordIssue, true, true);
       return;
     }
-    if (newPassword && passwordPin.length !== 6) {
+    if (passwordPin.length !== 6) {
       setProfileMessage("Enter the 6-digit PIN sent to your email before changing password.", true, true);
       return;
     }
 
-    if (AUTH_MODE === "internal") {
-      const users = getLocalAuthUsers();
-      const duplicate = users.some((candidate) => (candidate.email || "").toLowerCase() === email && candidate.id !== currentUser.id);
-      if (duplicate) {
-        setProfileMessage("This email is already used by another account.", true, true);
-        return;
-      }
-
-      const userIndex = users.findIndex((candidate) => candidate.id === currentUser.id || (candidate.email || "").toLowerCase() === (currentUser.email || "").toLowerCase());
-      if (userIndex < 0) {
-        setProfileMessage("User record not found.", true, true);
-        return;
-      }
-
-      users[userIndex].full_name = fullName;
-      users[userIndex].email = email;
-      if (newPassword) {
-        users[userIndex].password = newPassword;
-      }
-      saveLocalAuthUsers(users);
-      setAuthUser({
-        id: users[userIndex].id,
-        full_name: users[userIndex].full_name,
-        email: users[userIndex].email,
-        created_at: users[userIndex].created_at
+    try {
+      setProfileMessage("Verifying PIN and updating password...");
+      const response = await fetch(API_BASE_URL + "/users/password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: currentUser.email,
+          verification_pin: passwordPin,
+          new_password: newPassword
+        })
       });
-      setProfileMessage("Profile updated successfully.", false, true);
-      closeProfileModal();
-      return;
-    }
-
-    if (newPassword) {
-      try {
-        setProfileMessage("Verifying PIN and updating password...");
-        const response = await fetch(API_BASE_URL + "/users/password-reset", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: currentUser.email,
-            verification_pin: passwordPin,
-            new_password: newPassword
-          })
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.detail || "Password update failed");
-        }
-        clearProfileSensitiveFields();
-        setProfileMessage("Password updated after OTP verification.", false, true);
-        return;
-      } catch (error) {
-        setProfileMessage(error.message || "Password update failed", true, true);
-        return;
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Password update failed");
       }
+      clearProfileSensitiveFields();
+      setProfileMessage("Password updated after OTP verification.", false, true);
+    } catch (error) {
+      setProfileMessage(error.message || "Password update failed", true, true);
     }
-
-    setProfileMessage("Name and email update for database mode can be added in the admin/profile module.", true, true);
   }
 
   function logoutUser() {
-    if (AUTH_MODE === "backend") {
-      fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-    }
+    fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
     setAuthUser(null);
     closeProfileModal();
     clearAuthForms();
@@ -1520,43 +1487,6 @@
     refreshStartButtonState();
   }
 
-  function clearStoredAnalysis() {
-    try {
-      [
-        "analysisResult",
-        "pipelineStatus",
-        "uploadedResumeName",
-        "selectedJobRole",
-        "selectedJobDescription",
-        "analysisStartedAt",
-      ].forEach((k) => localStorage.removeItem(k));
-    } catch (e) {
-      /* ignore */
-    }
-    clearStoredResumeVisualPreview();
-
-    selectedPdfFile = null;
-    selectedPdfFileName = "";
-    clearRoleSelection();
-
-    if (selectedPdfName) {
-      selectedPdfName.textContent = "No file selected.";
-      selectedPdfName.className = "text-sm text-on-surface-variant";
-    }
-    if (resumePreviewName) resumePreviewName.textContent = "File: -";
-    if (resumePreviewSize) resumePreviewSize.textContent = "Size: -";
-    if (resumePreviewType) resumePreviewType.textContent = "Type: PDF, PNG, or JPG";
-    clearAutoJobDescription();
-    setEvaluationStatus("");
-
-    if (uploadHint) {
-      uploadHint.textContent = "Click \"Evaluate My Resume\" to choose your target job and upload your resume file.";
-      uploadHint.className = "text-sm text-on-surface-variant mt-3";
-    }
-
-    refreshStartButtonState();
-  }
-
   function setAuthMessage(message, isError = false, showPopup = false) {
     if (!authMessage) {
       return;
@@ -1569,20 +1499,7 @@
     }
   }
 
-  function sanitizePinInput(input, clearMixedText = false) {
-    if (!input) {
-      return;
-    }
-    const rawValue = input.value || "";
-    if (clearMixedText && /\D/.test(rawValue)) {
-      input.value = "";
-      return;
-    }
-    const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 6);
-    if (rawValue !== digitsOnly) {
-      input.value = digitsOnly;
-    }
-  }
+  const sanitizePinInput = window.CareerNavigatorCommon.sanitizePinInput;
 
   function clearInvalidPinAutofill() {
     [registerPinInput, resetPinInput, profilePasswordPinInput].forEach((input) => sanitizePinInput(input, true));
@@ -1657,11 +1574,7 @@
       return true;
     }
     pendingAuthAction = action;
-    if (AUTH_MODE === "internal") {
-      setAuthMessage("Please sign up or log in first. Test account: test@uts.local / test12345");
-    } else {
-      setAuthMessage("Please sign up or log in first to continue.");
-    }
+    setAuthMessage("Please sign up or log in first to continue.");
     openAuthModal("register");
     return false;
   }
@@ -1673,33 +1586,17 @@
       const email = loginEmailInput ? loginEmailInput.value.trim().toLowerCase() : "";
       const password = loginPasswordInput ? loginPasswordInput.value : "";
 
-      if (AUTH_MODE === "internal") {
-        const users = getLocalAuthUsers();
-        const user = users.find((candidate) => (candidate.email || "").toLowerCase() === email);
-        if (!user || user.password !== password) {
-          throw new Error("Invalid email or password");
-        }
-        setAuthUser({
-          id: user.id,
-          full_name: user.full_name,
-          email: user.email,
-          created_at: user.created_at
-        });
-        // Clear any previous analysis stored locally when signing in
-        clearStoredAnalysis();
-      } else {
-        const response = await fetch(API_BASE_URL + "/users/login", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.detail || "Login failed");
-        }
-        setAuthUser(payload.user);
+      const response = await fetch(API_BASE_URL + "/users/login", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Login failed");
       }
+      setAuthUser(payload.user);
 
       closeAuthModal();
       setAuthMessage("Logged in successfully.", false, true);
@@ -1717,33 +1614,7 @@
   }
 
   async function requestAuthPin(email, purpose, button, messageSetter = setAuthMessage) {
-    const cleanEmail = (email || "").trim().toLowerCase();
-    if (!cleanEmail) {
-      throw new Error("Enter your email address first.");
-    }
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Sending...";
-    }
-    try {
-      const response = await fetch(API_BASE_URL + "/auth/pin/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cleanEmail, purpose })
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.detail || "Could not send PIN");
-      }
-      const devPin = payload.dev_pin ? " Dev PIN: " + payload.dev_pin : "";
-      messageSetter("PIN sent to " + cleanEmail + ". It expires in " + payload.expires_in_minutes + " minutes." + devPin);
-      showToast("PIN sent successfully. Check your email.", "success");
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.textContent = "Send PIN";
-      }
-    }
+    return window.CareerNavigatorCommon.requestAuthPin(email, purpose, button, messageSetter, API_BASE_URL);
   }
 
   async function submitPasswordReset(event) {
@@ -1788,57 +1659,25 @@
       const password = registerPasswordInput ? registerPasswordInput.value : "";
       const verificationPin = registerPinInput ? registerPinInput.value.trim() : "";
 
-      if (AUTH_MODE === "internal") {
-        if (!fullName || !email || !password) {
-          throw new Error("full_name, email, and password are required");
-        }
-        const passwordIssue = getPasswordValidationMessage(password);
-        if (passwordIssue) {
-          throw new Error(passwordIssue);
-        }
-        const users = getLocalAuthUsers();
-        const exists = users.some((candidate) => (candidate.email || "").toLowerCase() === email);
-        if (exists) {
-          throw new Error("This email is already registered");
-        }
-        const newUser = {
-          id: Date.now(),
+      const passwordIssue = getPasswordValidationMessage(password);
+      if (passwordIssue) {
+        throw new Error(passwordIssue);
+      }
+      const response = await fetch(API_BASE_URL + "/users/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           full_name: fullName,
           email: email,
           password: password,
-          created_at: new Date().toISOString()
-        };
-        users.push(newUser);
-        saveLocalAuthUsers(users);
-        setAuthUser({
-          id: newUser.id,
-          full_name: newUser.full_name,
-          email: newUser.email,
-          created_at: newUser.created_at
-        });
-        // Clear any previous analysis stored locally when creating a new account
-        clearStoredAnalysis();
-      } else {
-        const passwordIssue = getPasswordValidationMessage(password);
-        if (passwordIssue) {
-          throw new Error(passwordIssue);
-        }
-        const response = await fetch(API_BASE_URL + "/users/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            full_name: fullName,
-            email: email,
-            password: password,
-            verification_pin: verificationPin
-          })
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.detail || "Sign up failed");
-        }
-        setAuthUser(payload.user);
+          verification_pin: verificationPin
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Sign up failed");
       }
+      setAuthUser(payload.user);
 
       closeAuthModal();
       clearAuthForms();
@@ -1894,24 +1733,242 @@
     lastAutoJobDescription = "";
   }
 
+  function getDatabaseRoleName(role) {
+    return String(role && role.role_name ? role.role_name : "").trim();
+  }
+
+  function getRoleSearchScore(roleName, query) {
+    const normalizedName = roleName.toLowerCase();
+    if (!query) {
+      return 4;
+    }
+    if (normalizedName === query) {
+      return 0;
+    }
+    if (normalizedName.startsWith(query)) {
+      return 1;
+    }
+    if (normalizedName.split(/\s+/).some((word) => word.startsWith(query))) {
+      return 2;
+    }
+    return normalizedName.includes(query) ? 3 : -1;
+  }
+
+  function getFilteredDatabaseRoles() {
+    const query = customRoleInput ? customRoleInput.value.trim().toLowerCase().replace(/\s+/g, " ") : "";
+    return databaseRoles
+      .map((role) => ({ role, score: getRoleSearchScore(getDatabaseRoleName(role), query) }))
+      .filter((entry) => entry.score >= 0)
+      .sort((left, right) => {
+        if (left.score !== right.score) {
+          return left.score - right.score;
+        }
+        return getDatabaseRoleName(left.role).localeCompare(getDatabaseRoleName(right.role));
+      })
+      .map((entry) => entry.role);
+  }
+
+  function setActiveRoleOption(index) {
+    if (!roleSuggestionList) {
+      return;
+    }
+    const options = Array.from(roleSuggestionList.querySelectorAll('[role="option"]'));
+    if (!options.length) {
+      activeRoleOptionIndex = -1;
+      if (customRoleInput) {
+        customRoleInput.setAttribute("aria-activedescendant", "");
+      }
+      return;
+    }
+
+    activeRoleOptionIndex = Math.max(0, Math.min(index, options.length - 1));
+    options.forEach((option, optionIndex) => {
+      option.setAttribute("aria-selected", optionIndex === activeRoleOptionIndex ? "true" : "false");
+    });
+    const activeOption = options[activeRoleOptionIndex];
+    if (customRoleInput && activeOption) {
+      customRoleInput.setAttribute("aria-activedescendant", activeOption.id);
+      activeOption.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function renderRoleSuggestions() {
+    if (!roleSuggestionList || !roleSuggestionStatus) {
+      return;
+    }
+
+    roleSuggestionList.replaceChildren();
+    visibleDatabaseRoles = [];
+    activeRoleOptionIndex = -1;
+    if (customRoleInput) {
+      customRoleInput.setAttribute("aria-activedescendant", "");
+    }
+
+    if (databaseRoleLoadState === "loading") {
+      roleSuggestionStatus.textContent = "Loading available roles...";
+      const loadingRow = document.createElement("div");
+      loadingRow.className = "role-picker-state flex items-center gap-3 text-sm text-on-surface-variant";
+      const loadingIcon = document.createElement("span");
+      loadingIcon.className = "material-symbols-outlined role-picker-loading-icon text-secondary";
+      loadingIcon.textContent = "progress_activity";
+      loadingIcon.setAttribute("aria-hidden", "true");
+      const loadingText = document.createElement("span");
+      loadingText.textContent = "Getting job roles from the database";
+      loadingRow.append(loadingIcon, loadingText);
+      roleSuggestionList.appendChild(loadingRow);
+      return;
+    }
+
+    if (databaseRoleLoadState === "error") {
+      roleSuggestionStatus.textContent = "Role list is temporarily unavailable";
+      const errorRow = document.createElement("div");
+      errorRow.className = "role-picker-state text-sm text-on-surface-variant";
+      errorRow.textContent = "You can still type and use a custom target role.";
+      roleSuggestionList.appendChild(errorRow);
+      if (roleSuggestionHint) {
+        roleSuggestionHint.textContent = "Your custom role will still be checked against the closest database role during analysis.";
+      }
+      return;
+    }
+
+    const query = customRoleInput ? customRoleInput.value.trim() : "";
+    visibleDatabaseRoles = getFilteredDatabaseRoles();
+    if (!visibleDatabaseRoles.length) {
+      roleSuggestionStatus.textContent = "No database roles match this search";
+      const emptyRow = document.createElement("div");
+      emptyRow.className = "role-picker-state flex items-start gap-3";
+      const emptyIcon = document.createElement("span");
+      emptyIcon.className = "material-symbols-outlined text-secondary";
+      emptyIcon.textContent = "edit_note";
+      emptyIcon.setAttribute("aria-hidden", "true");
+      const emptyCopy = document.createElement("div");
+      const emptyTitle = document.createElement("p");
+      emptyTitle.className = "text-sm font-semibold text-on-surface";
+      emptyTitle.textContent = query ? 'Use "' + query + '" as a custom role' : "Start typing a target role";
+      const emptyDescription = document.createElement("p");
+      emptyDescription.className = "mt-1 text-xs text-on-surface-variant";
+      emptyDescription.textContent = "The analysis can still compare it with the closest role in the database.";
+      emptyCopy.append(emptyTitle, emptyDescription);
+      emptyRow.append(emptyIcon, emptyCopy);
+      roleSuggestionList.appendChild(emptyRow);
+      if (roleSuggestionHint) {
+        roleSuggestionHint.textContent = "No exact choice is required—custom target roles are supported.";
+      }
+      return;
+    }
+
+    roleSuggestionStatus.textContent = query
+      ? visibleDatabaseRoles.length + (visibleDatabaseRoles.length === 1 ? " matching role" : " matching roles")
+      : databaseRoles.length + " roles available — scroll or search";
+    if (roleSuggestionHint) {
+      roleSuggestionHint.textContent = query
+        ? "Choose a match, or keep your wording as a custom target role."
+        : "Choose a database role, or keep your own wording as a custom target.";
+    }
+
+    visibleDatabaseRoles.forEach((role, index) => {
+      const roleName = getDatabaseRoleName(role);
+      const option = document.createElement("div");
+      option.id = "databaseRoleOption" + index;
+      option.className = "role-picker-option";
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", "false");
+      option.setAttribute("data-role-index", String(index));
+
+      const iconWrap = document.createElement("span");
+      iconWrap.className = "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container";
+      const icon = document.createElement("span");
+      icon.className = "material-symbols-outlined text-lg";
+      icon.textContent = "work_outline";
+      icon.setAttribute("aria-hidden", "true");
+      iconWrap.appendChild(icon);
+
+      const copy = document.createElement("span");
+      copy.className = "min-w-0 flex-1";
+      const title = document.createElement("span");
+      title.className = "block text-sm font-semibold";
+      title.textContent = roleName;
+      copy.appendChild(title);
+
+      const description = String(role && role.masco_description ? role.masco_description : "").trim();
+      const requirementCount = Number(role && role.requirement_count ? role.requirement_count : 0);
+      const detail = document.createElement("span");
+      detail.className = "role-picker-option-description mt-0.5 text-xs text-on-surface-variant";
+      detail.textContent = description || (requirementCount > 0 ? requirementCount + " matching criteria available" : "Database role");
+      copy.appendChild(detail);
+
+      const check = document.createElement("span");
+      check.className = "material-symbols-outlined mt-1 text-lg text-secondary";
+      check.textContent = "arrow_forward";
+      check.setAttribute("aria-hidden", "true");
+      option.append(iconWrap, copy, check);
+      option.addEventListener("mouseenter", () => setActiveRoleOption(index));
+      option.addEventListener("click", () => selectDatabaseRole(role));
+      roleSuggestionList.appendChild(option);
+    });
+  }
+
+  function setRolePickerOpen(shouldOpen) {
+    if (!roleSuggestionPanel || !customRoleInput) {
+      return;
+    }
+    isRolePickerOpen = Boolean(shouldOpen);
+    roleSuggestionPanel.classList.toggle("hidden", !isRolePickerOpen);
+    customRoleInput.setAttribute("aria-expanded", isRolePickerOpen ? "true" : "false");
+    if (rolePickerToggleBtn) {
+      rolePickerToggleBtn.setAttribute("aria-expanded", isRolePickerOpen ? "true" : "false");
+    }
+    if (rolePickerChevron) {
+      rolePickerChevron.classList.toggle("is-open", isRolePickerOpen);
+    }
+    if (isRolePickerOpen) {
+      renderRoleSuggestions();
+    } else {
+      activeRoleOptionIndex = -1;
+      customRoleInput.setAttribute("aria-activedescendant", "");
+    }
+  }
+
   async function loadDatabaseJobRoles() {
+    databaseRoleLoadState = "loading";
+    if (rolePickerMeta) {
+      rolePickerMeta.textContent = "Loading role list...";
+    }
+    if (isRolePickerOpen) {
+      renderRoleSuggestions();
+    }
     try {
       const response = await fetch(API_BASE_URL + "/job-roles");
       if (!response.ok) {
-        return;
+        throw new Error("Could not load database roles");
       }
       const payload = await response.json();
-      databaseRoles = Array.isArray(payload.roles) ? payload.roles : [];
-      if (dbRoleOptions) {
-        dbRoleOptions.innerHTML = "";
-        databaseRoles.forEach((role) => {
-          const option = document.createElement("option");
-          option.value = role.role_name || "";
-          dbRoleOptions.appendChild(option);
-        });
+      const roles = Array.isArray(payload.roles) ? payload.roles : [];
+      const uniqueRoles = new Map();
+      roles.forEach((role) => {
+        const roleName = getDatabaseRoleName(role);
+        const roleKey = roleName.toLowerCase();
+        if (roleName && !uniqueRoles.has(roleKey)) {
+          uniqueRoles.set(roleKey, role);
+        }
+      });
+      databaseRoles = Array.from(uniqueRoles.values()).sort((left, right) =>
+        getDatabaseRoleName(left).localeCompare(getDatabaseRoleName(right))
+      );
+      databaseRoleLoadState = "ready";
+      if (rolePickerMeta) {
+        rolePickerMeta.textContent = databaseRoles.length + " roles available";
       }
     } catch (error) {
       databaseRoles = [];
+      databaseRoleLoadState = "error";
+      if (rolePickerMeta) {
+        rolePickerMeta.textContent = "Custom role available";
+      }
+    } finally {
+      if (isRolePickerOpen) {
+        renderRoleSuggestions();
+      }
     }
   }
 
@@ -1921,6 +1978,7 @@
       return false;
     }
 
+    const requestId = ++roleRequirementRequestId;
     const allowStatus = options.allowStatus !== false;
     try {
       if (allowStatus) {
@@ -1928,6 +1986,9 @@
       }
       const response = await fetch(API_BASE_URL + "/job-requirements?role=" + encodeURIComponent(requestedRole));
       const payload = await response.json().catch(() => ({}));
+      if (requestId !== roleRequirementRequestId) {
+        return null;
+      }
       if (!response.ok) {
         throw new Error(payload.detail || "Could not load database job requirements.");
       }
@@ -1956,6 +2017,9 @@
       }
       return true;
     } catch (error) {
+      if (requestId !== roleRequirementRequestId) {
+        return null;
+      }
       if (allowStatus) {
         setEvaluationStatus("Could not check database role now. The backend will still try to auto-detect the closest role from your resume.", true);
       }
@@ -2002,7 +2066,7 @@
 
   function clearRoleSelection() {
     selectedRole = "";
-    isCustomRoleSelected = false;
+    roleRequirementRequestId += 1;
     if (customRoleLookupTimer) {
       clearTimeout(customRoleLookupTimer);
       customRoleLookupTimer = null;
@@ -2015,18 +2079,54 @@
     if (selectedRoleText) {
       selectedRoleText.textContent = "Type a role or choose a popular market role. You can also skip this and let the system infer from your resume.";
     }
+    if (isRolePickerOpen) {
+      renderRoleSuggestions();
+    }
   }
 
   function updateCustomRoleSelection() {
     const typedRole = customRoleInput ? customRoleInput.value.trim() : "";
-    isCustomRoleSelected = true;
+    roleRequirementRequestId += 1;
     selectedRole = typedRole;
     jobRoleButtons.forEach((button) => setRoleButtonState(button, false));
     updateClearRoleButton();
     if (selectedRoleText) {
-      selectedRoleText.textContent = typedRole ? "Selected role: " + typedRole : "Type a role or choose a popular market role.";
+      const exactRole = databaseRoles.find((role) => getDatabaseRoleName(role).toLowerCase() === typedRole.toLowerCase());
+      selectedRoleText.textContent = typedRole
+        ? (exactRole ? "Selected database role: " : "Custom target role: ") + typedRole
+        : "Type a role or choose a popular market role.";
     }
     scheduleCustomRoleLookup();
+    refreshStartButtonState();
+  }
+
+  function selectDatabaseRole(role) {
+    const roleName = getDatabaseRoleName(role);
+    if (!roleName || !customRoleInput) {
+      return;
+    }
+    if (customRoleLookupTimer) {
+      clearTimeout(customRoleLookupTimer);
+      customRoleLookupTimer = null;
+    }
+    roleRequirementRequestId += 1;
+    selectedRole = roleName;
+    customRoleInput.value = roleName;
+    jobRoleButtons.forEach((button) => {
+      setRoleButtonState(button, (button.dataset.role || "").toLowerCase() === roleName.toLowerCase());
+    });
+    updateClearRoleButton();
+    if (selectedRoleText) {
+      selectedRoleText.textContent = "Selected database role: " + roleName;
+    }
+    clearAutoJobDescription();
+    customRoleInput.focus({ preventScroll: true });
+    setRolePickerOpen(false);
+    loadDatabaseRequirementsForRole(roleName, { allowStatus: true }).then((matched) => {
+      if (matched === false && selectedRole === roleName) {
+        setEvaluationStatus("The selected role has no saved requirements yet. The backend will use the closest available role.", true);
+      }
+    });
     refreshStartButtonState();
   }
 
@@ -2130,6 +2230,7 @@
   }
 
   function closeEvaluationModal() {
+    setRolePickerOpen(false);
     evaluationModal.classList.add("hidden");
     document.body.classList.remove("overflow-hidden");
   }
@@ -2341,17 +2442,18 @@
   jobRoleButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const selectedButtonRole = button.dataset.role || "";
+      setRolePickerOpen(false);
 
       jobRoleButtons.forEach((btn) => {
         setRoleButtonState(btn, (btn.dataset.role || "") === selectedButtonRole);
       });
 
-      isCustomRoleSelected = false;
 
       if (customRoleLookupTimer) {
         clearTimeout(customRoleLookupTimer);
         customRoleLookupTimer = null;
       }
+      roleRequirementRequestId += 1;
 
       selectedRole = selectedButtonRole;
       if (customRoleInput) {
@@ -2366,7 +2468,7 @@
 
       const roleAtClick = selectedRole;
       loadDatabaseRequirementsForRole(roleAtClick, { allowStatus: true }).then((matched) => {
-        if (!matched && selectedRole === roleAtClick) {
+        if (matched === false && selectedRole === roleAtClick) {
           setEvaluationStatus("No matching database role found. The backend will auto-detect the closest role from your resume.", true);
         }
       });
@@ -2375,8 +2477,71 @@
   });
 
   if (customRoleInput) {
+    customRoleInput.addEventListener("focus", () => {
+      setRolePickerOpen(true);
+    });
+
     customRoleInput.addEventListener("input", () => {
       updateCustomRoleSelection();
+      setRolePickerOpen(true);
+    });
+
+    customRoleInput.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (!isRolePickerOpen) {
+          setRolePickerOpen(true);
+        }
+        const nextIndex = activeRoleOptionIndex < visibleDatabaseRoles.length - 1
+          ? activeRoleOptionIndex + 1
+          : 0;
+        setActiveRoleOption(nextIndex);
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (!isRolePickerOpen) {
+          setRolePickerOpen(true);
+        }
+        const nextIndex = activeRoleOptionIndex > 0
+          ? activeRoleOptionIndex - 1
+          : visibleDatabaseRoles.length - 1;
+        setActiveRoleOption(nextIndex);
+        return;
+      }
+      if (event.key === "Home" && isRolePickerOpen && visibleDatabaseRoles.length) {
+        event.preventDefault();
+        setActiveRoleOption(0);
+        return;
+      }
+      if (event.key === "End" && isRolePickerOpen && visibleDatabaseRoles.length) {
+        event.preventDefault();
+        setActiveRoleOption(visibleDatabaseRoles.length - 1);
+        return;
+      }
+      if (event.key === "Enter" && isRolePickerOpen && activeRoleOptionIndex >= 0) {
+        event.preventDefault();
+        selectDatabaseRole(visibleDatabaseRoles[activeRoleOptionIndex]);
+        return;
+      }
+      if (event.key === "Escape" && isRolePickerOpen) {
+        event.preventDefault();
+        setRolePickerOpen(false);
+        return;
+      }
+      if (event.key === "Tab") {
+        setRolePickerOpen(false);
+      }
+    });
+  }
+
+  if (rolePickerToggleBtn) {
+    rolePickerToggleBtn.addEventListener("click", () => {
+      const shouldOpen = !isRolePickerOpen;
+      if (customRoleInput) {
+        customRoleInput.focus();
+      }
+      setRolePickerOpen(shouldOpen);
     });
   }
 
@@ -2389,8 +2554,15 @@
       if (customRoleInput) {
         customRoleInput.focus();
       }
+      setRolePickerOpen(true);
     });
   }
+
+  document.addEventListener("pointerdown", (event) => {
+    if (isRolePickerOpen && customRoleWrapper && !customRoleWrapper.contains(event.target)) {
+      setRolePickerOpen(false);
+    }
+  });
 
   if (resumeDropZone && resumePdfInput) {
     resumeDropZone.addEventListener("click", (event) => {
@@ -2459,7 +2631,6 @@
     });
   }
 
-  seedLocalAuthUser();
   updateAuthUi();
   loadDatabaseJobRoles();
 
@@ -2493,18 +2664,21 @@
         formData.append("resume_file", selectedPdfFile, selectedPdfFileName);
         formData.append("job_description", finalJobDescription);
         formData.append("target_role", finalTargetRole);
-        const currentUser = getAuthUser();
-        if (currentUser && currentUser.email) {
-          formData.append("user_email", currentUser.email);
-        }
 
         const response = await fetch(`${API_BASE_URL}/analyze-file`, {
           method: "POST",
+          credentials: "same-origin",
           body: formData,
         });
 
         if (!response.ok) {
           const errorPayload = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            setAuthUser(null);
+            pendingAuthAction = "openEvaluation";
+            openAuthModal("login");
+            throw new Error("Your login session expired. Please log in once to continue.");
+          }
           throw new Error(errorPayload.detail || "Analysis failed");
         }
 
@@ -2548,27 +2722,6 @@
     });
   }
 
-  // --- History storage helpers ---
-  function getHistoryKey() {
-    return window.CareerNavigatorCommon.getHistoryKey();
-  }
-
-  function loadHistory() {
-    return window.CareerNavigatorCommon.loadHistory();
-  }
-
-  function saveHistory(history) {
-    window.CareerNavigatorCommon.saveHistory(history);
-  }
-
-  function getAnalysisHistoryKey(analysis, role) {
-    return window.CareerNavigatorCommon.getAnalysisHistoryKey(analysis, role);
-  }
-
-  function dedupeHistoryItems(items) {
-    return window.CareerNavigatorCommon.dedupeHistoryItems(items);
-  }
-
   function saveAnalysisToHistory(analysis) {
     const role = localStorage.getItem("selectedJobRole") || "";
     window.CareerNavigatorCommon.saveAnalysisToHistory(analysis, role);
@@ -2583,219 +2736,50 @@
   const clearHistoryBtn = document.getElementById("clearHistoryBtn");
   const doneHistoryBtn = document.getElementById("doneHistoryBtn");
 
-  function openHistoryModal() {
-    if (!historyModal) return;
-    renderHistory();
-    historyModal.classList.remove("hidden");
-    historyModal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("overflow-hidden");
-  }
-
-  function closeHistoryModal() {
-    if (!historyModal) return;
-    historyModal.classList.add("hidden");
-    historyModal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("overflow-hidden");
-  }
-
-  function renderHistory() {
-    if (!historyList) return;
-    const items = dedupeHistoryItems(loadHistory());
-    saveHistory(items.slice(0, 50));
-    historyList.innerHTML = "";
-    if (!items.length) {
-      historyList.innerHTML = `
-        <div class="p-4 rounded-lg border border-outline-variant/60 bg-surface-container-lowest">
-          <div class="font-semibold text-primary">No past evaluations found.</div>
-          <p class="mt-1 text-sm text-on-surface-variant">Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.</p>
-          <button class="mt-3 px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold" id="viewSampleHistoryBtn" type="button">View Sample Evaluation</button>
-        </div>`;
-      const sampleHistoryBtn = document.getElementById("viewSampleHistoryBtn");
-      if (sampleHistoryBtn) {
-        sampleHistoryBtn.addEventListener("click", () => {
-          writeSampleAnalysisForDemo();
-          closeHistoryModal();
-          window.location.href = "analysis_result.html";
-        });
+  const historyController = window.CareerNavigatorCommon.createHistoryModal({
+    modal: historyModal,
+    openButton: openHistoryBtn,
+    backdrop: historyModalBackdrop,
+    closeButton: closeHistoryModalBtn,
+    list: historyList,
+    clearButton: clearHistoryBtn,
+    doneButton: doneHistoryBtn,
+    emptyDescription: "Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.",
+    onEmptyAction: () => {
+      window.CareerNavigatorCommon.writeSampleAnalysisForDemo();
+      window.location.href = "analysis_result.html";
+    },
+    onView: (entry) => {
+      try {
+        localStorage.setItem("analysisResult", JSON.stringify(entry.full));
+        const user = getAuthUser();
+        if (user && user.email) {
+          localStorage.setItem("analysisOwner", (user.email || "").toLowerCase());
+        } else {
+          localStorage.removeItem("analysisOwner");
+        }
+      } catch (error) {
+        // History navigation still works if local storage is unavailable.
       }
-      return;
+      window.location.href = "analysis_result.html";
     }
-    items.forEach((it) => {
-      const el = document.createElement("div");
-      el.className = "p-3 rounded-lg border border-outline-variant/60 flex items-center justify-between";
-      el.innerHTML = `<div>
-          <div class=\"font-semibold\">${escapeHtml(it.uploaded_resume_name)} - ${escapeHtml(it.role || 'Role')}</div>
-          <div class=\"text-xs text-on-surface-variant\">Score: ${Number(it.matching_percentage).toFixed(0)}/100 | ${new Date(it.stored_at).toLocaleString()}</div>
-        </div>
-        <div class=\"flex gap-2\">
-          <button class=\"viewHistoryBtn px-3 py-1 rounded-lg bg-primary text-on-primary text-sm\" data-id=\"${it.id}\">View</button>
-          <button class=\"deleteHistoryBtn px-3 py-1 rounded-lg bg-surface-container-low text-primary text-sm\" data-id=\"${it.id}\">Delete</button>
-        </div>`;
-      historyList.appendChild(el);
-    });
-
-    // attach handlers
-    historyList.querySelectorAll('.viewHistoryBtn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = Number(btn.dataset.id);
-        const items = loadHistory();
-        const entry = items.find(x => x.id === id);
-        if (!entry) return;
-        // set as current analysis and navigate to results
-        try {
-          localStorage.setItem('analysisResult', JSON.stringify(entry.full));
-          // if user signed in, tag ownership
-          const user = getAuthUser();
-          if (user && user.email) localStorage.setItem('analysisOwner', (user.email||'').toLowerCase()); else localStorage.removeItem('analysisOwner');
-        } catch (e) { /* ignore */ }
-        closeHistoryModal();
-        window.location.href = 'analysis_result.html';
-      });
-    });
-
-    historyList.querySelectorAll('.deleteHistoryBtn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = Number(btn.dataset.id);
-        const items = loadHistory();
-        const filtered = items.filter(x => x.id !== id);
-        saveHistory(filtered);
-        renderHistory();
-      });
-    });
-  }
-
-  function escapeHtml(s) { return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-  if (openHistoryBtn) openHistoryBtn.addEventListener('click', openHistoryModal);
-  if (historyModalBackdrop) historyModalBackdrop.addEventListener('click', closeHistoryModal);
-  if (closeHistoryModalBtn) closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
-  if (doneHistoryBtn) doneHistoryBtn.addEventListener('click', closeHistoryModal);
-  if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', () => { saveHistory([]); renderHistory(); });
-
-  function animatePercentCounter(element) {
-    if (!element || element.dataset.animated === "true") {
-      return;
-    }
-
-    const target = Number(element.dataset.target || "0");
-    const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    element.dataset.animated = "true";
-
-    if (prefersReducedMotion || !Number.isFinite(target)) {
-      element.textContent = String(Math.round(target)) + "%";
-      return;
-    }
-
-    const duration = 1150;
-    const startTime = performance.now();
-
-    function tick(now) {
-      const progress = Math.min(1, (now - startTime) / duration);
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      element.textContent = String(Math.round(target * easedProgress)) + "%";
-
-      if (progress < 1) {
-        requestAnimationFrame(tick);
-      }
-    }
-
-    requestAnimationFrame(tick);
-  }
-
-  const interviewRateCounter = document.getElementById("interviewRateCounter");
-  if (interviewRateCounter) {
-    if ("IntersectionObserver" in window) {
-      const counterObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            animatePercentCounter(interviewRateCounter);
-            observer.disconnect();
-          }
-        });
-      }, { threshold: 0.35 });
-      counterObserver.observe(interviewRateCounter);
-    } else {
-      animatePercentCounter(interviewRateCounter);
-    }
-  }
-
-  function writeSampleAnalysisForDemo() {
-    try {
-      const sample = {
-        analysis_title: APP_TITLE,
-        uploaded_resume_name: "sample_resume.pdf",
-        matching_percentage: 87,
-        resume_excerpt: "Sample resume excerpt showing strong systems design and Kubernetes experience.",
-        resume_summary: {
-          skills: ["systems design", "kubernetes", "docker"],
-          education_markers: ["bachelor"],
-          experience_markers: ["internship"]
-        },
-        job_description_analysis: {
-          important_keywords: ["kubernetes", "systems design", "docker"],
-          missing_keywords: []
-        },
-        compatibility: {
-          matching_percentage: 87,
-          keyword_match: 87,
-          role_evidence: 92,
-          resume_quality: 88,
-          experience_alignment: 84,
-          academic_rigor: 80
-        },
-        feedback: "Strong keyword match. Quantify your impact in cloud projects.",
-        structured_feedback: ["Strong keyword match.", "Quantify impact in cloud projects."],
-        summary: "Sample analysis for demo",
-        recommendation: "Highlight measurable outcomes in project bullets.",
-        target_role: "Computer Programmer",
-        selected_role: "Software Engineer",
-        role_recommendation: {
-          selected_role: "Software Engineer",
-          selected_database_role: "Computer Programmer",
-          detected_database_role: "Computer Programmer",
-          recommended_role: "Computer Programmer",
-          recommended_database_role: "Computer Programmer",
-          is_different_from_selected: false,
-          selected_score: 87,
-          recommended_score: 87,
-          matched_resume_signals: ["systems", "design", "kubernetes", "docker"],
-          recommended_missing_keywords: [],
-          selected_missing_keywords: [],
-          reason_summary: "The selected role maps to Computer Programmer, and it remains the best database match for this resume."
-        },
-        generated_at: new Date().toISOString()
-      };
-
-      localStorage.removeItem("analysisResult");
-      localStorage.removeItem("analysisOwner");
-      localStorage.setItem("sampleAnalysis", JSON.stringify(sample));
-      localStorage.setItem("pipelineStatus", "sample_available");
-      localStorage.setItem("uploadedResumeName", sample.uploaded_resume_name);
-      localStorage.setItem("selectedJobRole", "Sample Role");
-      localStorage.setItem("selectedJobDescription", "Sample database role requirements for demo.");
-    } catch (err) {
-      // ignore
-    }
-  }
+  });
+  const openHistoryModal = historyController.open;
 
   const viewSampleBtn = document.getElementById("viewSampleBtn");
   if (viewSampleBtn) {
-    viewSampleBtn.addEventListener("click", writeSampleAnalysisForDemo);
+    viewSampleBtn.addEventListener("click", window.CareerNavigatorCommon.writeSampleAnalysisForDemo);
   }
 
   const startupParams = new URLSearchParams(window.location.search);
   if (startupParams.get("admin_required") === "1") {
     const currentUser = getAuthUser();
-    const storedEmail = currentUser && currentUser.email ? String(currentUser.email).toLowerCase() : "";
-    if (currentUser && (currentUser.is_admin || storedEmail === "admin@uts.local")) {
+    if (currentUser && currentUser.is_admin) {
       setAuthUser(null);
       clearProfileSensitiveFields();
-      showToast("Admin session expired. Log in again as admin@uts.local.", "info");
+      showToast("Administrator session expired. Please log in again.", "info");
       openAuthModal("login");
-      if (loginEmailInput) {
-        loginEmailInput.value = "admin@uts.local";
-      }
-      setAuthMessage("Admin session expired. Please log in again as admin@uts.local.");
+      setAuthMessage("Administrator session expired. Please log in again.");
     } else {
       showToast("Admin account required to open Job Data Insights.", "info");
       openAuthModal("login");

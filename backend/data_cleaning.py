@@ -170,6 +170,14 @@ def clean_job_requirement_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def requirement_match_key(requirement: dict[str, Any]) -> tuple[int, str, str]:
+    return (
+        requirement["role_id"],
+        requirement["requirement_type"],
+        normalize_match_key(requirement["requirement_text"]),
+    )
+
+
 def values_differ(raw_value: Any, cleaned_value: Any) -> bool:
     if isinstance(cleaned_value, int):
         return safe_int(raw_value, cleaned_value) != cleaned_value
@@ -232,11 +240,7 @@ def build_job_data_cleaning_plan(
         if not requirement["requirement_text"]:
             manual_review_requirements.append({"id": requirement["id"], "reason": "empty_requirement_text"})
             continue
-        key = (
-            requirement["role_id"],
-            requirement["requirement_type"],
-            normalize_match_key(requirement["requirement_text"]),
-        )
+        key = requirement_match_key(requirement)
         requirement_groups[key].append(requirement)
 
     duplicate_requirement_ids: list[int] = []
@@ -325,14 +329,7 @@ def build_job_data_quality_report(
         for requirement in cleaned_requirements
         if requirement["role_id"] and requirement["requirement_text"]
     ]
-    unique_requirement_keys = {
-        (
-            requirement["role_id"],
-            requirement["requirement_type"],
-            normalize_match_key(requirement["requirement_text"]),
-        )
-        for requirement in usable_requirements
-    }
+    unique_requirement_keys = {requirement_match_key(requirement) for requirement in usable_requirements}
 
     issue_count = (
         plan["summary"]["role_updates_needed"]

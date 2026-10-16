@@ -2,79 +2,9 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>UTS CS Career Navigator - Analysis Report</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "on-primary": "#ffffff",
-                        "tertiary": "#3e1e00",
-                        "secondary-container": "#68abff",
-                        "secondary-fixed-dim": "#a4c9ff",
-                        "primary-container": "#1b3b6f",
-                        "primary-fixed": "#d8e2ff",
-                        "on-tertiary-fixed": "#2f1500",
-                        "inverse-on-surface": "#f0f1f2",
-                        "tertiary-fixed": "#ffdcc3",
-                        "on-error-container": "#93000a",
-                        "surface-dim": "#d9dadb",
-                        "surface-bright": "#f8f9fa",
-                        "on-secondary-fixed": "#001c39",
-                        "tertiary-container": "#5e3000",
-                        "on-secondary-fixed-variant": "#004883",
-                        "on-tertiary-fixed-variant": "#6b3a09",
-                        "on-surface-variant": "#43474f",
-                        "background": "#f8f9fa",
-                        "outline-variant": "#c4c6d1",
-                        "outline": "#747780",
-                        "on-primary-fixed-variant": "#28467b",
-                        "on-primary-fixed": "#001a41",
-                        "surface-container-lowest": "#ffffff",
-                        "on-secondary-container": "#003e73",
-                        "surface-container-highest": "#e1e3e4",
-                        "inverse-primary": "#acc7ff",
-                        "surface": "#f8f9fa",
-                        "on-tertiary": "#ffffff",
-                        "on-surface": "#191c1d",
-                        "surface-container-low": "#f3f4f5",
-                        "surface-container": "#edeeef",
-                        "surface-container-high": "#e7e8e9",
-                        "on-error": "#ffffff",
-                        "secondary": "#0060ac",
-                        "error": "#ba1a1a",
-                        "surface-variant": "#e1e3e4",
-                        "on-secondary": "#ffffff",
-                        "inverse-surface": "#2e3132",
-                        "primary-fixed-dim": "#acc7ff",
-                        "tertiary-fixed-dim": "#ffb77d",
-                        "surface-tint": "#415e94",
-                        "on-primary-container": "#8aa7e1",
-                        "secondary-fixed": "#d4e3ff",
-                        "error-container": "#ffdad6",
-                        "primary": "#002555",
-                        "on-tertiary-container": "#db9860",
-                        "on-background": "#191c1d"
-                    },
-                    "borderRadius": {
-                        "DEFAULT": "0.125rem",
-                        "lg": "0.25rem",
-                        "xl": "0.5rem",
-                        "full": "0.75rem"
-                    },
-                    "fontFamily": {
-                        "headline": ["Manrope"],
-                        "body": ["Inter"],
-                        "label": ["Inter"]
-                    }
-                },
-            },
-        }
-    </script>
+<link rel="stylesheet" href="/tailwind.css">
 <script src="app_common.js"></script>
 <style>
         .material-symbols-outlined {
@@ -82,10 +12,6 @@
         }
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #191c1d; }
         h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-        }
         .toast-stack {
             position: fixed;
             top: 5rem;
@@ -252,18 +178,18 @@
 <!-- TopNavBar Shell -->
 <nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-<a class="text-base sm:text-xl font-bold tracking-tight text-blue-900 dark:text-white font-headline truncate min-w-0 hover:text-secondary transition-colors" href="home_page.html" aria-label="Back to dashboard" style="">UTS CS Career Navigator</a>
+<a class="text-base sm:text-xl font-bold tracking-tight text-blue-900 dark:text-white font-headline truncate min-w-0 hover:text-secondary transition-colors" href="home_page.html" aria-label="Back to dashboard">UTS CS Career Navigator</a>
 <div class="hidden md:flex items-center space-x-8">
-<a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="home_page.html" style="">Dashboard</a>
-<a class="font-headline text-sm font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out" href="analysis_result.html" style="">Results</a>
-<a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link style="">Admin Insights</a>
+<a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="home_page.html">Dashboard</a>
+<a class="font-headline text-sm font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out" href="analysis_result.html">Results</a>
+<a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
 </div>
 <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-<button class="material-symbols-outlined text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" data-icon="account_circle" type="button" style="">account_circle</button>
-<button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" style="">Log In / Sign Up</button>
-<button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap" style="">History</button>
+<button class="material-symbols-outlined text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" data-icon="account_circle" type="button">account_circle</button>
+<button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
+<button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
 <a class="md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
-<span class="material-symbols-outlined text-base" style="">home</span>
+<span class="material-symbols-outlined text-base">home</span>
 </a>
 </div>
 </div>
@@ -274,12 +200,12 @@
 <section class="mb-12">
 <div class="flex flex-col md:flex-row gap-6 md:items-end justify-between mb-8">
 <div>
-<span class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-2 block" style="">Comprehensive Analysis Report</span>
-<h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight" style="">UTS CS Readiness Score</h1>
+<span class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-2 block">Comprehensive Analysis Report</span>
+<h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">UTS CS Readiness Score</h1>
 </div>
 <div class="flex items-baseline gap-2">
-<span class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-secondary tracking-tight" id="overallScore" style="">0</span>
-<span class="text-xl font-bold text-on-surface-variant" style="">/100</span>
+<span class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-secondary tracking-tight" id="overallScore">0</span>
+<span class="text-xl font-bold text-on-surface-variant">/100</span>
 </div>
 </div>
 <!-- Hero Bento Grid -->
@@ -288,58 +214,58 @@
 <div class="md:col-span-2 h-full flex flex-col space-y-4">
 <div class="bg-surface-container-lowest p-6 sm:p-8 rounded-xl">
 <div>
-<h3 class="text-xl font-bold text-primary mb-6" style="">Score Components</h3>
+<h3 class="text-xl font-bold text-primary mb-6">Score Components</h3>
 <div class="space-y-6">
 <div class="metric-row">
 <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
 <div class="bg-gradient-to-r from-secondary to-secondary-container h-full" id="metricKeywordBar" style="width: 0%;"></div>
 </div>
-<span class="text-sm font-bold text-primary" id="metricKeywordValue" style="">Pending</span>
-<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter" style="">Keyword Match</span>
+<span class="text-sm font-bold text-primary" id="metricKeywordValue">Pending</span>
+<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Keyword Match</span>
 </div>
 <div class="metric-row">
 <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
 <div class="bg-gradient-to-r from-secondary to-secondary-container h-full" id="metricExperienceBar" style="width: 0%;"></div>
 </div>
-<span class="text-sm font-bold text-primary" id="metricExperienceValue" style="">Pending</span>
-<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter" style="">Experience Alignment</span>
+<span class="text-sm font-bold text-primary" id="metricExperienceValue">Pending</span>
+<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Experience Alignment</span>
 </div>
 <div class="metric-row">
 <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
 <div class="bg-gradient-to-r from-secondary to-secondary-container h-full" id="metricAcademicBar" style="width: 0%;"></div>
 </div>
-<span class="text-sm font-bold text-primary" id="metricAcademicValue" style="">Pending</span>
-<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter" style="">Academic Rigor</span>
+<span class="text-sm font-bold text-primary" id="metricAcademicValue">Pending</span>
+<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Academic Rigor</span>
 </div>
 </div>
 </div>
 <div class="flex gap-2 flex-wrap mt-6 pt-5 border-t border-outline-variant/50" id="matchedSignalsChipList">
-<span class="px-3 py-1 bg-secondary-container/20 text-on-secondary-container rounded-full text-xs font-semibold" style="">Matched resume signals will appear here.</span>
+<span class="px-3 py-1 bg-secondary-container/20 text-on-secondary-container rounded-full text-xs font-semibold">Matched resume signals will appear here.</span>
 </div>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 <article class="rounded-xl bg-surface-container-lowest border border-outline-variant/60 p-4 flex items-center gap-3 shadow-sm">
 <div class="evidence-ring" id="hardSkillsRing" style="--score: 0;"><span id="hardSkillsScore">-</span></div>
 <div class="min-w-0">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">Hard Skills</p>
-<h4 class="text-sm font-extrabold text-primary" style="">Technical Fit</h4>
-<p class="text-xs text-on-surface-variant leading-snug mt-1" id="hardSkillsDetail" style="">Tools, languages, and role keywords.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Hard Skills</p>
+<h4 class="text-sm font-extrabold text-primary">Technical Fit</h4>
+<p class="text-xs text-on-surface-variant leading-snug mt-1" id="hardSkillsDetail">Tools, languages, and role keywords.</p>
 </div>
 </article>
 <article class="rounded-xl bg-surface-container-lowest border border-outline-variant/60 p-4 flex items-center gap-3 shadow-sm">
 <div class="evidence-ring" id="softSkillsRing" style="--score: 0;"><span id="softSkillsScore">-</span></div>
 <div class="min-w-0">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">Soft Skills</p>
-<h4 class="text-sm font-extrabold text-primary" style="">Work Style</h4>
-<p class="text-xs text-on-surface-variant leading-snug mt-1" id="softSkillsDetail" style="">Communication, teamwork, and leadership signals.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Soft Skills</p>
+<h4 class="text-sm font-extrabold text-primary">Work Style</h4>
+<p class="text-xs text-on-surface-variant leading-snug mt-1" id="softSkillsDetail">Communication, teamwork, and leadership signals.</p>
 </div>
 </article>
 <article class="rounded-xl bg-surface-container-lowest border border-outline-variant/60 p-4 flex items-center gap-3 shadow-sm">
 <div class="evidence-ring" id="experienceRing" style="--score: 0;"><span id="experienceScore">-</span></div>
 <div class="min-w-0">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">Experience</p>
-<h4 class="text-sm font-extrabold text-primary" style="">Project Evidence</h4>
-<p class="text-xs text-on-surface-variant leading-snug mt-1" id="experienceDetail" style="">Projects, internships, and measurable outcomes.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Experience</p>
+<h4 class="text-sm font-extrabold text-primary">Project Evidence</h4>
+<p class="text-xs text-on-surface-variant leading-snug mt-1" id="experienceDetail">Projects, internships, and measurable outcomes.</p>
 </div>
 </article>
 </div>
@@ -348,18 +274,18 @@
 <div class="bg-primary p-8 rounded-xl text-on-primary flex flex-col justify-between h-full">
 <div>
 <div class="flex items-center gap-2 mb-4">
-<span class="material-symbols-outlined text-secondary-fixed-dim" data-icon="psychology" style="">psychology</span>
-<span class="text-xs font-bold uppercase tracking-widest text-on-primary/60" style="">AI Summary</span>
+<span class="material-symbols-outlined text-secondary-fixed-dim" data-icon="psychology">psychology</span>
+<span class="text-xs font-bold uppercase tracking-widest text-on-primary/60">AI Summary</span>
 </div>
-<p class="text-lg leading-relaxed font-medium" id="aiSummary" style="">Run an analysis to see the resume score and role recommendation.</p>
+<p class="text-lg leading-relaxed font-medium" id="aiSummary">Run an analysis to see the resume score and role recommendation.</p>
 </div>
 <div class="pt-6 border-t border-white/10">
-<p class="text-xs text-on-primary/60 italic" id="aiRecommendation" style="">Recommendation details will appear after analysis.</p>
+<p class="text-xs text-on-primary/60 italic" id="aiRecommendation">Recommendation details will appear after analysis.</p>
 </div>
 <div class="pt-5 mt-5 border-t border-white/10">
-<p class="text-xs font-bold uppercase tracking-widest text-secondary-fixed-dim mb-2" id="scoreMeaningLabel" style="">Score conclusion</p>
-<p class="text-sm leading-relaxed text-on-primary/90" id="scoreMeaningText" style="">Run an analysis to see what the score means.</p>
-<p class="text-xs leading-relaxed text-on-primary/60 mt-3" id="scoreFormulaText" style="">Live score components will appear here.</p>
+<p class="text-xs font-bold uppercase tracking-widest text-secondary-fixed-dim mb-2" id="scoreMeaningLabel">Score conclusion</p>
+<p class="text-sm leading-relaxed text-on-primary/90" id="scoreMeaningText">Run an analysis to see what the score means.</p>
+<p class="text-xs leading-relaxed text-on-primary/60 mt-3" id="scoreFormulaText">Live score components will appear here.</p>
 </div>
 </div>
 </div>
@@ -368,25 +294,26 @@
 <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 lg:p-8">
 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-6">
 <div class="max-w-3xl">
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" style="">Role Fit Recommendation</p>
-<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight" id="roleFitHeadline" style="">Recommended job fit will appear here.</h2>
-<p class="text-sm sm:text-base text-on-surface-variant mt-3 leading-relaxed" id="roleRecommendationSummary" style="">Run an analysis to compare the selected job with the best database match.</p>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Role Fit Recommendation</p>
+<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight" id="roleFitHeadline">Recommended job fit will appear here.</h2>
+<p class="text-sm sm:text-base text-on-surface-variant mt-3 leading-relaxed" id="roleRecommendationSummary">Run an analysis to compare the selected job with the best database match.</p>
 </div>
 <span class="self-start px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-xs font-bold" id="roleDecisionBadge">Database comparison</span>
 </div>
 <div class="grid grid-cols-1 gap-4">
 <div class="rounded-xl border border-outline-variant/70 bg-surface-container-low p-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Current selected role</p>
-<h3 class="text-xl font-bold text-primary" id="selectedChoiceDisplay" style="">No role selected.</h3>
-<p class="text-sm text-on-surface-variant mt-2" id="selectedDatabaseRoleDisplay" style="">Database mapping will appear here.</p>
-<p class="text-sm font-semibold text-on-surface mt-4" id="selectedRoleScoreDisplay" style="">Role mapping pending.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Current selected role</p>
+<h3 class="text-xl font-bold text-primary" id="selectedChoiceDisplay">No role selected.</h3>
+<p class="text-sm text-on-surface-variant mt-2" id="selectedDatabaseRoleDisplay">Database mapping will appear here.</p>
+<p class="text-sm font-semibold text-on-surface mt-4" id="selectedRoleScoreDisplay">Role mapping pending.</p>
 </div>
 </div>
 <div class="mt-6 border-t border-outline-variant/60 pt-5">
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
 <div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">Top Database Matches</p>
-<h3 class="text-xl font-bold text-primary" id="topRoleMatchesTitle" style="">Top 3 Role Matches</h3>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Top Database Matches</p>
+<h3 class="text-xl font-bold text-primary" id="topRoleMatchesTitle">Top 3 Role Matches</h3>
+<p class="text-xs text-on-surface-variant mt-1">These are evidence-match scores from resume text and database requirements, not hiring probabilities or validated model accuracy.</p>
 </div>
 <span class="self-start px-3 py-1 rounded-full bg-surface-container-high text-primary text-xs font-bold" id="topRoleMatchesBadge">Resume evidence ranking</span>
 </div>
@@ -401,9 +328,9 @@ Top role matches will appear after analysis.
 <section class="mb-12" id="recommendationPlanSection">
 <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
 <div class="max-w-3xl">
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" style="">Part 8 Recommendation Output</p>
-<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight" style="">Priority Improvement Plan</h2>
-<p class="text-sm sm:text-base text-on-surface-variant mt-3 leading-relaxed" id="recommendationPlanSummary" style="">Run an analysis to see the recommended next actions for the selected role.</p>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Part 8 Recommendation Output</p>
+<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight">Priority Improvement Plan</h2>
+<p class="text-sm sm:text-base text-on-surface-variant mt-3 leading-relaxed" id="recommendationPlanSummary">Run an analysis to see the recommended next actions for the selected role.</p>
 </div>
 <span class="self-start lg:self-auto px-3 py-1 rounded-full bg-surface-container-high text-primary text-xs font-bold" id="recommendationPlanBadge">Waiting for analysis</span>
 </div>
@@ -414,16 +341,16 @@ Recommendation actions will appear after analysis.
 </div>
 <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
 <article class="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Resume Generator Strategy</p>
-<h3 class="text-xl font-bold text-primary" id="resumeStrategyRole" style="">Target role pending.</h3>
-<p class="text-sm text-on-surface-variant mt-3 leading-relaxed" id="resumeStrategySummary" style="">The generated resume will use the recommended role, matched evidence, and missing keyword targets.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Resume Generator Strategy</p>
+<h3 class="text-xl font-bold text-primary" id="resumeStrategyRole">Target role pending.</h3>
+<p class="text-sm text-on-surface-variant mt-3 leading-relaxed" id="resumeStrategySummary">The generated resume will use the recommended role, matched evidence, and missing keyword targets.</p>
 <div class="mt-4 flex flex-wrap gap-2" id="resumeStrategyKeywordList">
 <span class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant text-xs font-semibold">Keyword targets pending.</span>
 </div>
 </article>
 <article class="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Evidence To Keep</p>
-<h3 class="text-xl font-bold text-primary" style="">Resume strengths</h3>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Evidence To Keep</p>
+<h3 class="text-xl font-bold text-primary">Resume strengths</h3>
 <p class="text-sm text-on-surface-variant mt-3 leading-relaxed">These are the signals the system will preserve when generating the ATS resume draft.</p>
 <div class="mt-4 flex flex-wrap gap-2" id="resumeStrategyEvidenceList">
 <span class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant text-xs font-semibold">Matched evidence pending.</span>
@@ -435,45 +362,45 @@ Recommendation actions will appear after analysis.
 <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 lg:p-8">
 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
 <div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" style="">Analysis Snapshot</p>
-<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight" style="">Score, Evidence, and Rewrite Plan</h2>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Analysis Snapshot</p>
+<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight">Score, Evidence, and Rewrite Plan</h2>
 </div>
-<p class="font-bold text-primary text-lg" id="matchScoreText" style="">Final score shown above</p>
+<p class="font-bold text-primary text-lg" id="matchScoreText">Final score shown above</p>
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
 <div class="space-y-5">
 <div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">ATS Parsing</p>
-<p class="font-bold text-primary" id="parsedSkillsCount" style="">Skills found: 0</p>
-<p class="text-sm text-on-surface-variant" id="parsedEducationCount" style="">Education markers: 0</p>
-<p class="text-sm text-on-surface-variant" id="parsedExperienceCount" style="">Experience markers: 0</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">ATS Parsing</p>
+<p class="font-bold text-primary" id="parsedSkillsCount">Skills found: 0</p>
+<p class="text-sm text-on-surface-variant" id="parsedEducationCount">Education markers: 0</p>
+<p class="text-sm text-on-surface-variant" id="parsedExperienceCount">Experience markers: 0</p>
 </div>
 <div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Keyword Match</p>
-<p class="font-bold text-primary" id="jobKeywordCount" style="">Important keywords: 0</p>
-<p class="text-sm text-on-surface-variant" id="missingKeywordCount" style="">Missing keywords: 0</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Keyword Match</p>
+<p class="font-bold text-primary" id="jobKeywordCount">Important keywords: 0</p>
+<p class="text-sm text-on-surface-variant" id="missingKeywordCount">Missing keywords: 0</p>
 </div>
 <div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">How It Is Combined</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="matchScoreDetail" style="">One final score combines role match, resume evidence, and ATS format quality.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">How It Is Combined</p>
+<p class="text-sm text-on-surface-variant leading-relaxed" id="matchScoreDetail">One final score combines role match, resume evidence, and ATS format quality.</p>
 </div>
 </div>
 <div class="space-y-5 lg:border-l lg:border-outline-variant/60 lg:pl-8">
 <div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Why This Role</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="fitReasonInsight" style="">Role-fit reasoning will appear after analysis.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Why This Role</p>
+<p class="text-sm text-on-surface-variant leading-relaxed" id="fitReasonInsight">Role-fit reasoning will appear after analysis.</p>
 </div>
 <div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Beyond Keywords</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="semanticMatchInsight" style="">Semantic matching notes will appear after analysis.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Beyond Keywords</p>
+<p class="text-sm text-on-surface-variant leading-relaxed" id="semanticMatchInsight">Text-matching notes will appear after analysis.</p>
 </div>
 <div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2" style="">Next Rewrite</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="rewriteTargetInsight" style="">Missing keyword rewrite targets will appear after analysis.</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Next Rewrite</p>
+<p class="text-sm text-on-surface-variant leading-relaxed" id="rewriteTargetInsight">Missing keyword rewrite targets will appear after analysis.</p>
 </div>
 <div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-secondary mb-2" style="">ATS Resume Generator</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="generatorInputInsight" style="">Resume-generation input will appear after analysis.</p>
+<p class="text-xs uppercase tracking-widest text-secondary mb-2">ATS Resume Generator</p>
+<p class="text-sm text-on-surface-variant leading-relaxed" id="generatorInputInsight">Resume-generation input will appear after analysis.</p>
 </div>
 </div>
 </div>
@@ -483,9 +410,9 @@ Recommendation actions will appear after analysis.
 <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 lg:p-8">
 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
 <div class="max-w-3xl">
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" style="">ATS Quality Criteria</p>
-<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight" id="atsQualityHeadline" style="">ATS Readiness Check</h2>
-<p class="text-sm sm:text-base text-on-surface-variant mt-3 leading-relaxed" id="atsQualitySummaryText" style="">Run an analysis to check resume format, language, contact details, and parsing risks.</p>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">ATS Quality Criteria</p>
+<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight" id="atsQualityHeadline">ATS Readiness Check</h2>
+<p class="text-sm sm:text-base text-on-surface-variant mt-3 leading-relaxed" id="atsQualitySummaryText">Run an analysis to check resume format, language, contact details, and parsing risks.</p>
 </div>
 <div class="flex flex-col sm:items-end gap-2">
 <span class="px-3 py-1 rounded-full bg-surface-container-high text-primary text-xs font-bold" id="atsQualityRiskText">Risk: -</span>
@@ -498,8 +425,8 @@ Recommendation actions will appear after analysis.
 </div>
 </div>
 <div class="mt-6 border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3" style="">Next Edit</p>
-<h3 class="text-xl font-bold text-primary mb-4" style="">ATS Feedback</h3>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Next Edit</p>
+<h3 class="text-xl font-bold text-primary mb-4">ATS Feedback</h3>
 <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-on-surface-variant leading-relaxed" id="structuredFeedbackList">
 <li>Feedback will appear here after analysis.</li>
 </ul>
@@ -512,24 +439,24 @@ Recommendation actions will appear after analysis.
 <div class="relative z-10 bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 mb-6">
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 <div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" style="">Submission Details</p>
-<h2 class="text-xl sm:text-2xl font-extrabold text-primary tracking-tight" style="">Resume File Information</h2>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Submission Details</p>
+<h2 class="text-xl sm:text-2xl font-extrabold text-primary tracking-tight">Resume File Information</h2>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto lg:min-w-[680px]">
 <div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">CV Name</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">CV Name</p>
 <p class="text-sm font-bold text-primary break-words" id="submissionFileNameDisplay">No resume selected</p>
 </div>
 <div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">File Type</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">File Type</p>
 <p class="text-sm font-bold text-primary" id="submissionFileTypeDisplay">-</p>
 </div>
 <div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">Submitted</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Submitted</p>
 <p class="text-sm font-bold text-primary" id="submissionTimeDisplay">-</p>
 </div>
 <div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1" style="">Final role used</p>
+<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Final role used</p>
 <p class="text-sm font-bold text-primary break-words" id="submissionRoleDisplay">No role selected</p>
 </div>
 </div>
@@ -538,9 +465,9 @@ Recommendation actions will appear after analysis.
 <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
 <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/60 h-full min-h-[230px] flex flex-col justify-between">
 <div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" style="">ATS Resume Builder</p>
-<h2 class="text-2xl font-extrabold text-primary mb-4" style="">Generate ATS Resume</h2>
-<p class="text-sm text-on-surface-variant leading-relaxed mb-5" id="futureAtsResumeText" style="">After analysis, this area will generate a stronger ATS resume draft using the database role fit, missing keywords, and feedback.</p>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">ATS Resume Builder</p>
+<h2 class="text-2xl font-extrabold text-primary mb-4">Generate ATS Resume</h2>
+<p class="text-sm text-on-surface-variant leading-relaxed mb-5" id="futureAtsResumeText">After analysis, this area will generate a stronger ATS resume draft using the database role fit, missing keywords, and feedback.</p>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
 <label class="block">
 <span class="text-xs uppercase tracking-widest text-on-surface-variant font-bold">LinkedIn</span>
@@ -554,36 +481,39 @@ Recommendation actions will appear after analysis.
 <p class="text-sm font-semibold text-primary mb-5" id="generatedResumeStatus">Ready after analysis.</p>
 </div>
 <button class="w-full px-5 py-3 rounded-xl bg-secondary text-on-primary font-bold hover:bg-primary transition-colors active:scale-95 flex items-center justify-center gap-2" id="generateResumeBtn" type="button">
-<span class="material-symbols-outlined" data-icon="auto_fix_high" style="">auto_fix_high</span>
+<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>
 Generate Optimized Resume
 </button>
 </div>
 <div class="bg-primary rounded-2xl p-6 text-on-primary shadow-xl shadow-primary/10 flex flex-col justify-between min-h-[230px] h-full">
 <div>
-<p class="text-xs uppercase tracking-widest text-on-primary/70 mb-3" style="">Current Function</p>
-<h3 class="text-2xl font-bold mb-3" style="">Export Feedback Report</h3>
-<p class="text-sm text-on-primary/80 leading-relaxed" style="">Download the feedback report as PDF or HTML with ATS issues, resume evidence, and next-edit actions.</p>
+<p class="text-xs uppercase tracking-widest text-on-primary/70 mb-3">Current Function</p>
+<h3 class="text-2xl font-bold mb-3">Export Feedback Report</h3>
+<p class="text-sm text-on-primary/80 leading-relaxed">Download the feedback report as PDF or HTML with ATS issues, resume evidence, and next-edit actions.</p>
 </div>
 <div class="flex flex-col gap-4 mt-6">
-<a class="px-8 py-4 bg-surface-container-lowest text-primary font-bold rounded-xl border border-outline-variant hover:bg-white transition-colors active:scale-95 shadow-sm inline-flex items-center justify-center" href="home_page.html" style="">
+<a class="px-8 py-4 bg-surface-container-lowest text-primary font-bold rounded-xl border border-outline-variant hover:bg-white transition-colors active:scale-95 shadow-sm inline-flex items-center justify-center" href="home_page.html">
 Back to Home
 </a>
-<button class="px-8 py-4 bg-gradient-to-r from-secondary to-secondary-container text-white font-bold rounded-xl shadow-lg shadow-black/10 flex items-center justify-center gap-2 active:scale-95 transition-all" id="exportResumeBtn" type="button" style="">
-<span class="material-symbols-outlined" data-icon="picture_as_pdf" style="">picture_as_pdf</span>
+<button class="px-8 py-4 bg-gradient-to-r from-secondary to-secondary-container text-white font-bold rounded-xl shadow-lg shadow-black/10 flex items-center justify-center gap-2 active:scale-95 transition-all" id="exportResumeBtn" type="button">
+<span class="material-symbols-outlined" data-icon="picture_as_pdf">picture_as_pdf</span>
 Export PDF Feedback Report
 </button>
-<button class="px-8 py-4 bg-surface-container-lowest text-primary font-bold rounded-xl border border-outline-variant hover:bg-white transition-colors active:scale-95 shadow-sm flex items-center justify-center gap-2" id="exportHtmlReportBtn" type="button" style="">
-<span class="material-symbols-outlined" data-icon="code" style="">code</span>
+<button class="px-8 py-4 bg-surface-container-lowest text-primary font-bold rounded-xl border border-outline-variant hover:bg-white transition-colors active:scale-95 shadow-sm flex items-center justify-center gap-2" id="exportHtmlReportBtn" type="button">
+<span class="material-symbols-outlined" data-icon="code">code</span>
 Export HTML Feedback Report
 </button>
 </div>
 </div>
 </div>
 <div class="relative z-10 mt-6 hidden bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6" id="generatedResumePanel">
+<div class="hidden mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" id="generatedResumeSampleNotice" role="status">
+<strong>Fictional example - not for submission.</strong> This complete target-role reference is not the user's resume and was not generated from the user's experience.
+</div>
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
 <div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Generated Draft</p>
-<h3 class="text-2xl font-extrabold text-primary tracking-tight">ATS Resume Preview</h3>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" id="generatedResumeEyebrow">Generated Draft</p>
+<h3 class="text-2xl font-extrabold text-primary tracking-tight" id="generatedResumeTitle">ATS Resume Preview</h3>
 </div>
 <div class="flex flex-col sm:flex-row gap-3">
 <button class="px-4 py-2 rounded-xl bg-surface-container-low text-primary font-bold border border-outline-variant/70 hover:bg-surface-container-high transition-colors inline-flex items-center justify-center gap-2" id="copyGeneratedResumeBtn" type="button">
@@ -611,9 +541,9 @@ Download PDF
 <footer class="site-footer w-full py-10 md:py-12">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
 <div class="space-y-3">
-<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary-fixed-dim" style="">UTS CS Career Navigator</p>
+<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary-fixed-dim">UTS CS Career Navigator</p>
 <h2 class="font-headline text-2xl md:text-3xl font-extrabold text-white leading-tight max-w-xl">Academic ATS feedback for computer science graduates.</h2>
-<p class="font-inter text-sm leading-relaxed text-white/70 max-w-2xl" style="">(c) 2026 UTS CS Career Navigator. Built for UTS Computer Science students.</p>
+<p class="font-inter text-sm leading-relaxed text-white/70 max-w-2xl">(c) 2026 UTS CS Career Navigator. Built for UTS Computer Science students.</p>
 </div>
 <div class="footer-link-row font-inter text-xs font-semibold">
 <button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openPrivacyPolicyBtn" type="button">Privacy Policy</button>
@@ -707,7 +637,7 @@ Download PDF
 <div>
 <p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">Profile</p>
 <h3 class="font-headline text-2xl font-extrabold text-primary">Student Account Information</h3>
-<p class="text-sm text-on-surface-variant mt-2">View and update your profile details.</p>
+<p class="text-sm text-on-surface-variant mt-2">View your account details and securely change your password.</p>
 </div>
 <button class="text-on-surface-variant hover:text-primary" id="closeProfileModalBtn" type="button"><span class="material-symbols-outlined">close</span></button>
 </div>
@@ -715,15 +645,15 @@ Download PDF
 <form class="space-y-4" id="profileForm">
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="profileNameInput">Full name</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profileNameInput" type="text" required>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-low text-sm" id="profileNameInput" type="text" readonly aria-readonly="true">
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="profileEmailInput">Email</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profileEmailInput" type="email" required>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-low text-sm" id="profileEmailInput" type="email" readonly aria-readonly="true">
 </div>
 <div>
-<label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordInput">New password (optional)</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profilePasswordInput" type="password" placeholder="Leave empty, or use 8+ chars with letter, number, special character">
+<label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordInput">New password</label>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profilePasswordInput" type="password" placeholder="8+ chars with letter, number, special character">
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordPinInput">Password change PIN</label>
@@ -734,7 +664,7 @@ Download PDF
 <p class="text-xs text-on-surface-variant mt-2">Required only when changing your password.</p>
 </div>
 <div class="flex flex-col sm:flex-row gap-3 pt-2">
-<button class="px-5 py-3 rounded-xl bg-primary text-on-primary font-bold" type="submit">Save Profile</button>
+<button class="px-5 py-3 rounded-xl bg-primary text-on-primary font-bold" type="submit">Update Password</button>
 <button class="px-5 py-3 rounded-xl bg-surface-container-low text-primary font-semibold" id="logoutBtn" type="button">Log Out</button>
 </div>
 </form>
@@ -794,7 +724,7 @@ Download PDF
 <button class="text-on-surface-variant hover:text-primary" id="closeResearchCreditsBtn" type="button"><span class="material-symbols-outlined">close</span></button>
 </div>
 <div class="space-y-4 text-sm text-on-surface-variant leading-relaxed">
-<p>The app uses PDF extraction, TF-IDF similarity scoring, and simple rule-based feedback generation.</p>
+<p>The app uses PDF text extraction, optional image OCR, TF-IDF similarity scoring, and rule-based feedback generation.</p>
 <p>The layout and workflows were shaped to support resume preparation for UTS Computer Science students.</p>
 </div>
 </div>
@@ -841,7 +771,6 @@ Download PDF
     const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
         ? window.location.origin
         : "http://127.0.0.1:5000";
-    const AUTH_MODE = "backend";
     const openPrivacyPolicyBtn = document.getElementById("openPrivacyPolicyBtn");
     const privacyPolicyModal = document.getElementById("privacyPolicyModal");
     const privacyPolicyModalBackdrop = document.getElementById("privacyPolicyModalBackdrop");
@@ -903,56 +832,53 @@ Download PDF
         window.CareerNavigatorCommon.setAuthUser(user, updateAuthUi);
     }
 
-    function getLocalAuthUsers() {
-        return window.CareerNavigatorCommon.getLocalAuthUsers();
-    }
-
-    function saveLocalAuthUsers(users) {
-        window.CareerNavigatorCommon.saveLocalAuthUsers(users);
-    }
-
-    function seedLocalAuthUser() {
-        window.CareerNavigatorCommon.seedLocalAuthUser(AUTH_MODE);
-    }
-
     function getToastMessage(message, isError = false) {
-        if (!isError) {
-            return message;
-        }
-        return /try again/i.test(message) ? message : message + " Please try again.";
+        return window.CareerNavigatorCommon.getToastMessage(message, isError);
     }
 
     function showToast(message, type = "success") {
-        if (!message) {
+        window.CareerNavigatorCommon.showToast(message, type);
+    }
+
+    function showAccuracyTestingSaveStatus(result) {
+        if (!result || result.accuracy_testing_attempted !== true) {
             return;
         }
-        let toastStack = document.getElementById("appToastStack");
-        if (!toastStack) {
-            toastStack = document.createElement("div");
-            toastStack.id = "appToastStack";
-            toastStack.className = "toast-stack";
-            toastStack.setAttribute("aria-live", "polite");
-            document.body.appendChild(toastStack);
+
+        const analysisKey = result.analysis_id || result.generated_at || [
+            result.uploaded_resume_name || "resume",
+            result.target_role || "role",
+            result.matching_percentage ?? "score"
+        ].join("|");
+        const notificationKey = "accuracyTestingStatusShown:" + String(analysisKey);
+        try {
+            if (sessionStorage.getItem(notificationKey) === "1") {
+                return;
+            }
+            sessionStorage.setItem(notificationKey, "1");
+        } catch (error) {
+            // The save result can still be shown when browser storage is unavailable.
         }
 
-        const toast = document.createElement("div");
-        toast.className = "app-toast app-toast-" + type;
-
-        const icon = document.createElement("span");
-        icon.className = "material-symbols-outlined";
-        icon.textContent = type === "error" ? "error" : type === "info" ? "info" : "check_circle";
-
-        const text = document.createElement("span");
-        text.textContent = message;
-
-        toast.appendChild(icon);
-        toast.appendChild(text);
-        toastStack.appendChild(toast);
-
-        window.setTimeout(() => {
-            toast.classList.add("app-toast-hide");
-            toast.addEventListener("animationend", () => toast.remove(), { once: true });
-        }, 3800);
+        if (result.accuracy_testing_saved) {
+            showToast(
+                result.accuracy_testing_history_only
+                    ? "Saved to Excel Test Run History as UNREVIEWED."
+                    : "Saved to the ATS accuracy workbook and Test Run History.",
+                "success"
+            );
+            return;
+        }
+        if (result.accuracy_testing_pending) {
+            showToast(
+                "Excel is open. Result queued; close Excel and run one more analysis.",
+                "info"
+            );
+            return;
+        }
+        if (result.accuracy_testing_warning) {
+            showToast(String(result.accuracy_testing_warning), "error");
+        }
     }
 
     function updateAuthUi() {
@@ -970,6 +896,8 @@ Download PDF
         });
     }
 
+    window.addEventListener("career-navigator-auth-changed", updateAuthUi);
+
     function setProfileMessage(message, isError = false, showPopup = false) {
         if (!profileMessage) {
             return;
@@ -982,21 +910,7 @@ Download PDF
         }
     }
 
-    function getPasswordValidationMessage(password) {
-        if (!password || password.length < 8) {
-            return "Password must be at least 8 characters.";
-        }
-        if (!/[A-Za-z]/.test(password)) {
-            return "Password must include at least 1 letter.";
-        }
-        if (!/\d/.test(password)) {
-            return "Password must include at least 1 number.";
-        }
-        if (!/[^A-Za-z0-9]/.test(password)) {
-            return "Password must include at least 1 special character, for example !, @, #, or $.";
-        }
-        return "";
-    }
+    const getPasswordValidationMessage = window.CareerNavigatorCommon.getPasswordValidationMessage;
 
     function clearAuthForms(options = {}) {
         const keepLoginEmail = options.keepLoginEmail || "";
@@ -1025,16 +939,11 @@ Download PDF
     }
 
     function clearProfileSensitiveFields() {
-        if (profilePasswordInput) {
-            profilePasswordInput.value = "";
-        }
-        if (profilePasswordPinInput) {
-            profilePasswordPinInput.value = "";
-        }
-        if (profileMessage) {
-            profileMessage.classList.add("hidden");
-            profileMessage.textContent = "";
-        }
+        window.CareerNavigatorCommon.clearProfileSensitiveFields({
+            passwordInput: profilePasswordInput,
+            pinInput: profilePasswordPinInput,
+            message: profileMessage
+        });
     }
 
     function populateProfileForm() {
@@ -1042,13 +951,13 @@ Download PDF
         if (!currentUser) {
             return;
         }
-        if (profileNameInput) {
-            profileNameInput.value = currentUser.full_name || "";
-        }
-        if (profileEmailInput) {
-            profileEmailInput.value = currentUser.email || "";
-        }
-        clearProfileSensitiveFields();
+        window.CareerNavigatorCommon.populateProfileForm(currentUser, {
+            nameInput: profileNameInput,
+            emailInput: profileEmailInput,
+            passwordInput: profilePasswordInput,
+            pinInput: profilePasswordPinInput,
+            message: profileMessage
+        });
     }
 
     function openProfileModal() {
@@ -1056,18 +965,14 @@ Download PDF
             return;
         }
         populateProfileForm();
-        profileModal.classList.remove("hidden");
-        profileModal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("overflow-hidden");
+        window.CareerNavigatorCommon.setModalOpen(profileModal, true);
     }
 
     function closeProfileModal() {
         if (!profileModal) {
             return;
         }
-        profileModal.classList.add("hidden");
-        profileModal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("overflow-hidden");
+        window.CareerNavigatorCommon.setModalOpen(profileModal, false);
     }
 
     async function submitProfileUpdate(event) {
@@ -1078,88 +983,47 @@ Download PDF
             return;
         }
 
-        const fullName = profileNameInput ? profileNameInput.value.trim() : "";
-        const email = profileEmailInput ? profileEmailInput.value.trim().toLowerCase() : "";
         const newPassword = profilePasswordInput ? profilePasswordInput.value : "";
         const passwordPin = profilePasswordPinInput ? profilePasswordPinInput.value.trim() : "";
 
-        if (!fullName || !email) {
-            setProfileMessage("Full name and email are required.", true, true);
+        if (!newPassword) {
+            setProfileMessage("Enter a new password before selecting Update Password.", true, true);
             return;
         }
-        const passwordIssue = newPassword ? getPasswordValidationMessage(newPassword) : "";
+        const passwordIssue = getPasswordValidationMessage(newPassword);
         if (passwordIssue) {
             setProfileMessage(passwordIssue, true, true);
             return;
         }
-        if (newPassword && passwordPin.length !== 6) {
+        if (passwordPin.length !== 6) {
             setProfileMessage("Enter the 6-digit PIN sent to your email before changing password.", true, true);
             return;
         }
 
-        if (AUTH_MODE === "internal") {
-            const users = getLocalAuthUsers();
-            const duplicate = users.some((candidate) => (candidate.email || "").toLowerCase() === email && candidate.id !== currentUser.id);
-            if (duplicate) {
-                setProfileMessage("This email is already used by another account.", true, true);
-                return;
-            }
-
-            const userIndex = users.findIndex((candidate) => candidate.id === currentUser.id || (candidate.email || "").toLowerCase() === (currentUser.email || "").toLowerCase());
-            if (userIndex < 0) {
-                setProfileMessage("User record not found.", true, true);
-                return;
-            }
-
-            users[userIndex].full_name = fullName;
-            users[userIndex].email = email;
-            if (newPassword) {
-                users[userIndex].password = newPassword;
-            }
-            saveLocalAuthUsers(users);
-            setAuthUser({
-                id: users[userIndex].id,
-                full_name: users[userIndex].full_name,
-                email: users[userIndex].email,
-                created_at: users[userIndex].created_at
+        try {
+            setProfileMessage("Verifying PIN and updating password...");
+            const response = await fetch(API_BASE_URL + "/users/password-reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: currentUser.email,
+                    verification_pin: passwordPin,
+                    new_password: newPassword
+                })
             });
-            setProfileMessage("Profile updated successfully.", false, true);
-            closeProfileModal();
-            return;
-        }
-
-        if (newPassword) {
-            try {
-                setProfileMessage("Verifying PIN and updating password...");
-                const response = await fetch(API_BASE_URL + "/users/password-reset", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        email: currentUser.email,
-                        verification_pin: passwordPin,
-                        new_password: newPassword
-                    })
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Password update failed");
-                }
-                clearProfileSensitiveFields();
-                setProfileMessage("Password updated after OTP verification.", false, true);
-                return;
-            } catch (error) {
-                setProfileMessage(error.message || "Password update failed", true, true);
-                return;
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.detail || "Password update failed");
             }
+            clearProfileSensitiveFields();
+            setProfileMessage("Password updated after OTP verification.", false, true);
+        } catch (error) {
+            setProfileMessage(error.message || "Password update failed", true, true);
         }
-
-        setProfileMessage("Name and email update for database mode can be added in the admin/profile module.", true, true);
     }
 
     function logoutUser() {
-        if (AUTH_MODE === "backend") {
-            fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-        }
+        fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
         setAuthUser(null);
         closeProfileModal();
         clearAuthForms();
@@ -1178,20 +1042,7 @@ Download PDF
         }
     }
 
-    function sanitizePinInput(input, clearMixedText = false) {
-        if (!input) {
-            return;
-        }
-        const rawValue = input.value || "";
-        if (clearMixedText && /\D/.test(rawValue)) {
-            input.value = "";
-            return;
-        }
-        const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 6);
-        if (rawValue !== digitsOnly) {
-            input.value = digitsOnly;
-        }
-    }
+    const sanitizePinInput = window.CareerNavigatorCommon.sanitizePinInput;
 
     function clearInvalidPinAutofill() {
         [registerPinInput, resetPinInput, profilePasswordPinInput].forEach((input) => sanitizePinInput(input, true));
@@ -1261,122 +1112,7 @@ Download PDF
         clearAuthForms();
     }
 
-    seedLocalAuthUser();
     updateAuthUi();
-
-    // Built-in sample analysis fallback (used when localStorage is not available)
-    const SAMPLE_ANALYSIS = {
-        analysis_title: "UTS CS Career Navigator Resume Analyzer",
-        uploaded_resume_name: "sample_resume.pdf",
-        matching_percentage: 87,
-        resume_excerpt: "Sample resume excerpt showing strong systems design and Kubernetes experience.",
-        resume_text_for_generation: "Alex Tan alex.tan@example.com +60 12-345 6789 linkedin.com/in/alextan github.com/alextan Bachelor of Computer Science. Projects: Designed a cloud deployment project using Docker and Kubernetes. Built backend services and tested API workflows. Improved documentation for a software engineering capstone project.",
-        resume_summary: {
-            skills: ["systems design", "kubernetes", "docker"],
-            education_markers: ["bachelor"],
-            experience_markers: ["internship"]
-        },
-        resume_quality: {
-            quality_score: 88,
-            risk_level: "Low",
-            summary: "ATS quality risk is low. The resume format looks readable and structured.",
-            criteria: [
-                {
-                    category: "Format",
-                    status: "pass",
-                    title: "Text-based PDF detected",
-                    detail: "The resume contains selectable text.",
-                    suggestion: "Keep using a text-based PDF for ATS submissions."
-                },
-                {
-                    category: "Impact",
-                    status: "warning",
-                    title: "Limited measurable impact",
-                    detail: "The resume could use more quantified outcomes.",
-                    suggestion: "Add users, speed, accuracy, revenue, or time improvements."
-                }
-            ],
-            issues: []
-        },
-        job_description_analysis: {
-            important_keywords: ["kubernetes", "systems design", "docker"],
-            missing_keywords: []
-        },
-        compatibility: {
-            matching_percentage: 87,
-            keyword_match: 87,
-            role_evidence: 92,
-            resume_quality: 88,
-            experience_alignment: 84,
-            academic_rigor: 80
-        },
-        score_breakdown: {
-            ats_score: 87,
-            keyword_coverage: 87,
-            role_evidence: 92,
-            experience_alignment: 84,
-            academic_rigor: 80,
-            resume_quality: 88,
-            tfidf_similarity: 72,
-            formula: "30% database requirement coverage + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF similarity, with a strong-evidence calibration floor"
-        },
-        feedback: "Strong keyword match. Quantify your impact in cloud projects.",
-        structured_feedback: ["Strong keyword match.", "Quantify impact in cloud projects."],
-        summary: "Sample analysis for demo",
-        recommendation: "Highlight measurable outcomes in project bullets.",
-        target_role: "Computer Programmer",
-        selected_role: "Software Engineer",
-        role_recommendation: {
-            selected_role: "Software Engineer",
-            selected_database_role: "Computer Programmer",
-            detected_database_role: "Computer Programmer",
-            recommended_role: "Computer Programmer",
-            recommended_database_role: "Computer Programmer",
-            is_different_from_selected: false,
-            selected_score: 87,
-            recommended_score: 87,
-            matched_resume_signals: ["systems", "design", "kubernetes", "docker"],
-            recommended_missing_keywords: [],
-            selected_missing_keywords: [],
-            reason_summary: "The selected role maps to Computer Programmer, and it remains the best database match for this resume.",
-            top_role_matches: [
-                {
-                    rank: 1,
-                    role: "Computer Programmer",
-                    score: 87,
-                    confidence_label: "Strong fit",
-                    matched_keywords: ["systems", "design", "kubernetes", "docker"],
-                    missing_keywords: [],
-                    is_selected_database_role: true,
-                    is_final_recommended: true,
-                    reason: "Strong evidence: systems, design, kubernetes, docker."
-                },
-                {
-                    rank: 2,
-                    role: "Software Developer",
-                    score: 79,
-                    confidence_label: "Strong fit",
-                    matched_keywords: ["software", "development", "testing", "deployment"],
-                    missing_keywords: ["debugging", "api"],
-                    is_selected_database_role: false,
-                    is_final_recommended: false,
-                    reason: "Strong evidence: software, development, testing, deployment. Improve with: debugging, API."
-                },
-                {
-                    rank: 3,
-                    role: "DevOps Engineer",
-                    score: 68,
-                    confidence_label: "Good fit",
-                    matched_keywords: ["kubernetes", "docker", "cloud"],
-                    missing_keywords: ["ci/cd", "monitoring"],
-                    is_selected_database_role: false,
-                    is_final_recommended: false,
-                    reason: "Strong evidence: kubernetes, docker, cloud. Improve with: CI/CD, monitoring."
-                }
-            ]
-        },
-        generated_at: new Date().toISOString()
-    };
 
     async function submitLogin(event) {
         event.preventDefault();
@@ -1385,33 +1121,17 @@ Download PDF
             const email = loginEmailInput ? loginEmailInput.value.trim().toLowerCase() : "";
             const password = loginPasswordInput ? loginPasswordInput.value : "";
 
-            if (AUTH_MODE === "internal") {
-                const users = getLocalAuthUsers();
-                const user = users.find((candidate) => (candidate.email || "").toLowerCase() === email);
-                if (!user || user.password !== password) {
-                    throw new Error("Invalid email or password");
-                }
-                setAuthUser({
-                    id: user.id,
-                    full_name: user.full_name,
-                    email: user.email,
-                    created_at: user.created_at
-                });
-                // Clear any previous analysis when a user logs in on this page
-                try { clearDisplayedAnalysis(); } catch (e) { /* ignore */ }
-            } else {
-                const response = await fetch(API_BASE_URL + "/users/login", {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password })
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Login failed");
-                }
-                setAuthUser(payload.user);
+            const response = await fetch(API_BASE_URL + "/users/login", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.detail || "Login failed");
             }
+            setAuthUser(payload.user);
 
             closeAuthModal();
             setAuthMessage("Logged in successfully.", false, true);
@@ -1425,33 +1145,7 @@ Download PDF
     }
 
     async function requestAuthPin(email, purpose, button, messageSetter = setAuthMessage) {
-        const cleanEmail = (email || "").trim().toLowerCase();
-        if (!cleanEmail) {
-            throw new Error("Enter your email address first.");
-        }
-        if (button) {
-            button.disabled = true;
-            button.textContent = "Sending...";
-        }
-        try {
-            const response = await fetch(API_BASE_URL + "/auth/pin/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: cleanEmail, purpose })
-            });
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload.detail || "Could not send PIN");
-            }
-            const devPin = payload.dev_pin ? " Dev PIN: " + payload.dev_pin : "";
-            messageSetter("PIN sent to " + cleanEmail + ". It expires in " + payload.expires_in_minutes + " minutes." + devPin);
-            showToast("PIN sent successfully. Check your email.", "success");
-        } finally {
-            if (button) {
-                button.disabled = false;
-                button.textContent = "Send PIN";
-            }
-        }
+        return window.CareerNavigatorCommon.requestAuthPin(email, purpose, button, messageSetter, API_BASE_URL);
     }
 
     async function submitPasswordReset(event) {
@@ -1496,57 +1190,25 @@ Download PDF
             const password = registerPasswordInput ? registerPasswordInput.value : "";
             const verificationPin = registerPinInput ? registerPinInput.value.trim() : "";
 
-            if (AUTH_MODE === "internal") {
-                if (!fullName || !email || !password) {
-                    throw new Error("full_name, email, and password are required");
-                }
-                const passwordIssue = getPasswordValidationMessage(password);
-                if (passwordIssue) {
-                    throw new Error(passwordIssue);
-                }
-                const users = getLocalAuthUsers();
-                const exists = users.some((candidate) => (candidate.email || "").toLowerCase() === email);
-                if (exists) {
-                    throw new Error("This email is already registered");
-                }
-                const newUser = {
-                    id: Date.now(),
+            const passwordIssue = getPasswordValidationMessage(password);
+            if (passwordIssue) {
+                throw new Error(passwordIssue);
+            }
+            const response = await fetch(API_BASE_URL + "/users/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
                     full_name: fullName,
                     email: email,
                     password: password,
-                    created_at: new Date().toISOString()
-                };
-                users.push(newUser);
-                saveLocalAuthUsers(users);
-                setAuthUser({
-                    id: newUser.id,
-                    full_name: newUser.full_name,
-                    email: newUser.email,
-                    created_at: newUser.created_at
-                });
-                // Clear any previous analysis when a new account is created here
-                try { clearDisplayedAnalysis(); } catch (e) { /* ignore */ }
-            } else {
-                const passwordIssue = getPasswordValidationMessage(password);
-                if (passwordIssue) {
-                    throw new Error(passwordIssue);
-                }
-                const response = await fetch(API_BASE_URL + "/users/register", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        full_name: fullName,
-                        email: email,
-                        password: password,
-                        verification_pin: verificationPin
-                    })
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Sign up failed");
-                }
-                setAuthUser(payload.user);
+                    verification_pin: verificationPin
+                })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.detail || "Sign up failed");
             }
+            setAuthUser(payload.user);
 
             closeAuthModal();
             clearAuthForms();
@@ -1564,11 +1226,7 @@ Download PDF
         if (getAuthUser()) {
             return true;
         }
-        if (AUTH_MODE === "internal") {
-            setAuthMessage("Please sign up or log in first. Test account: test@uts.local / test12345");
-        } else {
-            setAuthMessage("Please sign up or log in first to export your report.");
-        }
+        setAuthMessage("Please sign up or log in first to export your report.");
         openAuthModal("register");
         return false;
     }
@@ -1884,71 +1542,67 @@ Download PDF
         }
     }
 
-    function getAtsReadinessCopy(score, resumeQuality) {
+    function getAtsReadinessCopy(score, resumeQuality, scoreBreakdown) {
         const safeResumeQuality = resumeQuality || {};
+        const safeBreakdown = scoreBreakdown || {};
         const safeScore = clampPercent(Number(score || 0));
-        const issueCount = Array.isArray(safeResumeQuality.issues) ? safeResumeQuality.issues.length : 0;
-        const scoreLabel = Math.round(safeScore) + "/100 overall";
+        const issues = Array.isArray(safeResumeQuality.issues) ? safeResumeQuality.issues : [];
+        const issueCount = issues.length;
+        const overallDetail = "Overall role-readiness is " + Math.round(safeScore) + "/100.";
+        const summedPenalty = issues.reduce((total, item) => total + Number(item && item.penalty || 0), 0);
+        const qualityPenalty = Number.isFinite(Number(safeBreakdown.ats_quality_penalty))
+            ? Number(safeBreakdown.ats_quality_penalty)
+            : summedPenalty;
+        const weightedDeduction = Number.isFinite(Number(safeBreakdown.ats_weighted_deduction))
+            ? Number(safeBreakdown.ats_weighted_deduction)
+            : qualityPenalty * 0.20;
+        const qualityScore = Number.isFinite(Number(safeResumeQuality.quality_score))
+            ? clampPercent(Number(safeResumeQuality.quality_score))
+            : clampPercent(100 - qualityPenalty);
+        const qualityScoreLabel = Math.round(qualityScore) + "/100 document quality";
+        const issueLabel = issueCount + " ATS " + (issueCount === 1 ? "fix" : "fixes");
+        const qualityDetail = issueCount
+            ? " ATS document quality is " + Math.round(qualityScore) + "/100; " + issueLabel.toLowerCase() +
+                " remove " + Math.round(qualityPenalty) + " quality points, equal to " +
+                Number(weightedDeduction.toFixed(1)) + " overall points."
+            : " ATS document quality is " + Math.round(qualityScore) + "/100 with no detected format issues.";
 
         if (safeScore < 30) {
             return {
-                headline: "Why This CV May Not Pass ATS",
-                summary: "Overall readiness is below 30/100. Fix parsing, contact, role evidence, and keyword gaps before submitting.",
-                badge: "ATS: Not ready",
-                scoreText: scoreLabel
+                headline: issueCount ? "ATS Document: " + issueLabel : "No ATS Format Issue Detected",
+                summary: overallDetail + qualityDetail + " Role evidence and database requirements also affect the overall score.",
+                badge: issueCount ? issueLabel : "0 ATS fixes",
+                scoreText: qualityScoreLabel
             };
         }
 
         if (safeScore < 50) {
             return {
-                headline: "ATS Improvements Needed",
-                summary: "Overall readiness is between 30 and 49/100. The CV may be readable, but it needs stronger structure, evidence, or role keywords.",
-                badge: "ATS: Needs work",
-                scoreText: scoreLabel
+                headline: issueCount ? "ATS Document: " + issueLabel : "No ATS Format Issue Detected",
+                summary: overallDetail + qualityDetail + " Role evidence and database requirements also affect the overall score.",
+                badge: issueCount ? issueLabel : "0 ATS fixes",
+                scoreText: qualityScoreLabel
             };
         }
 
         if (safeScore < 80) {
-            if (!issueCount) {
-                return {
-                    headline: "ATS Format Looks Clean",
-                    summary: "No major ATS quality issues were detected. The overall score is lower because role/database keyword alignment can still improve.",
-                    badge: "ATS: Good",
-                    scoreText: scoreLabel
-                };
-            }
             return {
-                headline: "ATS Ready, But Can Improve",
-                summary: "Overall readiness is between 50 and 79/100. The CV is usable, but the items below can improve parser and recruiter clarity.",
-                badge: issueCount ? "ATS: OK" : "ATS: Good",
-                scoreText: scoreLabel
+                headline: issueCount ? "ATS Document: " + issueLabel : "ATS Document Checks Passed",
+                summary: overallDetail + qualityDetail + " The remaining score comes from requirements, role evidence, experience, education/skills, and text similarity.",
+                badge: issueCount ? issueLabel : "0 ATS fixes",
+                scoreText: qualityScoreLabel
             };
         }
 
         return {
-            headline: "Strong ATS Ready CV",
-            summary: "Overall readiness is 80/100 or above. The issues below are final polish items for parser and recruiter clarity.",
-            badge: "ATS: Strong",
-            scoreText: scoreLabel
+            headline: issueCount ? "Strong Role Match With " + issueLabel : "ATS Document Checks Passed",
+            summary: overallDetail + qualityDetail + " Treat this as an evidence-match score, not a hiring probability.",
+            badge: issueCount ? issueLabel : "0 ATS fixes",
+            scoreText: qualityScoreLabel
         };
     }
 
-    function formatScore(value) {
-        if (value === null || value === undefined || value === "") {
-            return "-";
-        }
-        const numeric = Number(value);
-        return Number.isFinite(numeric) ? numeric.toFixed(0) + "/100" : "-";
-    }
-
-    function escapeHtml(value) {
-        return String(value)
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
-    }
+    const escapeHtml = window.CareerNavigatorCommon.escapeHtml;
 
     function renderPills(id, items, emptyText, colorClass = "bg-secondary-container/20 text-on-secondary-container") {
         const container = document.getElementById(id);
@@ -1973,33 +1627,41 @@ Download PDF
 
         const safeContext = context || {};
         const cleanSourceMatches = Array.isArray(matches) ? matches.filter(Boolean) : [];
-        if (safeContext.mode === "unrelatedSelectedRole") {
+        let contextNotice = "";
+        if (safeContext.mode === "selectedRoleExample") {
             const roleName = safeContext.roleName || safeContext.selectedRole || "the selected job";
             const scoreText = Number.isFinite(safeContext.selectedMatchScore)
                 ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "below 30/100";
-            container.innerHTML =
-                '<div class="rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
-                    '<p class="font-bold text-on-error-container">Resume not related enough to ' + escapeHtml(roleName) + '.</p>' +
-                    '<p class="mt-2">Selected job match: ' + escapeHtml(scoreText) + '. The ATS preview is still available for format issues.</p>' +
+                : "below the review threshold";
+            contextNotice =
+                '<div class="lg:col-span-3 rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
+                    '<p class="font-bold text-on-error-container">Review required: this resume does not sufficiently match ' + escapeHtml(roleName) + '.</p>' +
+                    '<p class="mt-2">Selected-role evidence: ' + escapeHtml(scoreText) + '. The cards below are evidence comparisons only. The builder offers a clearly labelled fictional example for the selected field and does not invent experience.</p>' +
                 '</div>';
-            return;
+        } else if (safeContext.mode === "autoNoSuitableRole") {
+            const closestRole = safeContext.closestRole || "the closest database role";
+            contextNotice =
+                '<div class="lg:col-span-3 rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
+                    '<p class="font-bold text-on-error-container">No suitable CS role was confirmed — human review is required.</p>' +
+                    '<p class="mt-2">' + escapeHtml(closestRole) + ' is shown only as the closest evidence comparison, not as a job recommendation. The builder will use a separate fictional fallback example.</p>' +
+                '</div>';
         }
 
         const maxMatches = safeContext.mode === "autoDetectedRole" ? 1 : 3;
         const cleanMatches = cleanSourceMatches.slice(0, maxMatches);
         if (cleanMatches.length === 0) {
-            container.innerHTML =
+            container.innerHTML = contextNotice +
                 '<div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-sm text-on-surface-variant">' +
                     'No alternative database role matches were returned for this analysis.' +
                 '</div>';
             return;
         }
 
-        container.innerHTML = cleanMatches.map((item, index) => {
+        container.innerHTML = contextNotice + cleanMatches.map((item, index) => {
             const rawScore = Number(item.score);
             const score = Number.isFinite(rawScore) ? clampPercent(rawScore) : 0;
-            const scoreLabel = Number.isFinite(rawScore) ? Math.round(score) + "/100" : "Pending";
+            const roundedScore = Math.round(score * 10) / 10;
+            const scoreLabel = Number.isFinite(rawScore) ? roundedScore + "/100" : "Pending";
             const rank = Number(item.rank || index + 1);
             const roleName = item.role || item.database_role || "Role match";
             const confidenceLabel = item.confidence_label || metricStatus(score);
@@ -2007,9 +1669,11 @@ Download PDF
             const missingKeywords = Array.isArray(item.missing_keywords) ? item.missing_keywords.filter(Boolean).slice(0, 3) : [];
             const isFinal = Boolean(item.is_final_recommended);
             const isSelected = Boolean(item.is_selected_database_role);
-            const reasonText = safeContext.mode === "autoDetectedRole"
+            const reasonText = safeContext.mode === "autoNoSuitableRole"
+                ? "Closest role for manual review; not a confirmed recommendation."
+                : safeContext.mode === "autoDetectedRole"
                 ? "Top detected role from resume evidence."
-                : (item.reason || "Ranked from resume keywords, role requirements, and semantic similarity.");
+                : (item.reason || "Ranked from resume keywords, weighted role requirements, and TF-IDF text similarity.");
             const cardClass = isFinal
                 ? "border-secondary/40 bg-secondary-container/10"
                 : "border-outline-variant/70 bg-surface-container-low";
@@ -2017,7 +1681,11 @@ Download PDF
                 ? "bg-primary text-on-primary"
                 : "bg-surface-container-high text-primary";
             const badges = [
-                isFinal ? '<span class="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[11px] font-bold">Final used</span>' : "",
+                isFinal
+                    ? '<span class="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[11px] font-bold">' +
+                        (safeContext.mode === "autoNoSuitableRole" ? "Closest evidence only" : "Used for ATS score") +
+                      '</span>'
+                    : "",
                 isSelected ? '<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-[11px] font-bold">Selected</span>' : ""
             ].filter(Boolean).join("");
             const matchedMarkup = matchedKeywords.length
@@ -2333,11 +2001,17 @@ Download PDF
         const missingKeywords = Array.isArray(safeOptions.missingKeywords)
             ? safeOptions.missingKeywords.filter(Boolean)
             : [];
-        let mode = hasSelectedRole ? "selectedRoleLow" : "autoDetectedRole";
-        if (hasSelectedRole && Number.isFinite(selectedMatchScore) && selectedMatchScore < 30) {
-            mode = "unrelatedSelectedRole";
-        } else if (hasSelectedRole && Number(safeOptions.overallScore || 0) >= 50) {
-            mode = "selectedRoleFit";
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation.match_status);
+        const explicitNonItHeadline = hasExplicitNonItHeadline(roleRecommendation, topRoleMatches);
+        const reviewThreshold = getRoleReviewThreshold(roleRecommendation, explicitNonItHeadline);
+        const reviewRequired = Boolean(roleRecommendation.human_review_required)
+            || matchStatus === "review required"
+            || matchStatus === "no suitable role";
+        let mode = hasSelectedRole ? "selectedRoleFit" : "autoDetectedRole";
+        if (!hasSelectedRole && (matchStatus === "no suitable role" || reviewRequired)) {
+            mode = "autoNoSuitableRole";
+        } else if (hasSelectedRole && (matchStatus === "review required" || reviewRequired)) {
+            mode = "selectedRoleExample";
         }
 
         return {
@@ -2347,7 +2021,12 @@ Download PDF
             selectedRole,
             selectedMatchScore,
             topMatch,
-            missingKeywords
+            missingKeywords,
+            matchStatus,
+            reviewRequired,
+            reviewThreshold,
+            fallbackSampleRole: roleRecommendation.fallback_sample_role || "",
+            closestRole: roleRecommendation.closest_role || topRoleName || safeOptions.recommendedRole || ""
         };
     }
 
@@ -2410,7 +2089,7 @@ Download PDF
     function buildIssueActionText(item, context) {
         const baseSuggestion = item.suggestion || item.detail || "Review this section for ATS readability.";
         const safeContext = context || {};
-        if (safeContext.mode === "unrelatedSelectedRole") {
+        if (safeContext.mode === "selectedRoleExample" || safeContext.mode === "autoNoSuitableRole") {
             return baseSuggestion;
         }
 
@@ -2433,13 +2112,20 @@ Download PDF
 
     function buildProblemCalloutIntro(context) {
         const safeContext = context || {};
-        if (safeContext.mode === "unrelatedSelectedRole") {
+        if (safeContext.mode === "selectedRoleExample") {
             const scoreText = Number.isFinite(safeContext.selectedMatchScore)
                 ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "below 30/100";
+                : "below the review threshold";
             return (
                 '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
-                    'Selected job match is ' + escapeHtml(scoreText) + ', so this resume is not related enough to ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "the selected job") + '. ATS preview is still shown for format fixes.' +
+                    'Selected-role evidence is ' + escapeHtml(scoreText) + ' for ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "the selected job") + '. This is REVIEW REQUIRED / NOT MATCH, and the builder provides a separate fictional example instead of inventing experience.' +
+                '</p>'
+            );
+        }
+        if (safeContext.mode === "autoNoSuitableRole") {
+            return (
+                '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
+                    'No suitable CS role was confirmed. Suggestions refer to the closest evidence comparison only and require human review.' +
                 '</p>'
             );
         }
@@ -2509,7 +2195,6 @@ Download PDF
     function getIssueSearchText(item) {
         const safeItem = item || {};
         return String([
-            safeItem.visual_marker,
             safeItem.category,
             safeItem.title,
             safeItem.detail,
@@ -2517,88 +2202,13 @@ Download PDF
         ].filter(Boolean).join(" ")).toLowerCase();
     }
 
-    function isProfileLinkIssue(item) {
-        const combined = getIssueSearchText(item);
-        return /profile_link_contact_area|missing professional profile link|\bprofile link\b/.test(combined);
-    }
-
-    function getIssueKind(item) {
-        const combined = getIssueSearchText(item);
-        if (isProfileLinkIssue(item)) {
-            return "profileLink";
-        }
-        if (/embedded|photo|passport|decorative image|image detected/.test(combined)) {
-            return "image";
-        }
-        if (/contact|email|phone|linkedin|github|portfolio/.test(combined)) {
-            return "contact";
-        }
-        if (/skill|technical|tool|framework|language/.test(combined)) {
-            return "skills";
-        }
-        if (/section|heading|education|project/.test(combined)) {
-            return "sections";
-        }
-        if (/impact|measure|quant|number|outcome/.test(combined)) {
-            return "impact";
-        }
-        if (/length/.test(combined)) {
-            return "length";
-        }
-        if (/image|format|layout|spacing|column|font|parser/.test(combined)) {
-            return "format";
-        }
-        return "general";
-    }
-
-    function getVisualMarkerPosition(item, index) {
-        const positions = {
-            image: { top: 12, left: 58, width: 22, height: 20 },
-            profileLink: { top: 13.7, left: 71.5, width: 16.5, height: 2.5, variant: "insert", label: "Add link here" },
-            contact: { top: 21, left: 8, width: 31, height: 9 },
-            format: { top: 36, left: 8, width: 34, height: 15 },
-            sections: { top: 53, left: 8, width: 34, height: 17 },
-            impact: { top: 39, left: 51, width: 37, height: 23 },
-            length: { top: 70, left: 11, width: 75, height: 10 },
-            skills: { top: 31, left: 8, width: 35, height: 10 },
-            general: { top: 29 + (index * 8), left: 12 + (index * 7), width: 34, height: 10 }
-        };
-        return positions[getIssueKind(item)] || positions.general;
-    }
-
-    function buildVisualMarkerOverlay(issues) {
-        const cleanIssues = Array.isArray(issues) ? issues.filter(Boolean).slice(0, 5) : [];
-        if (!cleanIssues.length) {
-            return "";
-        }
-        return cleanIssues.map((item, index) => {
-            const position = getVisualMarkerPosition(item, index);
-            const isInsertMarker = position.variant === "insert";
-            const markerClasses = isInsertMarker
-                ? "absolute rounded border-2 border-dashed border-secondary bg-secondary/10 shadow-[0_0_0_2px_rgba(0,96,172,0.14)]"
-                : "absolute rounded-md border-2 border-error bg-error/5 shadow-[0_0_0_9999px_rgba(255,255,255,0.0)]";
-            const badgeClasses = isInsertMarker
-                ? "absolute -right-2 -top-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-on-primary text-[10px] font-extrabold shadow"
-                : "absolute -right-3 -top-3 inline-flex h-7 w-7 items-center justify-center rounded-full bg-error text-on-error text-xs font-extrabold shadow";
-            const labelMarkup = position.label
-                ? '<span class="absolute right-0 top-full mt-1 whitespace-nowrap rounded bg-secondary px-1.5 py-0.5 text-[9px] font-extrabold uppercase leading-tight text-on-primary shadow">' + escapeHtml(position.label) + '</span>'
-                : "";
-            return (
-                '<div class="' + markerClasses + '" style="top:' + position.top + '%;left:' + position.left + '%;width:' + position.width + '%;height:' + position.height + '%;">' +
-                    '<span class="' + badgeClasses + '">' + escapeHtml(String(index + 1)) + '</span>' +
-                    labelMarkup +
-                '</div>'
-            );
-        }).join("");
-    }
-
-    function buildVisualResumePreview(preview, issues) {
+    function buildVisualResumePreview(preview) {
         if (!preview || !preview.dataUrl) {
             return (
                 '<div class="rounded-xl border border-outline-variant/70 bg-surface-container-low p-4">' +
                     '<p class="text-xs uppercase tracking-widest text-secondary font-bold mb-3">Full resume preview</p>' +
                     '<div class="rounded-lg bg-white border border-outline-variant/60 p-5 text-sm text-on-surface-variant leading-relaxed">' +
-                        'Run a fresh analysis after uploading the resume to show the original PDF or image here with marked problem areas.' +
+                        'Run a fresh analysis after uploading the resume to show the original PDF or image beside the issue list.' +
                     '</div>' +
                 '</div>'
             );
@@ -2609,9 +2219,8 @@ Download PDF
         const type = String(preview.type || "").toLowerCase();
         const isImage = type.startsWith("image/") || /^data:image\//i.test(preview.dataUrl);
         const mediaMarkup = isImage
-            ? '<div class="relative mx-auto w-full max-w-[34rem] bg-white"><img class="block w-full h-auto bg-white" src="' + safeDataUrl + '" alt="' + safeName + '">' +
-                '<div class="pointer-events-none absolute inset-0">' + buildVisualMarkerOverlay(issues) + '</div></div>'
-            : '<div class="relative mx-auto flex min-h-[34rem] w-full max-w-[34rem] items-center justify-center bg-white text-sm font-semibold text-on-surface-variant" id="resumePdfRenderedPage">Rendering resume page...</div>';
+            ? '<div class="relative mx-auto w-full max-w-[34rem] bg-white"><img class="block w-full h-auto bg-white" src="' + safeDataUrl + '" alt="' + safeName + '"></div>'
+            : '<div class="relative mx-auto flex min-h-[34rem] w-full max-w-[34rem] items-center justify-center bg-white text-sm font-semibold text-on-surface-variant" id="resumePdfRenderedPages">Rendering all resume pages...</div>';
 
         return (
             '<div class="rounded-xl border border-outline-variant/70 bg-surface-container-low p-4">' +
@@ -2619,6 +2228,7 @@ Download PDF
                     '<p class="text-xs uppercase tracking-widest text-secondary font-bold">Full resume preview</p>' +
                     '<span class="text-[11px] font-semibold text-on-surface-variant truncate max-w-[14rem]">' + safeName + '</span>' +
                 '</div>' +
+                '<p class="mb-3 text-[11px] leading-relaxed text-on-surface-variant">Issues are listed beside the preview. The parser does not claim exact page coordinates for them.</p>' +
                 '<div class="overflow-auto rounded-lg bg-[#2f2f2f] border border-outline-variant/60 p-3 shadow-inner">' +
                     mediaMarkup +
                 '</div>' +
@@ -2663,34 +2273,48 @@ Download PDF
         return bytes;
     }
 
-    async function renderPdfResumePreview(preview, issues) {
-        const target = document.getElementById("resumePdfRenderedPage");
+    async function renderPdfResumePreview(preview) {
+        const target = document.getElementById("resumePdfRenderedPages");
         if (!target || !preview || !preview.dataUrl) {
             return;
         }
         try {
             const pdfjsLib = await loadPdfJs();
             const pdf = await pdfjsLib.getDocument({ data: dataUrlToBytes(preview.dataUrl) }).promise;
-            const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.8 });
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            canvas.width = Math.floor(viewport.width);
-            canvas.height = Math.floor(viewport.height);
-            canvas.className = "block w-full h-auto bg-white";
-            await page.render({ canvasContext: context, viewport }).promise;
-
             target.innerHTML = "";
-            target.className = "relative mx-auto w-full max-w-[34rem] bg-white";
-            target.appendChild(canvas);
-            const overlay = document.createElement("div");
-            overlay.className = "pointer-events-none absolute inset-0";
-            overlay.innerHTML = buildVisualMarkerOverlay(issues);
-            target.appendChild(overlay);
+            target.className = "relative mx-auto flex w-full max-w-[34rem] flex-col gap-3";
+
+            let firstPageCanvas = null;
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+                const page = await pdf.getPage(pageNumber);
+                const viewport = page.getViewport({ scale: 1.8 });
+                const canvas = document.createElement("canvas");
+                const context = canvas.getContext("2d");
+                canvas.width = Math.floor(viewport.width);
+                canvas.height = Math.floor(viewport.height);
+                canvas.className = "block w-full h-auto bg-white";
+                canvas.setAttribute("aria-label", "Resume page " + pageNumber + " of " + pdf.numPages);
+                await page.render({ canvasContext: context, viewport }).promise;
+
+                const pageFrame = document.createElement("div");
+                pageFrame.className = "overflow-hidden rounded-lg bg-white shadow-sm";
+                const pageLabel = document.createElement("div");
+                pageLabel.className = "bg-surface-container-low px-3 py-2 text-center text-[11px] font-bold text-on-surface-variant";
+                pageLabel.textContent = "Page " + pageNumber + " of " + pdf.numPages;
+                pageFrame.appendChild(pageLabel);
+                pageFrame.appendChild(canvas);
+                target.appendChild(pageFrame);
+
+                if (pageNumber === 1) {
+                    firstPageCanvas = canvas;
+                }
+            }
 
             try {
-                sessionStorage.setItem("resumeRenderedPreviewDataUrl", canvas.toDataURL("image/png"));
-                sessionStorage.setItem("resumeRenderedPreviewName", preview.name || "Rendered resume preview");
+                if (firstPageCanvas) {
+                    sessionStorage.setItem("resumeRenderedPreviewDataUrl", firstPageCanvas.toDataURL("image/png"));
+                    sessionStorage.setItem("resumeRenderedPreviewName", preview.name || "Rendered resume preview");
+                }
             } catch (storageError) {
                 // The page preview still works if the rendered image is too large for storage.
             }
@@ -2751,9 +2375,9 @@ Download PDF
                 '<ul class="space-y-3">' + issueMarkup + '</ul>' +
             '</div>' +
             '<div class="space-y-5 border-t lg:border-l lg:border-t-0 border-outline-variant/60 pt-5 lg:pt-0 lg:pl-6">' +
-                buildVisualResumePreview(resumeVisualPreview, issues) +
+                buildVisualResumePreview(resumeVisualPreview) +
                 '<div>' +
-                    '<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Problem callouts</p>' +
+                    '<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Issue explanations</p>' +
                     calloutIntro +
                     '<ul class="grid gap-2">' + annotationMarkup + '</ul>' +
                 '</div>' +
@@ -2765,7 +2389,7 @@ Download PDF
 
         const previewType = String((resumeVisualPreview && resumeVisualPreview.type) || "").toLowerCase();
         if (resumeVisualPreview && (previewType === "application/pdf" || /^data:application\/pdf/i.test(resumeVisualPreview.dataUrl || ""))) {
-            renderPdfResumePreview(resumeVisualPreview, issues);
+            renderPdfResumePreview(resumeVisualPreview);
         }
     }
 
@@ -2817,31 +2441,42 @@ Download PDF
         const safeBreakdown = scoreBreakdown || {};
         const band = getScoreMeaningBand(score);
         const isDifferentRole = Boolean(roleRecommendation && roleRecommendation.is_different_from_selected);
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation && roleRecommendation.match_status);
         const roleUsed = recommendedRole || "the recommended role";
         const selected = selectedRole || "the selected role";
-        const contextText = isDifferentRole
+        const contextText = matchStatus === "no suitable role"
+            ? " It uses " + roleUsed + " only as the closest evidence comparison for human review, not as a confirmed job recommendation."
+            : matchStatus === "review required"
+            ? " It measures evidence for " + selected + ", but the result is REVIEW REQUIRED / NOT MATCH."
+            : isDifferentRole
             ? " It is calculated for " + roleUsed + ", not " + selected + ", because the resume evidence matched that role better."
             : " The score is calculated for " + roleUsed + ", using the selected role and resume evidence.";
-        const formula = safeBreakdown.formula || "30% database requirements + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% semantic similarity, with a strong-evidence calibration floor";
+        const formula = safeBreakdown.formula || "30% database requirements + 25% role evidence + 15% experience evidence + 20% ATS format quality + 7% education/skills evidence + 3% TF-IDF text similarity, with a strong-evidence calibration floor";
         const formulaSentence = formula.endsWith(".") ? formula : formula + ".";
+        const recentTitle = String(safeBreakdown.most_recent_job_title || "").trim();
+        const employmentMonths = Number(safeBreakdown.employment_duration_months);
+        const employmentText = recentTitle
+            ? " Latest dated title: " + recentTitle + "." +
+                (Number.isFinite(employmentMonths) ? " Recognized timeline: " + Math.round(employmentMonths) + " non-overlapping months (advisory)." : "")
+            : " No dated employment title was parsed, so title-fit evidence is unavailable.";
         const componentText =
             "Req " + formatScoreComponent(safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match) +
             " | Role " + formatScoreComponent(safeBreakdown.role_evidence ?? safeCompatibility.role_evidence) +
             " | Exp " + formatScoreComponent(safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment) +
-            " | ATS " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) + ".";
+            " | ATS " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) + "." + employmentText;
         const fullComponentText =
             "Live components: requirements " + formatScoreComponent(safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match) +
             ", role evidence " + formatScoreComponent(safeBreakdown.role_evidence ?? safeCompatibility.role_evidence) +
             ", experience " + formatScoreComponent(safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment) +
             ", ATS format " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) +
             ", education/skills " + formatScoreComponent(safeBreakdown.academic_rigor ?? safeCompatibility.academic_rigor) +
-            ", semantic similarity " + formatScoreComponent(safeBreakdown.tfidf_similarity) + ".";
+            ", TF-IDF text similarity " + formatScoreComponent(safeBreakdown.tfidf_similarity) + ".";
 
         return {
             label: band.label,
             text: band.text + contextText,
             formula: componentText,
-            detail: formulaSentence + " " + fullComponentText
+            detail: formulaSentence + " " + fullComponentText + employmentText
         };
     }
 
@@ -2881,7 +2516,7 @@ Download PDF
             const rawScore = Number(item.score);
             const score = Number.isFinite(rawScore) ? Math.round(clampPercent(rawScore)) + "/100" : "Pending";
             const labels = [
-                item.is_final_recommended ? "Final used" : "",
+                item.is_final_recommended ? "Used for ATS score" : "",
                 item.is_selected_database_role ? "Selected" : ""
             ].filter(Boolean).join(", ") || "Compared";
             const matched = Array.isArray(item.matched_keywords) && item.matched_keywords.length
@@ -2939,32 +2574,7 @@ Download PDF
         )).join("");
     }
 
-    function buildResumePreviewBlock(text) {
-        const lines = getResumePreviewLines(text, 12);
-        if (!lines.length) {
-            return '<div class="excerpt">Resume preview was not available for this report.<\/div>';
-        }
-        return '<div class="excerpt">' + lines.map((line, index) => (
-            '<div><strong>' + escapeHtml(String(index + 1)).padStart(2, "0") + '<\/strong> ' + escapeHtml(line) + '<\/div>'
-        )).join("") + '<\/div>';
-    }
-
-    function buildReportVisualMarkerOverlay(criteria) {
-        const issues = Array.isArray(criteria) ? criteria.filter((item) => item && item.status !== "pass").slice(0, 5) : [];
-        return issues.map((item, index) => {
-            const position = getVisualMarkerPosition(item, index);
-            const markerClass = "visual-marker" + (position.variant === "insert" ? " insert-marker" : "");
-            const labelMarkup = position.label ? "<em>" + escapeHtml(position.label) + "<\/em>" : "";
-            return (
-                '<div class="' + markerClass + '" style="top:' + position.top + '%;left:' + position.left + '%;width:' + position.width + '%;height:' + position.height + '%;">' +
-                    '<span>' + escapeHtml(String(index + 1)) + '<\/span>' +
-                    labelMarkup +
-                '<\/div>'
-            );
-        }).join("");
-    }
-
-    function buildReportVisualResumePreview(preview, criteria) {
+    function buildReportVisualResumePreview(preview) {
         if (!preview || !preview.dataUrl) {
             return '<div class="visual-unavailable">Visual resume preview is available after running a fresh analysis from an uploaded file.<\/div>';
         }
@@ -2983,8 +2593,8 @@ Download PDF
                 '<div class="visual-report-head"><strong>Full Resume Preview<\/strong><span>' + safeName + '<\/span><\/div>' +
                 '<div class="visual-frame">' +
                     mediaMarkup +
-                    '<div class="visual-overlay">' + buildReportVisualMarkerOverlay(criteria) + '<\/div>' +
                 '<\/div>' +
+                '<p class="note">Issues are listed separately; exact page coordinates are not inferred from the uploaded layout.<\/p>' +
             '<\/div>'
         );
     }
@@ -3023,7 +2633,7 @@ Download PDF
             ".quality th{width:auto}.status{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700}.pass{background:#dff6e8;color:#176b3a}.warn{background:#ffe1df;color:#9b1c1c}" +
             ".chips{margin-top:10px}.chip{display:inline-block;background:#e7f0ff;color:#064b86;border-radius:999px;padding:5px 10px;margin:3px;font-size:12px;font-weight:700}.missing{background:#ffe7e4;color:#9b1c1c}" +
             "ul{margin:10px 0 0;padding-left:20px}li{margin:7px 0}.excerpt{white-space:pre-wrap;background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#334155;max-height:260px;overflow:auto}" +
-            ".visual-report{border:1px solid #d9e1ec;border-radius:10px;background:#f8fafc;padding:14px;margin-top:12px}.visual-report-head{display:flex;justify-content:space-between;gap:16px;color:#064b86;font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}.visual-report-head span{text-transform:none;letter-spacing:0;color:#64748b;font-weight:700}.visual-frame{position:relative;background:#fff;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.visual-frame img{display:block;width:100%;height:auto;background:#fff;border:0}.visual-frame object,.visual-frame iframe{display:block;width:100%;height:760px;background:#fff;border:0}.visual-overlay{pointer-events:none;position:absolute;inset:0}.visual-marker{position:absolute;border:2px solid #d01822;border-radius:6px;background:rgba(208,24,34,.05)}.visual-marker span{position:absolute;right:-11px;top:-11px;width:24px;height:24px;border-radius:999px;background:#d01822;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}.visual-marker.insert-marker{border-color:#0060ac;border-style:dashed;border-radius:4px;background:rgba(0,96,172,.09);box-shadow:0 0 0 2px rgba(0,96,172,.14)}.visual-marker.insert-marker span{right:-8px;top:-8px;width:20px;height:20px;background:#0060ac;font-size:10px}.visual-marker em{position:absolute;right:0;top:calc(100% + 4px);background:#0060ac;color:#fff;border-radius:4px;padding:3px 6px;white-space:nowrap;font-size:9px;font-style:normal;font-weight:800;line-height:1.15;text-transform:uppercase}.visual-unavailable{background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#64748b;margin-top:10px}" +
+            ".visual-report{border:1px solid #d9e1ec;border-radius:10px;background:#f8fafc;padding:14px;margin-top:12px}.visual-report-head{display:flex;justify-content:space-between;gap:16px;color:#064b86;font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}.visual-report-head span{text-transform:none;letter-spacing:0;color:#64748b;font-weight:700}.visual-frame{position:relative;background:#fff;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.visual-frame img{display:block;width:100%;height:auto;background:#fff;border:0}.visual-frame object,.visual-frame iframe{display:block;width:100%;height:760px;background:#fff;border:0}.visual-unavailable{background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#64748b;margin-top:10px}" +
             "footer{padding:18px 32px;color:#64748b;font-size:12px}.clear{clear:both}@media print{body{background:#fff}.page{margin:0;border:0}.score{float:none;display:block;margin-top:10px}}" +
             "<\/style><\/head><body><div class=\"page\">" +
             "<header><div class=\"score\">" + escapeHtml(score) + "<\/div><h1>UTS CS Career Navigator Feedback Report<\/h1><p>Structured ATS and role-fit feedback for resume improvement.<\/p><div class=\"clear\"><\/div><\/header>" +
@@ -3031,10 +2641,10 @@ Download PDF
             "<section><p class=\"section-title\">Score Explanation<\/p><h2>" + escapeHtml((report.scoreExplanation && report.scoreExplanation.label) || "Score meaning") + "<\/h2><div class=\"note\">" + escapeHtml((report.scoreExplanation && report.scoreExplanation.text) || "The final readiness score combines role match, resume evidence, and ATS format quality.") + "<\/div><p class=\"note\" style=\"margin-top:12px\">" + escapeHtml((report.scoreExplanation && (report.scoreExplanation.detail || report.scoreExplanation.formula)) || "Formula details were not available.") + "<\/p><\/section>" +
             "<section><p class=\"section-title\">Role Fit Explanation<\/p><div class=\"note\">" + escapeHtml(report.roleReason || "Selected role and recommendation are aligned.") + "<\/div><\/section>" +
             "<section><p class=\"section-title\">Priority Improvement Plan<\/p><ul>" + buildRecommendationActionRows(report.recommendationPlan, report.structuredFeedback) + "<\/ul><\/section>" +
-            "<section><p class=\"section-title\">Top 3 Role Matches<\/p><table><tr><th>Rank<\/th><th>Database role<\/th><th>Fit<\/th><th>Status<\/th><th>Evidence<\/th><\/tr>" + buildTopRoleRows(report.topRoleMatches) + "<\/table><\/section>" +
+            "<section><p class=\"section-title\">Top 3 Role Matches<\/p><div class=\"note\">Evidence-match scores compare resume text with database requirements; they are not hiring probabilities or validated model accuracy.<\/div><table><tr><th>Rank<\/th><th>Database role<\/th><th>Evidence score<\/th><th>Status<\/th><th>Evidence<\/th><\/tr>" + buildTopRoleRows(report.topRoleMatches) + "<\/table><\/section>" +
             "<section><p class=\"section-title\">Score Components<\/p><table>" + componentRows + "<\/table><p class=\"note\">Only the final readiness score is numeric. Component results are shown as status labels to avoid confusing users with multiple percentages.<\/p><\/section>" +
             "<section><p class=\"section-title\">ATS Quality Criteria<\/p><table class=\"quality\"><tr><th>Criteria<\/th><th>Status<\/th><th>Finding<\/th><th>Suggested fix<\/th><\/tr>" + buildQualityRows(report.qualityCriteria) + "<\/table><\/section>" +
-            "<section><p class=\"section-title\">Resume Review Snapshot<\/p><h2>Resume Bad Habits<\/h2><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview, report.qualityCriteria) + "<\/section>" +
+            "<section><p class=\"section-title\">Resume Review Snapshot<\/p><h2>Resume Bad Habits<\/h2><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview) + "<\/section>" +
             "<section><p class=\"section-title\">Resume Evidence<\/p><h2>Matched Signals<\/h2><div class=\"chips\">" + reportList(report.matchedSignals, "No matched signals").split(", ").map((item) => "<span class=\"chip\">" + item + "<\/span>").join("") + "<\/div><h2 style=\"margin-top:22px\">Missing Keywords<\/h2><div class=\"chips\">" + reportList(report.missingKeywords, "No missing keywords").split(", ").map((item) => "<span class=\"chip missing\">" + item + "<\/span>").join("") + "<\/div><\/section>" +
             "<section><p class=\"section-title\">Next Actions<\/p><ul>" + buildFeedbackRows(report.structuredFeedback, report.feedback || "No feedback available.") + "<\/ul><\/section>" +
             "<footer>Generated locally by UTS CS Career Navigator. Open this file in a browser to print or save as PDF.<\/footer>" +
@@ -3081,10 +2691,42 @@ Download PDF
         const role = latestGeneratedResume && latestGeneratedResume.target_role
             ? latestGeneratedResume.target_role
             : localStorage.getItem("selectedJobRole");
-        return slugifyFileName("uts-ats-resume-" + (role || "draft"), "uts-ats-resume-draft");
+        const isExample = Boolean(latestGeneratedResume && (latestGeneratedResume.sample_only || latestGeneratedResume.is_sample_resume));
+        const prefix = isExample ? "uts-example-only-resume-" : "uts-ats-resume-";
+        const fallback = isExample ? "uts-example-only-resume" : "uts-ats-resume-draft";
+        return slugifyFileName(prefix + (role || "draft"), fallback);
     }
 
     const CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD = 20;
+    const NON_IT_HEADLINE_REVIEW_THRESHOLD = 35;
+
+    function normalizeRoleMatchStatus(value) {
+        return String(value || "").toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function hasExplicitNonItHeadline(roleRecommendation, matches) {
+        if (roleRecommendation && roleRecommendation.explicit_non_it_headline) {
+            return true;
+        }
+        return (Array.isArray(matches) ? matches : []).some((item) => Boolean(
+            item && (item.explicit_non_it_headline || item.title_match_source === "non_it_headline")
+        ));
+    }
+
+    function getRoleReviewThreshold(roleRecommendation, explicitNonItHeadline) {
+        const supplied = Number(roleRecommendation && roleRecommendation.review_threshold);
+        if (Number.isFinite(supplied)) {
+            return supplied;
+        }
+        return explicitNonItHeadline ? NON_IT_HEADLINE_REVIEW_THRESHOLD : CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD;
+    }
+
+    function roleScoreNeedsReview(score, explicitNonItHeadline) {
+        return Number.isFinite(score) && (
+            score < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD
+            || (explicitNonItHeadline && score < NON_IT_HEADLINE_REVIEW_THRESHOLD)
+        );
+    }
 
     function getTopRoleGenerationScores(result) {
         const roleRecommendation = result && result.role_recommendation ? result.role_recommendation : {};
@@ -3098,13 +2740,99 @@ Download PDF
             .filter((score) => Number.isFinite(score));
     }
 
-    function shouldShowSampleResumeOnly(result) {
-        const topScores = getTopRoleGenerationScores(result || {});
-        if (topScores.length) {
-            return Math.max(...topScores) < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD;
+    function getResumeExampleDecision(result) {
+        const safeResult = result || {};
+        const roleRecommendation = safeResult.role_recommendation || {};
+        const roleMatches = Array.isArray(safeResult.top_role_matches)
+            ? safeResult.top_role_matches
+            : (Array.isArray(roleRecommendation.top_role_matches) ? roleRecommendation.top_role_matches : []);
+        const topRoleMatch = roleMatches.find(Boolean) || {};
+        const topRoleName = String(topRoleMatch.role || topRoleMatch.database_role || "").trim();
+        const selectedRole = String(roleRecommendation.selected_role || safeResult.selected_role || "").trim();
+        const selectedScoreValue = roleRecommendation.selected_score;
+        const selectedScore = selectedScoreValue === null || selectedScoreValue === undefined || selectedScoreValue === ""
+            ? Number.NaN
+            : Number(selectedScoreValue);
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation.match_status);
+        const explicitNonItHeadline = hasExplicitNonItHeadline(roleRecommendation, roleMatches);
+        const reviewThreshold = getRoleReviewThreshold(roleRecommendation, explicitNonItHeadline);
+        if (
+            isExplicitSelectedRole(selectedRole)
+            && (
+                matchStatus === "review required"
+                || roleScoreNeedsReview(selectedScore, explicitNonItHeadline)
+            )
+        ) {
+            return {
+                showExample: true,
+                reason: "selected_role_review_required",
+                targetRole: selectedRole,
+                score: selectedScore,
+                threshold: reviewThreshold,
+                selectionMode: "selected_role"
+            };
         }
-        const overallScore = Number(result && result.matching_percentage);
-        return Number.isFinite(overallScore) && overallScore < CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD;
+
+        if (isExplicitSelectedRole(selectedRole)) {
+            return {
+                showExample: false,
+                reason: "",
+                targetRole: selectedRole,
+                score: Number.isFinite(selectedScore) ? selectedScore : null,
+                threshold: reviewThreshold
+            };
+        }
+
+        const topScores = getTopRoleGenerationScores(safeResult);
+        if (topScores.length) {
+            const bestScore = Math.max(...topScores);
+            if (
+                matchStatus === "no suitable role"
+                || roleScoreNeedsReview(bestScore, explicitNonItHeadline)
+            ) {
+                return {
+                    showExample: true,
+                    reason: "auto_no_suitable_role",
+                    targetRole: String(roleRecommendation.fallback_sample_role || "Software Developer"),
+                    score: bestScore,
+                    threshold: reviewThreshold,
+                    closestRole: roleRecommendation.closest_role || topRoleName,
+                    selectionMode: "deterministic_fallback"
+                };
+            }
+        }
+        const overallScore = Number(safeResult.matching_percentage);
+        if (
+            !topScores.length
+            && (
+                matchStatus === "no suitable role"
+                || roleScoreNeedsReview(overallScore, explicitNonItHeadline)
+            )
+        ) {
+            return {
+                showExample: true,
+                reason: "auto_no_suitable_role",
+                targetRole: String(roleRecommendation.fallback_sample_role || "Software Developer"),
+                score: overallScore,
+                threshold: reviewThreshold,
+                closestRole: roleRecommendation.closest_role || topRoleName,
+                selectionMode: "deterministic_fallback"
+            };
+        }
+        return {
+            showExample: false,
+            reason: "",
+            targetRole: selectedRole,
+            score: Number.isFinite(selectedScore) ? selectedScore : null,
+            threshold: null
+        };
+    }
+
+    function getResumeGeneratorButtonHtml(result) {
+        const decision = getResumeExampleDecision(result);
+        return decision.showExample
+            ? '<span class="material-symbols-outlined" data-icon="description">description</span>View Target-Role Example'
+            : '<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>Generate Optimized Resume';
     }
 
     function isGeneratedResumeAdviceLine(value) {
@@ -3157,11 +2885,41 @@ Download PDF
         const panel = document.getElementById("generatedResumePanel");
         const preview = document.getElementById("generatedResumePreview");
         const notesList = document.getElementById("generatedResumeNotesList");
+        const sampleNotice = document.getElementById("generatedResumeSampleNotice");
+        const eyebrow = document.getElementById("generatedResumeEyebrow");
+        const title = document.getElementById("generatedResumeTitle");
+        const copyButton = document.getElementById("copyGeneratedResumeBtn");
+        const htmlButton = document.getElementById("downloadGeneratedHtmlBtn");
+        const pdfButton = document.getElementById("downloadGeneratedPdfBtn");
         if (!panel || !preview) {
             return;
         }
 
         latestGeneratedResume = draft;
+        const isExample = Boolean(draft && (draft.sample_only || draft.is_sample_resume));
+        if (sampleNotice) {
+            sampleNotice.classList.toggle("hidden", !isExample);
+        }
+        if (eyebrow) {
+            eyebrow.textContent = isExample ? "Target-role learning example" : "Generated Draft";
+        }
+        if (title) {
+            title.textContent = isExample
+                ? (draft.target_role || "Target Role") + " Example Resume"
+                : "ATS Resume Preview";
+        }
+        if (copyButton) {
+            copyButton.innerHTML = '<span class="material-symbols-outlined text-base">content_copy</span>' +
+                (isExample ? "Copy Example Text" : "Copy Resume Text");
+        }
+        if (htmlButton) {
+            htmlButton.innerHTML = '<span class="material-symbols-outlined text-base">code</span>' +
+                (isExample ? "Download Example HTML" : "Download HTML");
+        }
+        if (pdfButton) {
+            pdfButton.innerHTML = '<span class="material-symbols-outlined text-base">picture_as_pdf</span>' +
+                (isExample ? "Download Example PDF" : "Download PDF");
+        }
         preview.srcdoc = draft && draft.html
             ? draft.html
             : "<!doctype html><html><body><p>Generated resume draft is empty.</p></body></html>";
@@ -3210,9 +2968,9 @@ Download PDF
             }
             await fetch(API_BASE_URL + "/downloads", {
                 method: "POST",
+                credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    email: user.email,
                     analysis_id: analysisId || null,
                     downloaded_file_name: fileName
                 })
@@ -3281,18 +3039,27 @@ Download PDF
         };
     }
 
-    async function downloadGeneratedResumePdf(analysisId) {
+    async function downloadGeneratedResumePdf(analysis, recommendedRole) {
         if (!latestGeneratedResume) {
             setGeneratedResumeStatus("Generate a resume draft first.", true);
             return;
         }
+        const currentUser = getAuthUser();
         const fileName = getGeneratedResumeBaseName() + ".pdf";
-        setGeneratedResumeStatus("Preparing PDF resume...");
+        const isExample = Boolean(latestGeneratedResume.sample_only || latestGeneratedResume.is_sample_resume);
+        setGeneratedResumeStatus(isExample ? "Preparing example-only PDF..." : "Preparing PDF resume...");
         try {
             const response = await fetch(API_BASE_URL + "/generate-resume-pdf", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ generated_resume: latestGeneratedResume })
+                body: JSON.stringify({
+                    analysis,
+                    analysis_id: analysis && analysis.analysis_id,
+                    resume_text: analysis && (analysis.resume_text_for_generation || analysis.resume_excerpt || ""),
+                    target_role: latestGeneratedResume.target_role || recommendedRole || "",
+                    candidate_name: currentUser && currentUser.full_name ? currentUser.full_name : "",
+                    ...getGeneratedContactLinks()
+                })
             });
             if (!response.ok) {
                 const payload = await response.json().catch(() => ({}));
@@ -3300,8 +3067,8 @@ Download PDF
             }
             const blob = await response.blob();
             downloadGeneratedBlob(blob, fileName);
-            await saveGeneratedResumeDownloadHistory(fileName, analysisId);
-            setGeneratedResumeStatus("PDF resume downloaded.");
+            await saveGeneratedResumeDownloadHistory(fileName, analysis && analysis.analysis_id ? analysis.analysis_id : null);
+            setGeneratedResumeStatus(isExample ? "Example-only PDF downloaded." : "PDF resume downloaded.");
         } catch (error) {
             const message = error && error.message ? error.message : "Could not export PDF resume.";
             setGeneratedResumeStatus(message, true);
@@ -3364,6 +3131,7 @@ Download PDF
     async function generateOptimizedResume(options) {
         const generateBtn = document.getElementById("generateResumeBtn");
         const analysis = options.result || {};
+        const exampleDecision = getResumeExampleDecision(analysis);
         const currentUser = getAuthUser();
         if (!requireAuth()) {
             return;
@@ -3374,8 +3142,8 @@ Download PDF
             generateBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span>Generating...';
         }
         setGeneratedResumeStatus(
-            shouldShowSampleResumeOnly(analysis)
-                ? "Preparing a sample CS ATS resume template..."
+            exampleDecision.showExample
+                ? "Preparing a clearly labelled " + (exampleDecision.targetRole || "target-role") + " example resume..."
                 : "Generating ATS resume draft..."
         );
 
@@ -3386,7 +3154,9 @@ Download PDF
                 body: JSON.stringify({
                     analysis,
                     resume_text: analysis.resume_text_for_generation || analysis.resume_excerpt || "",
-                    target_role: options.recommendedRole || analysis.target_role || "",
+                    target_role: exampleDecision.showExample && exampleDecision.targetRole
+                        ? exampleDecision.targetRole
+                        : (options.recommendedRole || analysis.target_role || ""),
                     candidate_name: currentUser && currentUser.full_name ? currentUser.full_name : "",
                     ...getGeneratedContactLinks()
                 })
@@ -3397,13 +3167,21 @@ Download PDF
             }
             renderGeneratedResume(payload);
             if (payload.sample_only || payload.is_sample_resume) {
-                const score = Number(payload.best_top_role_score);
-                const scoreText = Number.isFinite(score) ? Math.round(score) + "/100" : "below 20/100";
+                const scoreValue = payload.sample_target_score ?? payload.comparison_score ??
+                    payload.selected_role_score ?? payload.best_top_role_score;
+                const score = scoreValue === null || scoreValue === undefined || scoreValue === ""
+                    ? Number.NaN
+                    : Number(scoreValue);
+                const scoreText = Number.isFinite(score) ? Math.round(score) + "/100" : "below the example threshold";
+                const targetRole = payload.sample_target_role || payload.target_role || exampleDecision.targetRole || "the selected role";
+                const reasonText = ["selected_role_at_or_below_50", "selected_role_review_required"].includes(payload.sample_reason_code)
+                    ? "the selected-role evidence score is " + scoreText
+                    : "no suitable CS role was confirmed (closest evidence score " + scoreText + "); this fallback role is not a job recommendation";
                 setGeneratedResumeStatus(
-                    "Sample CS ATS template shown because the best Top 3 CS role match is " + scoreText +
-                        ". The system did not rewrite this resume as a CS resume."
+                    targetRole + " example shown because " + reasonText +
+                        ". It uses complete fictional details and does not rewrite the user's unrelated experience."
                 );
-                showToast("Sample CS resume template shown.", "info");
+                showToast("Target-role example resume shown.", "info");
                 return;
             }
             const templateName = payload.template && payload.template.name ? payload.template.name : "ATS resume draft";
@@ -3421,9 +3199,7 @@ Download PDF
             if (generateBtn) {
                 generateBtn.disabled = false;
                 generateBtn.classList.remove("opacity-70", "cursor-wait");
-                generateBtn.innerHTML = shouldShowSampleResumeOnly(analysis)
-                    ? '<span class="material-symbols-outlined" data-icon="description">description</span>View CS Sample Template'
-                    : '<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>Generate Optimized Resume';
+                generateBtn.innerHTML = getResumeGeneratorButtonHtml(analysis);
             }
         }
     }
@@ -3470,7 +3246,7 @@ Download PDF
             }
         }
 
-        // If no accessible personal analysis, try the sample demo
+        // If no accessible personal analysis, try the stored public demo.
         if (!result) {
             const sampleRaw = localStorage.getItem("sampleAnalysis");
             if (sampleRaw) {
@@ -3484,12 +3260,13 @@ Download PDF
         }
 
         if (!result) {
-            // As a last resort, use the embedded SAMPLE_ANALYSIS so demo always shows
-            result = SAMPLE_ANALYSIS;
-            // Also set a visible uploaded name/role from the sample
+            // Keep the report usable when storage is unavailable or opened directly.
+            result = window.CareerNavigatorCommon.createSampleAnalysis();
             localStorage.setItem("uploadedResumeName", result.uploaded_resume_name || "sample_resume.pdf");
             localStorage.setItem("selectedJobRole", localStorage.getItem("selectedJobRole") || "Sample Role");
         }
+
+        showAccuracyTestingSaveStatus(result);
 
         const percentage = clampPercent(Number(result.matching_percentage || 0));
         const scoreOutOf100 = Math.round(percentage);
@@ -3500,8 +3277,15 @@ Download PDF
         const selectedDatabaseRole = roleRecommendation.selected_database_role || "";
         const recommendedRole = roleRecommendation.recommended_role || result.target_role || selectedRole || "selected role";
         const detectedRole = roleRecommendation.detected_database_role || "";
+        const matchStatus = normalizeRoleMatchStatus(roleRecommendation.match_status);
+        const humanReviewRequired = Boolean(roleRecommendation.human_review_required)
+            || matchStatus === "review required"
+            || matchStatus === "no suitable role";
+        const closestRole = roleRecommendation.closest_role || recommendedRole;
+        const fallbackSampleRole = roleRecommendation.fallback_sample_role || "";
         const roleReason = roleRecommendation.reason_summary || "";
         const roleIsDifferent = Boolean(roleRecommendation.is_different_from_selected);
+        const roleMatchIsClose = Boolean(roleRecommendation.is_close_match);
         const uploadedResumeName = result.uploaded_resume_name || localStorage.getItem("uploadedResumeName") || "No resume selected.";
         const resumeSummary = result.resume_summary || {};
         const jobAnalysis = result.job_description_analysis || {};
@@ -3535,11 +3319,10 @@ Download PDF
         const exportResumeBtn = document.getElementById("exportResumeBtn");
         const exportHtmlReportBtn = document.getElementById("exportHtmlReportBtn");
         const generateResumeBtn = document.getElementById("generateResumeBtn");
-        const sampleResumeOnly = shouldShowSampleResumeOnly(result);
+        const exampleDecision = getResumeExampleDecision(result);
+        const sampleResumeOnly = exampleDecision.showExample;
         if (generateResumeBtn) {
-            generateResumeBtn.innerHTML = sampleResumeOnly
-                ? '<span class="material-symbols-outlined" data-icon="description">description</span>View CS Sample Template'
-                : '<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>Generate Optimized Resume';
+            generateResumeBtn.innerHTML = getResumeGeneratorButtonHtml(result);
         }
         const copyGeneratedResumeBtn = document.getElementById("copyGeneratedResumeBtn");
         const downloadGeneratedHtmlBtn = document.getElementById("downloadGeneratedHtmlBtn");
@@ -3563,7 +3346,9 @@ Download PDF
         setText("submissionTimeDisplay", formatSubmittedTime(submittedAt));
         setText(
             "submissionRoleDisplay",
-            roleIsDifferent && selectedRole
+            matchStatus === "no suitable role"
+                ? "No suitable role confirmed"
+                : roleIsDifferent && selectedRole
                 ? recommendedRole + " (recommended over " + selectedRole + ")"
                 : (recommendedRole || selectedRole || "No role selected")
         );
@@ -3574,8 +3359,10 @@ Download PDF
         renderEvidenceCircles(result, resumeSummary, matchedSignals, compatibility, scoreBreakdown);
 
         if (aiSummary) {
-            if (guidanceContext.mode === "unrelatedSelectedRole") {
-                aiSummary.textContent = "Resume is not related enough to " + (guidanceContext.roleName || selectedRole || "the selected job") + ".";
+            if (guidanceContext.mode === "selectedRoleExample") {
+                aiSummary.textContent = "Review required: the resume does not sufficiently match " + (guidanceContext.roleName || selectedRole || "the selected job") + ".";
+            } else if (guidanceContext.mode === "autoNoSuitableRole") {
+                aiSummary.textContent = "No suitable CS role was confirmed. The closest evidence requires human review.";
             } else if (guidanceContext.mode === "autoDetectedRole") {
                 aiSummary.textContent = "Top detected role: " + (guidanceContext.roleName || recommendedRole) + ".";
             } else {
@@ -3586,8 +3373,10 @@ Download PDF
         }
 
         if (aiRecommendation) {
-            if (guidanceContext.mode === "unrelatedSelectedRole") {
-                aiRecommendation.textContent = "Choose a closer job or rewrite the resume with true selected-job evidence.";
+            if (guidanceContext.mode === "selectedRoleExample") {
+                aiRecommendation.textContent = "Treat the result as NOT MATCH. Use the selected-field fictional example only as a learning guide and add only evidence you genuinely have.";
+            } else if (guidanceContext.mode === "autoNoSuitableRole") {
+                aiRecommendation.textContent = "Review the closest role cards manually. The fallback resume is a fictional learning example, not a job recommendation.";
             } else if (guidanceContext.mode === "autoDetectedRole") {
                 aiRecommendation.textContent = "Notes use the Top 1 detected role because no job was selected.";
             } else {
@@ -3597,22 +3386,28 @@ Download PDF
             }
         }
 
-        const atsReadinessCopy = getAtsReadinessCopy(scoreOutOf100, resumeQuality);
+        const atsReadinessCopy = getAtsReadinessCopy(scoreOutOf100, resumeQuality, scoreBreakdown);
         setText("atsQualityHeadline", atsReadinessCopy.headline);
         setText("atsQualitySummaryText", atsReadinessCopy.summary);
         setText("atsQualityRiskText", atsReadinessCopy.badge);
         setText("atsQualityScoreText", atsReadinessCopy.scoreText);
         renderAtsQualityCriteria(qualityCriteria, resumePreviewText, resumeVisualPreview, guidanceContext);
 
-        if (guidanceContext.mode === "unrelatedSelectedRole") {
+        if (guidanceContext.mode === "selectedRoleExample") {
             const selectedScoreText = Number.isFinite(guidanceContext.selectedMatchScore)
                 ? Math.round(guidanceContext.selectedMatchScore) + "/100"
-                : "below 30/100";
-            setText("roleFitHeadline", "Resume Not Related To " + (guidanceContext.roleName || selectedRole || "Selected Job"));
-            setText("roleRecommendationSummary", "Selected job match is " + selectedScoreText + ". The resume does not show enough related evidence for this job.");
-            setText("roleDecisionBadge", "Selected match below 30");
-            setText("topRoleMatchesTitle", "Selected Job Check");
-            setText("topRoleMatchesBadge", "Brief result");
+                : "below the review threshold";
+            setText("roleFitHeadline", "Review Required: Not a Match for " + (guidanceContext.roleName || selectedRole || "Selected Job"));
+            setText("roleRecommendationSummary", "Selected-role evidence is " + selectedScoreText + ". Treat this result as NOT MATCH. The resume builder will show a separate fictional example for the selected field instead of inventing experience.");
+            setText("roleDecisionBadge", "REVIEW REQUIRED · NOT MATCH");
+            setText("topRoleMatchesTitle", "Top 3 Resume-Matched Roles");
+            setText("topRoleMatchesBadge", "Evidence comparisons");
+        } else if (guidanceContext.mode === "autoNoSuitableRole") {
+            setText("roleFitHeadline", "No Suitable CS Role Confirmed");
+            setText("roleRecommendationSummary", (roleReason || "The available evidence is below the safe recommendation threshold.") + " " + (closestRole ? closestRole + " is only the closest evidence comparison." : "Human review is required."));
+            setText("roleDecisionBadge", "REVIEW REQUIRED");
+            setText("topRoleMatchesTitle", "Top 3 Closest Evidence Comparisons");
+            setText("topRoleMatchesBadge", "Not recommendations");
         } else if (guidanceContext.mode === "autoDetectedRole") {
             setText("roleFitHeadline", "Top Detected Role: " + (guidanceContext.roleName || recommendedRole));
             setText("roleRecommendationSummary", "No job was selected, so examples and notes use the Top 1 detected role from the resume.");
@@ -3626,20 +3421,29 @@ Download PDF
                 (roleReason || "The selected role and recommended database role are aligned for this resume.") +
                     (roleIsDifferent ? " The role comparison only chooses the closest database role; the final readiness score also includes resume evidence and ATS format quality." : "")
             );
-            setText("roleDecisionBadge", roleIsDifferent ? "Better database fit found" : "Selected role confirmed");
+            setText(
+                "roleDecisionBadge",
+                roleMatchIsClose ? "Close role evidence" : (roleIsDifferent ? "Better database fit found" : "Selected role confirmed")
+            );
             setText("topRoleMatchesTitle", "Top 3 Role Matches");
             setText("topRoleMatchesBadge", "Resume evidence ranking");
         }
         setText("selectedChoiceDisplay", selectedRole || "No role selected");
         setText("selectedDatabaseRoleDisplay", selectedDatabaseRole ? "Database role: " + selectedDatabaseRole : "No selected database role was used.");
-        setText("recommendedRoleDisplay", recommendedRole);
+        setText("recommendedRoleDisplay", matchStatus === "no suitable role" ? "No suitable role confirmed" : recommendedRole);
         setText(
             "recommendedRoleReasonDisplay",
-            detectedRole && detectedRole !== recommendedRole
+            matchStatus === "no suitable role"
+                ? "Closest evidence only: " + (closestRole || "not available") + ". Human review required."
+                : detectedRole && detectedRole !== recommendedRole
                 ? "Closest resume-detected role: " + detectedRole
                 : "Used for the final readiness score."
         );
-        if (roleIsDifferent) {
+        if (humanReviewRequired) {
+            setText("selectedRoleScoreDisplay", selectedRole ? "Selected role requires review and is recorded as NOT MATCH." : "No job was selected; no suitable role was confirmed.");
+            setText("recommendedRoleReasonDisplay", "Closest evidence only: " + (closestRole || "not available") + ". This is not a confirmed recommendation.");
+            setText("recommendedRoleScoreDisplay", "Human review required before choosing a target role.");
+        } else if (roleIsDifferent) {
             setText("selectedRoleScoreDisplay", "You selected this role. The Top 3 list below shows why another database role matched stronger.");
             setText("recommendedRoleReasonDisplay", "Used for the final ATS score because the resume evidence matches this database role more strongly.");
             setText("recommendedRoleScoreDisplay", "Final comparison role used in this result.");
@@ -3650,12 +3454,17 @@ Download PDF
         }
         setText(
             "futureAtsResumeText",
-            sampleResumeOnly
-                ? "Top CS role matches are below 20/100, so the generator will show a sample CS ATS resume template instead of rewriting this resume."
-                : "Generate an ATS resume draft for " + recommendedRole + " using the missing keywords, score evidence, and feedback from this analysis."
+            exampleDecision.reason === "selected_role_review_required"
+                ? "Your Top 3 matches remain evidence comparisons. Because evidence for " +
+                    (exampleDecision.targetRole || "the selected role") + " is " +
+                    (Number.isFinite(exampleDecision.score) ? Math.round(exampleDecision.score) + "/100" : "below the review threshold") +
+                    ", the builder will show a clearly labelled fictional example for that target field instead of inventing experience."
+                : sampleResumeOnly
+                    ? "No suitable CS role was confirmed. The builder will show a clearly labelled " + (fallbackSampleRole || exampleDecision.targetRole || "technology") + " fallback learning example; it is not a job recommendation."
+                    : "Generate an ATS resume draft for " + recommendedRole + " using the missing keywords, score evidence, and feedback from this analysis."
         );
         const generatorReadyMessage = sampleResumeOnly
-            ? "Top 3 CS role matches are below 20/100. Generate will show a sample CS resume template only."
+            ? "Ready to show a fictional " + (exampleDecision.targetRole || "target-role") + " example. Your original analysis and Top 3 matches remain unchanged."
             : result.resume_text_for_generation ? "Ready to generate from extracted resume text." : "Ready to generate from available analysis context.";
         const detectedContactLinks = prefillGeneratedContactLinks(result);
         setGeneratedResumeStatus(generatorReadyMessage + (detectedContactLinks ? " Existing LinkedIn/GitHub link detected." : ""));
@@ -3675,7 +3484,10 @@ Download PDF
         );
         setText(
             "generatorInputInsight",
-            "Generator input: " + recommendedRole + ", matched signals, missing keywords, and ATS feedback."
+            sampleResumeOnly
+                ? "Example target: " + (exampleDecision.targetRole || "CS role") +
+                    ". The example uses complete fictional details, is not a confirmed job recommendation, and does not replace the truthful evidence comparison."
+                : "Generator input: " + recommendedRole + ", matched signals, missing keywords, and ATS feedback."
         );
 
         renderPills("matchedSignalsChipList", matchedSignals, "No matched resume signals detected yet.");
@@ -3744,7 +3556,7 @@ Download PDF
         if (downloadGeneratedPdfBtn && downloadGeneratedPdfBtn.dataset.bound !== "true") {
             downloadGeneratedPdfBtn.dataset.bound = "true";
             downloadGeneratedPdfBtn.addEventListener("click", () => {
-                downloadGeneratedResumePdf(result.analysis_id || null);
+                downloadGeneratedResumePdf(result, recommendedRole);
             });
         }
 
@@ -3819,124 +3631,7 @@ Download PDF
 
     }
 
-    function clearDisplayedAnalysis() {
-        // Clear DOM placeholders
-        const overallScore = document.getElementById("overallScore");
-        if (overallScore) overallScore.textContent = "-";
-        setText("scoreMeaningLabel", "Score conclusion");
-        setText("scoreMeaningText", "Run an analysis to see what the score means.");
-        setText("scoreFormulaText", "Live score components will appear here.");
-        setText("roleFitHeadline", "Recommended job fit will appear here.");
-        setText("roleRecommendationSummary", "Run an analysis to compare the selected job with the best database match.");
-        setText("roleDecisionBadge", "Database comparison");
-        setText("selectedChoiceDisplay", "No role selected.");
-        setText("selectedDatabaseRoleDisplay", "Database mapping will appear here.");
-        setText("selectedRoleScoreDisplay", "Role mapping pending.");
-        setText("recommendedRoleDisplay", "No recommendation yet.");
-        setText("recommendedRoleReasonDisplay", "The system will explain why this role is suitable.");
-        setText("recommendedRoleScoreDisplay", "Final role pending.");
-        setText("submissionFileNameDisplay", "No resume selected");
-        setText("submissionFileTypeDisplay", "-");
-        setText("submissionTimeDisplay", "-");
-        setText("submissionRoleDisplay", "No role selected");
-        setText("futureAtsResumeText", "After analysis, this area will generate a stronger ATS resume draft using the database role fit, missing keywords, and feedback.");
-        setGeneratedResumeStatus("Ready after analysis.");
-        setText("fitReasonInsight", "Role-fit reasoning will appear after analysis.");
-        setText("semanticMatchInsight", "Semantic matching notes will appear after analysis.");
-        setText("rewriteTargetInsight", "Missing keyword rewrite targets will appear after analysis.");
-        setText("generatorInputInsight", "Resume-generation input will appear after analysis.");
-        setText("atsQualityHeadline", "ATS Readiness Check");
-        setText("atsQualitySummaryText", "Run an analysis to check resume format, language, contact details, and parsing risks.");
-        setText("atsQualityRiskText", "ATS: -");
-        setText("atsQualityScoreText", "Score band appears after analysis");
-        setText("topRoleMatchesTitle", "Top 3 Role Matches");
-        setText("topRoleMatchesBadge", "Resume evidence ranking");
-        renderAtsQualityCriteria([], "", null);
-        renderPills("matchedSignalsChipList", [], "Matched resume signals will appear here.");
-        renderTopRoleMatches([]);
-        renderRecommendationPlan(null, { empty: true });
-        renderFeedbackList("structuredFeedbackList", [], "Feedback will appear here after analysis.");
-        latestGeneratedResume = null;
-        const generatedResumePanel = document.getElementById("generatedResumePanel");
-        if (generatedResumePanel) {
-            generatedResumePanel.classList.add("hidden");
-        }
-        const generatedResumePreview = document.getElementById("generatedResumePreview");
-        if (generatedResumePreview) {
-            generatedResumePreview.srcdoc = "";
-        }
-        const generatedResumeNotesList = document.getElementById("generatedResumeNotesList");
-        if (generatedResumeNotesList) {
-            generatedResumeNotesList.innerHTML = "";
-        }
-
-        setMetric("metricKeywordBar", "metricKeywordValue", 0);
-        setMetric("metricExperienceBar", "metricExperienceValue", 0);
-        setMetric("metricAcademicBar", "metricAcademicValue", 0);
-        setEvidenceCircle("hardSkillsRing", "hardSkillsScore", 0);
-        setEvidenceCircle("softSkillsRing", "softSkillsScore", 0);
-        setEvidenceCircle("experienceRing", "experienceScore", 0);
-        setText("metricKeywordValue", "Pending");
-        setText("metricExperienceValue", "Pending");
-        setText("metricAcademicValue", "Pending");
-        setText("hardSkillsDetail", "Tools, languages, and role keywords.");
-        setText("softSkillsDetail", "Communication, teamwork, and leadership signals.");
-        setText("experienceDetail", "Projects, internships, and measurable outcomes.");
-
-        const parsedSkillsCount = document.getElementById("parsedSkillsCount");
-        if (parsedSkillsCount) parsedSkillsCount.textContent = "Skills found: 0";
-        const parsedEducationCount = document.getElementById("parsedEducationCount");
-        if (parsedEducationCount) parsedEducationCount.textContent = "Education markers: 0";
-        const parsedExperienceCount = document.getElementById("parsedExperienceCount");
-        if (parsedExperienceCount) parsedExperienceCount.textContent = "Experience markers: 0";
-
-        const jobKeywordCount = document.getElementById("jobKeywordCount");
-        if (jobKeywordCount) jobKeywordCount.textContent = "Important keywords: 0";
-        const missingKeywordCount = document.getElementById("missingKeywordCount");
-        if (missingKeywordCount) missingKeywordCount.textContent = "Missing keywords: 0";
-
-        const matchScoreText = document.getElementById("matchScoreText");
-        if (matchScoreText) matchScoreText.textContent = "Final score shown above";
-
-        const aiSummary = document.getElementById("aiSummary");
-        if (aiSummary) aiSummary.textContent = "Please run an analysis from the dashboard to see results.";
-        const aiRecommendation = document.getElementById("aiRecommendation");
-        if (aiRecommendation) aiRecommendation.textContent = "";
-
-        // Remove stored analysis for privacy
-        try {
-            ["analysisResult", "pipelineStatus", "uploadedResumeName", "selectedJobRole", "selectedJobDescription", "analysisStartedAt", "analysisOwner"].forEach((k) => localStorage.removeItem(k));
-            ["resumeVisualPreviewDataUrl", "resumeVisualPreviewType", "resumeVisualPreviewName", "resumeRenderedPreviewDataUrl", "resumeRenderedPreviewName"].forEach((k) => {
-                sessionStorage.removeItem(k);
-                localStorage.removeItem(k);
-            });
-        } catch (e) {
-            /* ignore */
-        }
-    }
-
     loadAnalysisResult();
-
-    // --- History storage helpers ---
-    function getHistoryKey() {
-        return window.CareerNavigatorCommon.getHistoryKey();
-    }
-
-    function loadHistory() {
-        return window.CareerNavigatorCommon.loadHistory();
-    }
-
-    function saveHistory(history) {
-        window.CareerNavigatorCommon.saveHistory(history);
-    }
-
-    function getAnalysisHistoryKey(analysis, role) {
-        return window.CareerNavigatorCommon.getAnalysisHistoryKey(analysis, role);
-    }
-
-    function dedupeHistoryItems(items) {
-        return window.CareerNavigatorCommon.dedupeHistoryItems(items);
-    }
 
     function saveAnalysisToHistory(analysis) {
         const role = localStorage.getItem("selectedJobRole") || "";
@@ -3952,98 +3647,33 @@ Download PDF
     const clearHistoryBtn = document.getElementById("clearHistoryBtn");
     const doneHistoryBtn = document.getElementById("doneHistoryBtn");
 
-    function openHistoryModal() {
-        if (!historyModal) return;
-        renderHistory();
-        historyModal.classList.remove("hidden");
-        historyModal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("overflow-hidden");
-    }
-
-    function closeHistoryModal() {
-        if (!historyModal) return;
-        historyModal.classList.add("hidden");
-        historyModal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("overflow-hidden");
-    }
-
-    function renderHistory() {
-        if (!historyList) return;
-        const items = dedupeHistoryItems(loadHistory());
-        saveHistory(items.slice(0, 50));
-        historyList.innerHTML = "";
-        if (!items.length) {
-            historyList.innerHTML = `
-                <div class="p-4 rounded-lg border border-outline-variant/60 bg-surface-container-lowest">
-                    <div class="font-semibold text-primary">No past evaluations found.</div>
-                    <p class="mt-1 text-sm text-on-surface-variant">Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.</p>
-                    <button class="mt-3 px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold" id="viewSampleHistoryBtn" type="button">View Sample Evaluation</button>
-                </div>`;
-            const sampleHistoryBtn = document.getElementById("viewSampleHistoryBtn");
-            if (sampleHistoryBtn) {
-                sampleHistoryBtn.addEventListener("click", () => {
-                    try {
-                        localStorage.removeItem("analysisResult");
-                        localStorage.removeItem("analysisOwner");
-                        localStorage.setItem("sampleAnalysis", JSON.stringify(SAMPLE_ANALYSIS));
-                        localStorage.setItem("pipelineStatus", "sample_available");
-                        localStorage.setItem("uploadedResumeName", SAMPLE_ANALYSIS.uploaded_resume_name || "sample_resume.pdf");
-                        localStorage.setItem("selectedJobRole", "Sample Role");
-                        localStorage.setItem("selectedJobDescription", "Sample database role requirements for demo.");
-                    } catch (e) { /* ignore */ }
-                    closeHistoryModal();
-                    window.location.href = "analysis_result.html";
-                });
+    window.CareerNavigatorCommon.createHistoryModal({
+        modal: historyModal,
+        openButton: openHistoryBtn,
+        backdrop: historyModalBackdrop,
+        closeButton: closeHistoryModalBtn,
+        list: historyList,
+        clearButton: clearHistoryBtn,
+        doneButton: doneHistoryBtn,
+        emptyDescription: "Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.",
+        onEmptyAction: () => {
+            window.CareerNavigatorCommon.writeSampleAnalysisForDemo();
+            window.location.href = "analysis_result.html";
+        },
+        onView: (entry) => {
+            try {
+                localStorage.setItem("analysisResult", JSON.stringify(entry.full));
+                const user = getAuthUser();
+                if (user && user.email) {
+                    localStorage.setItem("analysisOwner", (user.email || "").toLowerCase());
+                } else {
+                    localStorage.removeItem("analysisOwner");
+                }
+            } catch (error) {
+                // History navigation still works if local storage is unavailable.
             }
-            return;
+            window.location.href = "analysis_result.html";
         }
-        items.forEach((it) => {
-            const el = document.createElement("div");
-            el.className = "p-3 rounded-lg border border-outline-variant/60 flex items-center justify-between";
-            el.innerHTML = `<div>
-          <div class=\"font-semibold\">${escapeHtml(it.uploaded_resume_name)} - ${escapeHtml(it.role || 'Role')}</div>
-          <div class=\"text-xs text-on-surface-variant\">Score: ${Number(it.matching_percentage).toFixed(0)}/100 | ${new Date(it.stored_at).toLocaleString()}</div>
-        </div>
-        <div class=\"flex gap-2\">
-          <button class=\"viewHistoryBtn px-3 py-1 rounded-lg bg-primary text-on-primary text-sm\" data-id=\"${it.id}\">View</button>
-          <button class=\"deleteHistoryBtn px-3 py-1 rounded-lg bg-surface-container-low text-primary text-sm\" data-id=\"${it.id}\">Delete</button>
-        </div>`;
-            historyList.appendChild(el);
-        });
-
-        historyList.querySelectorAll('.viewHistoryBtn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = Number(btn.dataset.id);
-                const items = loadHistory();
-                const entry = items.find(x => x.id === id);
-                if (!entry) return;
-                try {
-                    localStorage.setItem('analysisResult', JSON.stringify(entry.full));
-                    const user = getAuthUser();
-                    if (user && user.email) localStorage.setItem('analysisOwner', (user.email||'').toLowerCase()); else localStorage.removeItem('analysisOwner');
-                } catch (e) { /* ignore */ }
-                closeHistoryModal();
-                window.location.href = 'analysis_result.html';
-            });
-        });
-
-        historyList.querySelectorAll('.deleteHistoryBtn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = Number(btn.dataset.id);
-                const items = loadHistory();
-                const filtered = items.filter(x => x.id !== id);
-                saveHistory(filtered);
-                renderHistory();
-            });
-        });
-    }
-
-    function escapeHtml(s) { return String(s||'').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-    if (openHistoryBtn) openHistoryBtn.addEventListener('click', openHistoryModal);
-    if (historyModalBackdrop) historyModalBackdrop.addEventListener('click', closeHistoryModal);
-    if (closeHistoryModalBtn) closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
-    if (doneHistoryBtn) doneHistoryBtn.addEventListener('click', closeHistoryModal);
-    if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', () => { saveHistory([]); renderHistory(); });
+    });
 </script>
 </body></html>
