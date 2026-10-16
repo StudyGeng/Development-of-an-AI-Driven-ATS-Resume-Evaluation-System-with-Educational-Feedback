@@ -189,6 +189,76 @@
     }[character]));
   }
 
+  function getToastMessage(message, isError = false) {
+    if (!isError) {
+      return message;
+    }
+    return /try again/i.test(message) ? message : message + " Please try again.";
+  }
+
+  function showToast(message, type = "success") {
+    if (!message) {
+      return;
+    }
+    let toastStack = document.getElementById("appToastStack");
+    if (!toastStack) {
+      toastStack = document.createElement("div");
+      toastStack.id = "appToastStack";
+      toastStack.className = "toast-stack";
+      toastStack.setAttribute("aria-live", "polite");
+      document.body.appendChild(toastStack);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "app-toast app-toast-" + type;
+
+    const icon = document.createElement("span");
+    icon.className = "material-symbols-outlined";
+    icon.textContent = type === "error" ? "error" : type === "info" ? "info" : "check_circle";
+
+    const messageText = document.createElement("span");
+    messageText.textContent = message;
+
+    toast.appendChild(icon);
+    toast.appendChild(messageText);
+    toastStack.appendChild(toast);
+
+    window.setTimeout(() => {
+      toast.classList.add("app-toast-hide");
+      toast.addEventListener("animationend", () => toast.remove(), { once: true });
+    }, 3800);
+  }
+
+  async function requestAuthPin(email, purpose, button, messageSetter, apiBaseUrl) {
+    const cleanEmail = (email || "").trim().toLowerCase();
+    if (!cleanEmail) {
+      throw new Error("Enter your email address first.");
+    }
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Sending...";
+    }
+    try {
+      const response = await fetch(apiBaseUrl + "/auth/pin/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, purpose })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Could not send PIN");
+      }
+      const devPin = payload.dev_pin ? " Dev PIN: " + payload.dev_pin : "";
+      messageSetter("PIN sent to " + cleanEmail + ". It expires in " + payload.expires_in_minutes + " minutes." + devPin);
+      showToast("PIN sent successfully. Check your email.", "success");
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Send PIN";
+      }
+    }
+  }
+
   function clearProfileSensitiveFields(elements) {
     if (elements.passwordInput) elements.passwordInput.value = "";
     if (elements.pinInput) elements.pinInput.value = "";
@@ -524,6 +594,9 @@
     getPasswordValidationMessage,
     sanitizePinInput,
     escapeHtml,
+    getToastMessage,
+    showToast,
+    requestAuthPin,
     clearProfileSensitiveFields,
     populateProfileForm,
     setModalOpen,

@@ -524,14 +524,7 @@ def main() -> None:
         top2_score = float(second.get("recommendation_score") or 0)
         explicit_non_it_headline = bool(top.get("explicit_non_it_headline"))
         review_threshold = 35.0 if explicit_non_it_headline else 20.0
-        human_review_required = bool(
-            extraction_ok
-            and top
-            and (
-                top1_score < 20.0
-                or (explicit_non_it_headline and top1_score < 35.0)
-            )
-        )
+        human_review_required = bool(extraction_ok and top and top1_score < review_threshold)
         system_disposition = (
             "EXTRACTION FAILED"
             if not extraction_ok

@@ -1117,10 +1117,6 @@ def build_rate_limit_response(error: RequestRateLimitError):
     return response
 
 
-def build_email_pin_rate_limit_response(error: EmailPinRateLimitError):
-    return build_rate_limit_response(error)
-
-
 def hash_rate_limit_subject(event_type: str, subject: str) -> str:
     secret_key = app.secret_key
     key_bytes = secret_key if isinstance(secret_key, bytes) else str(secret_key).encode("utf-8")
@@ -1128,12 +1124,12 @@ def hash_rate_limit_subject(event_type: str, subject: str) -> str:
     return hmac.new(key_bytes, message, hashlib.sha256).hexdigest()
 
 
+def normalize_rate_limit_client_ip(client_ip: str | None) -> str:
+    return str(client_ip or "unknown").strip().lower()[:255] or "unknown"
+
+
 def get_request_client_ip() -> str:
-    return str(request.remote_addr or "unknown").strip().lower()[:255] or "unknown"
-
-
-def get_email_pin_client_ip() -> str:
-    return get_request_client_ip()
+    return normalize_rate_limit_client_ip(request.remote_addr)
 
 
 def get_rate_limit_retry_after(
@@ -1223,7 +1219,7 @@ def enforce_email_pin_rate_limits(
     """Apply durable, privacy-preserving PIN limits shared by all app workers."""
     normalized_email = normalize_email(email)
     normalized_purpose = normalize_pin_purpose(purpose)
-    normalized_ip = str(client_ip or "unknown").strip().lower()[:255] or "unknown"
+    normalized_ip = normalize_rate_limit_client_ip(client_ip)
 
     if event_kind == "request":
         limit_specs = [
@@ -1259,7 +1255,7 @@ def enforce_email_pin_rate_limits(
 
 def enforce_login_rate_limits(email: str, client_ip: str) -> None:
     normalized_email = normalize_email(email)
-    normalized_ip = str(client_ip or "unknown").strip().lower()[:255] or "unknown"
+    normalized_ip = normalize_rate_limit_client_ip(client_ip)
     enforce_rate_limit_specs(
         [
             (
@@ -1280,7 +1276,7 @@ def enforce_login_rate_limits(email: str, client_ip: str) -> None:
 
 
 def enforce_analysis_rate_limit(client_ip: str) -> None:
-    normalized_ip = str(client_ip or "unknown").strip().lower()[:255] or "unknown"
+    normalized_ip = normalize_rate_limit_client_ip(client_ip)
     enforce_rate_limit_specs(
         [
             (
@@ -8300,7 +8296,7 @@ def send_auth_pin():
         enforce_email_pin_rate_limits(
             "request",
             email,
-            get_email_pin_client_ip(),
+            get_request_client_ip(),
             purpose,
         )
         user_already_exists = email_exists(email)
@@ -8319,7 +8315,7 @@ def send_auth_pin():
             invalidate_email_pin(pin_id)
             raise OSError("Email provider failed while sending a verification PIN") from error
     except EmailPinRateLimitError as error:
-        return build_email_pin_rate_limit_response(error)
+        return build_rate_limit_response(error)
     except EmailPinConfigurationError:
         return jsonify({"detail": "Email verification is temporarily unavailable"}), 503
     except DatabaseErrors:
@@ -8362,14 +8358,14 @@ def register_user():
         enforce_email_pin_rate_limits(
             "attempt",
             email,
-            get_email_pin_client_ip(),
+            get_request_client_ip(),
             "register",
         )
         pin_ok, pin_detail = consume_email_pin(email, "register", verification_pin)
         if not pin_ok:
             return jsonify({"detail": pin_detail}), 400
     except EmailPinRateLimitError as error:
-        return build_email_pin_rate_limit_response(error)
+        return build_rate_limit_response(error)
     except DatabaseErrors:
         return jsonify({"detail": "Database error while verifying email PIN"}), 500
 
@@ -8443,7 +8439,7 @@ def reset_user_password():
         enforce_email_pin_rate_limits(
             "attempt",
             email,
-            get_email_pin_client_ip(),
+            get_request_client_ip(),
             "password_reset",
         )
         pin_ok, pin_detail = consume_email_pin(email, "password_reset", verification_pin)
@@ -8458,7 +8454,7 @@ def reset_user_password():
         )
         connection.commit()
     except EmailPinRateLimitError as error:
-        return build_email_pin_rate_limit_response(error)
+        return build_rate_limit_response(error)
     except DatabaseErrors:
         if connection is not None:
             connection.rollback()

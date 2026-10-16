@@ -108,8 +108,7 @@ def count_requirements_by_type(requirements: list[dict[str, Any]]) -> Counter[st
 
 
 def build_chart_items(counter: Counter[str], limit: int | None = None) -> list[dict[str, Any]]:
-    items = [{"label": label, "value": count} for label, count in counter.most_common(limit)]
-    return items
+    return [{"label": label, "value": count} for label, count in counter.most_common(limit)]
 
 
 def build_job_data_insights(
@@ -214,14 +213,8 @@ def build_job_data_insights(
         "chart_data": {
             "requirement_type_bar": build_chart_items(requirement_type_counts),
             "role_family_bar": build_chart_items(role_family_counts),
-            "top_skill_bar": [
-                {"label": skill, "value": count}
-                for skill, count in global_skill_counts.most_common(15)
-            ],
-            "top_keyword_bar": [
-                {"label": keyword, "value": count}
-                for keyword, count in global_keyword_counts.most_common(15)
-            ],
+            "top_skill_bar": build_chart_items(global_skill_counts, 15),
+            "top_keyword_bar": build_chart_items(global_keyword_counts, 15),
             "requirements_per_role_top": [
                 {"label": item["role_name"], "value": item["requirement_count"]}
                 for item in top_roles_by_requirements[:10]

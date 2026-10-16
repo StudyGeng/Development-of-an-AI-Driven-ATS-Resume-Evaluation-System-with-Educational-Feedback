@@ -19,11 +19,8 @@ def normalize_email(email: str) -> str:
 
 def get_admin_emails() -> set[str]:
     configured = os.getenv("ADMIN_EMAILS") or os.getenv("ADMIN_EMAIL", "")
-    return {
-        normalize_email(email)
-        for email in re.split(r"[,;]", configured)
-        if normalize_email(email)
-    }
+    normalized_emails = (normalize_email(email) for email in re.split(r"[,;]", configured))
+    return {email for email in normalized_emails if email}
 
 
 def validate_admin_email_configuration(require_configured_admin: bool = False) -> set[str]:

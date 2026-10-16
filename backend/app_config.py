@@ -173,7 +173,8 @@ def email_pin_dev_mode_requested() -> bool:
 def get_email_pin_delivery_mode() -> str:
     """Resolve a complete PIN delivery configuration without exposing credentials."""
     development_pin_enabled = email_pin_dev_mode_requested()
-    if is_production_environment() and development_pin_enabled:
+    production = is_production_environment()
+    if production and development_pin_enabled:
         raise EmailPinConfigurationError(
             "EMAIL_PIN_DEV_MODE cannot be enabled in production. Configure a real email provider."
         )
@@ -219,16 +220,16 @@ def get_email_pin_delivery_mode() -> str:
             raise EmailPinConfigurationError(
                 "SMTP_USE_TLS must be a true or false value."
             )
-        if is_production_environment() and smtp_tls_value not in TRUE_ENVIRONMENT_VALUES:
+        if production and smtp_tls_value not in TRUE_ENVIRONMENT_VALUES:
             raise EmailPinConfigurationError(
                 "SMTP_USE_TLS must be enabled for production PIN delivery."
             )
         return "smtp"
 
-    if development_pin_enabled and not is_production_environment():
+    if development_pin_enabled and not production:
         return "dev"
 
-    if is_production_environment():
+    if production:
         raise EmailPinConfigurationError(
             "Production PIN delivery requires a configured Resend, Brevo or SMTP email provider."
         )
