@@ -187,6 +187,19 @@ def get_email_pin_delivery_mode() -> str:
             )
         return "resend_api"
 
+    brevo_api_key = os.getenv("BREVO_API_KEY", "").strip()
+    brevo_from = os.getenv("BREVO_FROM", "").strip()
+    if brevo_api_key or brevo_from:
+        if not brevo_api_key or not brevo_from:
+            raise EmailPinConfigurationError(
+                "Brevo PIN delivery requires both BREVO_API_KEY and BREVO_FROM."
+            )
+        if not re.fullmatch(r"[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+", brevo_from):
+            raise EmailPinConfigurationError(
+                "BREVO_FROM must contain only the verified sender email address."
+            )
+        return "brevo_api"
+
     smtp_host = os.getenv("SMTP_HOST", "").strip()
     smtp_from = os.getenv("SMTP_FROM", "").strip()
     smtp_username = os.getenv("SMTP_USERNAME", "").strip()
@@ -217,7 +230,7 @@ def get_email_pin_delivery_mode() -> str:
 
     if is_production_environment():
         raise EmailPinConfigurationError(
-            "Production PIN delivery requires a configured Resend or SMTP email provider."
+            "Production PIN delivery requires a configured Resend, Brevo or SMTP email provider."
         )
 
     return "unavailable"

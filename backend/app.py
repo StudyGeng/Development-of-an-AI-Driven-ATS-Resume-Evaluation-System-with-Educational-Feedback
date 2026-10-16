@@ -1331,10 +1331,55 @@ def send_resend_api_email_pin(email: str, pin: str, purpose: str) -> str:
     return "resend_api"
 
 
+class _RejectEmailApiRedirects(urllib.request.HTTPRedirectHandler):
+    """Never forward an email provider's credentials to a redirected endpoint."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def send_brevo_api_email_pin(email: str, pin: str, purpose: str) -> str:
+    payload = {
+        "sender": {
+            "email": os.getenv("BREVO_FROM", "").strip(),
+            "name": os.getenv("BREVO_FROM_NAME", "").strip() or APP_TITLE,
+        },
+        "to": [{"email": email}],
+        "subject": email_pin_subject(purpose),
+        "textContent": email_pin_body(pin, purpose),
+    }
+    request = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "api-key": os.getenv("BREVO_API_KEY", "").strip(),
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        opener = urllib.request.build_opener(_RejectEmailApiRedirects())
+        with opener.open(request, timeout=10) as response:
+            status = response.status
+    except urllib.error.HTTPError as error:
+        # Provider bodies can echo request data; never expose or log their contents.
+        status = error.code
+        error.close()
+    except (OSError, ValueError):
+        raise OSError("Brevo email API connection failed. Please try again later.") from None
+    if status != 201:
+        raise OSError(f"Brevo email API rejected the email (HTTP {status}).") from None
+    return "brevo_api"
+
+
 def send_email_pin(email: str, pin: str, purpose: str) -> str:
     delivery_mode = get_email_pin_delivery_mode()
     if delivery_mode == "resend_api":
         return send_resend_api_email_pin(email, pin, purpose)
+
+    if delivery_mode == "brevo_api":
+        return send_brevo_api_email_pin(email, pin, purpose)
 
     if delivery_mode == "dev":
         return "dev"
@@ -1387,6 +1432,8 @@ def get_email_delivery_error_message(error: Exception) -> str:
         raw_error = str(error)
 
     normalized = raw_error.lower()
+    if "brevo email api" in normalized:
+        return "Brevo could not send the email. Check BREVO_API_KEY, your verified BREVO_FROM sender, and your Brevo account status."
     if "only send testing emails to your own email address" in normalized:
         return (
             "Resend test mode only sends to your own Resend account email. "

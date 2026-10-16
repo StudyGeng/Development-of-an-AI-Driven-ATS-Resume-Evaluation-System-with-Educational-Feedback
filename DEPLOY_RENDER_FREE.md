@@ -14,17 +14,27 @@ In [Render Dashboard](https://dashboard.render.com/), choose **New → Web Servi
 
 | Setting | Value |
 | --- | --- |
+| Branch | `update_version` |
 | Language/Runtime | `Docker` |
 | Root directory | Repository root (leave blank unless Render asks) |
 | Region | `Singapore` |
 | Instance type/Compute plan | `Free` |
 | Health check path | `/health` |
+| Secret files | Leave empty |
+| Registry credential | `No credential` |
+| Docker build context directory | `.` |
+| Dockerfile path | `./Dockerfile` |
+| Docker command | Leave empty |
 
 The Dockerfile already binds Gunicorn to Render's `PORT`; no separate frontend service, build command, or start command is needed. Render provides an HTTPS `onrender.com` address after deployment. [Docker setup](https://render.com/docs/docker), [regions](https://render.com/docs/regions), [port binding](https://render.com/docs/web-services), [health checks](https://render.com/docs/health-checks).
 
 ## 3. Add private environment variables
 
-Before clicking **Create Web Service**, open **Advanced** and add the environment variables below. If the service was already created, add them on its **Environment** page and redeploy. Enter each value privately in Render; never paste real secrets into a tracked file, screenshot, or chat. [Render environment variables](https://render.com/docs/configure-environment-variables).
+Before clicking **Deploy web service**, find **Environment Variables**. If the service was already created, use its **Environment** page and redeploy after saving. Enter values privately in Render; never paste real secrets into a tracked file, screenshot, or chat. [Render environment variables](https://render.com/docs/configure-environment-variables).
+
+For this laptop, a private import file is prepared at `config/.env.render`. It contains the six settings below plus the Brevo sender address and name. Complete the Brevo steps in the next section and add its real `BREVO_API_KEY` privately. Then open `config/.env.render`, copy its contents, choose **Add from .env** in Render, and paste them into that dialog. Review the imported rows before deploying. This file is ignored by Git and must stay private; do not upload it to GitHub or add it under Secret Files.
+
+To regenerate that file from the local settings, run `.\.venv\Scripts\python.exe tools/prepare_render_env.py` from the project folder. It keeps an existing generated session secret and privately entered Brevo API key while excluding Gmail passwords and unrelated settings. After adding the API key, run `.\.venv\Scripts\python.exe tools/prepare_render_env.py --check`; this reports missing setting names without displaying their values. These checks validate configuration only, without contacting Supabase or sending email.
 
 | Key | Value |
 | --- | --- |
@@ -35,22 +45,34 @@ Before clicking **Create Web Service**, open **Advanced** and add the environmen
 | `TRUSTED_PROXY_COUNT` | `1` |
 | `EMAIL_PIN_DEV_MODE` | `0` |
 
-Generate `FLASK_SECRET_KEY` on this laptop with `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"`, then paste it directly into Render's private value field. Keep it unchanged on later deploys so existing sign-ins remain valid. The app requires a real email PIN provider in production. Choose one of the email options below.
+The private import file includes a generated `FLASK_SECRET_KEY`; keep that value unchanged on later deploys so existing sign-ins remain valid. If entering rows manually instead, use Render's **Generate** button only for `FLASK_SECRET_KEY`. The app requires a configured email PIN provider in production. Complete one of the email options below before deploying.
 
-### Email option A: try Brevo Free without buying a domain
+### Email option A: Brevo Free over HTTPS
 
-Brevo's Free plan includes transactional email and 300 sends per day with no time limit. Brevo lets you verify a personal email address as a sender, but may rewrite that address for delivery. Create and verify the sender, then find the **SMTP login** and **SMTP key** in Brevo. Add these Render variables:
+The app supports Brevo's HTTPS email API. This connection avoids the SMTP ports blocked by Render Free. Brevo Free includes transactional email and up to 300 email sends per day, with no time limit. [Brevo Free limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan), [API sending](https://developers.brevo.com/docs/send-a-transactional-email), [Render Free limits](https://render.com/docs/free).
+
+1. Create a [Brevo Free account](https://onboarding.brevo.com/) using your existing Gmail. Complete its account verification and profile steps with your own details.
+2. In Brevo, open the account dropdown, then **Settings > Senders, Domains, IPs > Senders > Add a sender**. Set **From name** to `UTS ATS System` and **From email** to your Gmail address. Save it, open the verification email in Gmail, and enter the six-digit code in Brevo. [Sender setup](https://help.brevo.com/hc/en-us/articles/208836149-Create-a-new-sender-From-name-and-From-email).
+3. Open **Settings > SMTP & API > API Keys & MCP > Generate a new API key**. Complete any verification prompt, name the key `ATS Render`, choose its expiry, and generate it. Use a normal **API key**, not an SMTP key or MCP key. Copy it while it is displayed. [API key creation](https://help.brevo.com/hc/en-us/articles/209467485-Create-and-manage-your-API-keys).
+4. Paste that key privately after `BREVO_API_KEY=` in `config/.env.render`. Confirm `BREVO_FROM` matches the sender email you verified. Import the completed file into Render, or enter the three rows below manually.
 
 | Key | Value |
 | --- | --- |
-| `SMTP_HOST` | `smtp-relay.brevo.com` |
-| `SMTP_PORT` | `2525` |
-| `SMTP_USERNAME` | Your Brevo SMTP login |
-| `SMTP_PASSWORD` | Your Brevo **SMTP key**, not its API key |
-| `SMTP_FROM` | The personal email address you verified in Brevo |
-| `SMTP_USE_TLS` | `1` |
+| `BREVO_API_KEY` | Your real Brevo API key, entered privately |
+| `BREVO_FROM` | Only the verified email address, for example `yourgmail@gmail.com` |
+| `BREVO_FROM_NAME` | `UTS ATS System` (optional display name) |
 
-Render Free blocks SMTP ports `25`, `465`, and `587`, while Brevo supports `2525`. This path is plausible but **has not been tested on this Render account**. Send a real PIN to a second email address before inviting students; Brevo may require additional account activation or domain verification. [Brevo Free](https://help.brevo.com/hc/en-us/articles/208589409-About-Brevo-s-pricing-plans), [sender verification](https://help.brevo.com/hc/en-us/articles/208836149-Create-a-new-sender-From-name-and-From-email), [SMTP setup](https://help.brevo.com/hc/en-us/articles/7924908994450-Send-transactional-emails-using-Brevo-SMTP), [SMTP port](https://help.brevo.com/hc/en-us/articles/10905415650322-Which-SMTP-port-should-I-use-Port-587-465-or-2525), [Render Free limits](https://render.com/docs/free).
+For this Brevo setup, do not copy your local Gmail `SMTP_*` variables or unused `RESEND_*` variables into Render. `BREVO_FROM` takes just the email address; put the display name in `BREVO_FROM_NAME`.
+
+**A blank `BREVO_API_KEY` is unfinished configuration.** With the prepared Brevo sender settings, production startup rejects a missing key. Keep `APP_ENV=production` and `EMAIL_PIN_DEV_MODE=0`; enter the real key before deploying. Starting successfully checks that configuration is present, not that Brevo accepted it or an email arrived.
+
+Your Gmail remains your administrator email. When used as a Brevo sender, Gmail cannot be authenticated as a domain you own. Brevo currently replaces personal sender addresses with a compliant address for delivery, including an address ending in `t-sender-sib.com` for transactional messages. This is a temporary provider measure; it does not guarantee delivery. Brevo recommends an authenticated domain for longer-term use. [Personal sender handling](https://help.brevo.com/hc/en-us/articles/14925263522578-Comply-with-Gmail-Yahoo-and-Microsoft-s-requirements-for-email-senders).
+
+Brevo may also require **transactional platform activation**. If your new account shows that sending is disabled or not activated, create a support ticket from that account and explain that this FYP app sends registration verification codes requested by its users. Wait for Brevo to enable sending before inviting students. [Activation troubleshooting](https://help.brevo.com/hc/en-us/articles/115000188150-Troubleshooting-Issues-with-Brevo-SMTP).
+
+If Brevo rejects a request with **HTTP 401** and mentions an **unrecognized IP address**, authorize the hosting service's addresses. In the Render service, open **Connect > Outbound** and copy its IP ranges. In Brevo, open **Settings > Security > Authorized IPs > Authorize IP addresses** and add those ranges; CIDR ranges are supported. Keep existing trusted addresses and IP blocking enabled. A laptop check uses a different address from Render, so approving only the laptop does not authorize the hosted app. [Render outbound addresses](https://render.com/docs/outbound-ip-addresses), [Brevo authorized IPs](https://help.brevo.com/hc/en-us/articles/5740111683858-Authorize-and-block-IP-addresses-for-API-and-SMTP-security).
+
+**Real email delivery has not yet been validated for this deployment.** After deploying, request a PIN through the website using an email address you control. Confirm that it arrives, check Spam as well, and finish registration with that PIN. If it fails, inspect **Transactional > Logs** in Brevo for the reason; a successful API request alone is not proof of inbox delivery. [Brevo email logs](https://help.brevo.com/hc/en-us/articles/360021533839-Manage-your-transactional-logs-and-email-previews).
 
 ### Email option B: Resend with a domain you own
 
@@ -66,6 +88,15 @@ Open the Render URL and check, in order:
 2. Job roles appear; this checks the live Supabase connection (`/health` alone does not).
 3. Request a registration PIN, receive the email, register, and sign in.
 4. Upload a text-based PDF resume, view the analysis, download the report, then sign out and back in to confirm the analysis remains in history.
+
+### Fix a 502 with `FLASK_SECRET_KEY is required in production`
+
+A deployment can show **Deploy succeeded** while the Flask worker fails to start. If the runtime logs contain that secret-key error followed by **Worker failed to boot**, the service is missing its production environment settings.
+
+1. Finish the private `config/.env.render` file, including the real `BREVO_API_KEY`, and run the `--check` command above.
+2. In the existing Render service, open **Environment > Add from .env** and paste that file's contents. If matching keys already exist, deliberately replace their values with the prepared values; do not leave an old blank `FLASK_SECRET_KEY` row.
+3. Save the settings and choose **Save, rebuild, and deploy**. Ensure the service uses branch `update_version`; if it still shows an older commit, use **Manual Deploy > Deploy latest commit** after the latest code is on GitHub.
+4. Under **Settings**, set **Health Check Path** to `/health` (without a `z`). Wait for the worker to start, then open the site's `/health` URL and continue the tests above.
 
 For supervisor and student testing, open the site shortly before the session. A Free service sleeps after 15 minutes without traffic and can take about a minute to wake. Free provides 0.1 CPU, 512 MB RAM, and 750 instance hours per workspace each month; PDF analysis and image OCR may be slow or run out of memory if several students use it together. Its local filesystem is temporary, so collect research evaluation results separately rather than relying on files inside the container. [Render Free limits](https://render.com/docs/free), [compute plans](https://render.com/docs/compute-plans).
 
