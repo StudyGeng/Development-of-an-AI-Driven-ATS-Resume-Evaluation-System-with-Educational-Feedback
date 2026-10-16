@@ -6,6 +6,7 @@
   let csrfTokenRequest = null;
   let authStateVersion = 0;
   let authSessionRequest = null;
+  let authSessionVerified = false;
 
   function getRequestUrl(input) {
     if (typeof input === "string" || input instanceof URL) {
@@ -139,9 +140,13 @@
         }
         const user = payload.authenticated && payload.user ? payload.user : null;
         setAuthUser(user);
+        authSessionVerified = true;
         return user;
       })
-      .catch(() => getAuthUser())
+      .catch(() => {
+        authSessionVerified = false;
+        return getAuthUser();
+      })
       .finally(() => {
         authSessionRequest = null;
       });
@@ -213,8 +218,9 @@
     toast.className = "app-toast app-toast-" + type;
 
     const icon = document.createElement("span");
-    icon.className = "material-symbols-outlined";
-    icon.textContent = type === "error" ? "error" : type === "info" ? "info" : "check_circle";
+    icon.className = "app-toast-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = type === "error" ? "!" : type === "info" ? "i" : "✓";
 
     const messageText = document.createElement("span");
     messageText.textContent = message;
@@ -296,7 +302,7 @@
       resume_summary: {
         skills: ["systems design", "kubernetes", "docker"],
         education_markers: ["bachelor"],
-        experience_markers: ["internship"]
+        experience_markers: ["cloud deployment project", "backend services project"]
       },
       resume_quality: {
         quality_score: 88,
@@ -397,6 +403,46 @@
           }
         ]
       },
+      recommendation_module: {
+        status: "ready",
+        recommended_role: "Computer Programmer",
+        summary: "Fictional sample guidance: make the project evidence more specific, then check each edit against real experience before using it.",
+        priority_actions: [
+          {
+            priority: 1,
+            category: "impact",
+            title: "Show the result of the cloud project",
+            detail: "The sample resume names Docker and Kubernetes but gives no measurable project outcome.",
+            action: "If the student measured deployment time, reliability, or usage, add the verified number to the project bullet.",
+            keywords: ["docker", "kubernetes"],
+            source: "fictional_sample"
+          },
+          {
+            priority: 2,
+            category: "experience",
+            title: "Make the API contribution specific",
+            detail: "The sample mentions backend services and API testing without describing the student's own contribution.",
+            action: "Name the feature or endpoint the student built, the tools used, and the test performed, if those details are true.",
+            keywords: ["api", "testing"],
+            source: "fictional_sample"
+          },
+          {
+            priority: 3,
+            category: "role_fit",
+            title: "Connect evidence to the target role",
+            detail: "The sample targets Computer Programmer and already shows systems and deployment skills.",
+            action: "Keep the most relevant project bullets near the top and explain how they demonstrate programming work.",
+            keywords: ["systems design", "programming"],
+            source: "fictional_sample"
+          }
+        ],
+        resume_generation_strategy: {
+          target_role: "Computer Programmer",
+          strategy_summary: "Fictional example only. Keep proven skills and replace example details with the student's own evidence.",
+          keyword_targets: [],
+          evidence_to_keep: ["systems design", "kubernetes", "docker"]
+        }
+      },
       generated_at: new Date().toISOString()
     };
   }
@@ -404,13 +450,9 @@
   function writeSampleAnalysisForDemo() {
     const sample = createSampleAnalysis();
     try {
-      localStorage.removeItem("analysisResult");
-      localStorage.removeItem("analysisOwner");
+      // Keep a user's most recent real analysis available when they preview the demo.
+      // The results page uses its explicit sample URL to choose this record.
       localStorage.setItem("sampleAnalysis", JSON.stringify(sample));
-      localStorage.setItem("pipelineStatus", "sample_available");
-      localStorage.setItem("uploadedResumeName", sample.uploaded_resume_name);
-      localStorage.setItem("selectedJobRole", "Sample Role");
-      localStorage.setItem("selectedJobDescription", "Sample database role requirements for demo.");
     } catch (error) {
       // The caller can still use the returned sample when storage is unavailable.
     }
@@ -499,6 +541,7 @@
   function createHistoryModal(options) {
     const modal = options.modal;
     const list = options.list;
+    let focusBeforeOpen = null;
 
     function close() {
       if (!modal) {
@@ -507,6 +550,9 @@
       modal.classList.add("hidden");
       modal.setAttribute("aria-hidden", "true");
       document.body.classList.remove("overflow-hidden");
+      if (focusBeforeOpen && document.contains(focusBeforeOpen)) {
+        focusBeforeOpen.focus({ preventScroll: true });
+      }
     }
 
     function render() {
@@ -567,10 +613,12 @@
       if (!modal) {
         return;
       }
+      focusBeforeOpen = document.activeElement;
       render();
       modal.classList.remove("hidden");
       modal.setAttribute("aria-hidden", "false");
       document.body.classList.add("overflow-hidden");
+      if (options.closeButton) options.closeButton.focus({ preventScroll: true });
     }
 
     if (options.openButton) options.openButton.addEventListener("click", open);
@@ -591,6 +639,7 @@
     getAuthUser,
     setAuthUser,
     syncAuthUserFromServer,
+    isAuthSessionVerified: () => authSessionVerified,
     getPasswordValidationMessage,
     sanitizePinInput,
     escapeHtml,
@@ -610,6 +659,34 @@
     saveAnalysisToHistory,
     createHistoryModal
   };
+
+  // Keep keyboard focus inside the dialog currently shown on any app page.
+  document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || (event.key !== "Escape" && event.key !== "Tab")) return;
+    const dialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-hidden="false"]'));
+    const dialog = dialogs[dialogs.length - 1];
+    if (!dialog || dialog.classList.contains("hidden")) return;
+    if (event.key === "Escape") {
+      const closeButton = dialog.querySelector('button[id^="close"]');
+      if (closeButton) {
+        event.preventDefault();
+        closeButton.click();
+      }
+      return;
+    }
+    const focusable = Array.from(dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter((item) => item.getClientRects().length && !item.closest('[aria-hidden="true"]'));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
 
   // Start reconciliation as early as possible. Pages also listen for the
   // change event so their controls update when the request finishes.

@@ -3,13 +3,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>UTS CS Career Navigator - Analysis Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/tailwind.css">
 <script src="app_common.js"></script>
 <style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #191c1d; }
         h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
         .toast-stack {
@@ -37,7 +33,7 @@
             line-height: 1.35;
             animation: toastSlideIn 0.22s ease-out both;
         }
-        .app-toast .material-symbols-outlined {
+        .app-toast .app-toast-icon {
             font-size: 1.25rem;
             line-height: 1.25rem;
             flex: 0 0 auto;
@@ -45,19 +41,19 @@
         .app-toast-success {
             border-left: 4px solid #0f8a4b;
         }
-        .app-toast-success .material-symbols-outlined {
+        .app-toast-success .app-toast-icon {
             color: #0f8a4b;
         }
         .app-toast-error {
             border-left: 4px solid #ba1a1a;
         }
-        .app-toast-error .material-symbols-outlined {
+        .app-toast-error .app-toast-icon {
             color: #ba1a1a;
         }
         .app-toast-info {
             border-left: 4px solid #0060ac;
         }
-        .app-toast-info .material-symbols-outlined {
+        .app-toast-info .app-toast-icon {
             color: #0060ac;
         }
         .app-toast-hide {
@@ -70,12 +66,6 @@
         @keyframes toastSlideOut {
             from { opacity: 1; transform: translateY(0) translateX(0); }
             to { opacity: 0; transform: translateY(-6px) translateX(12px); }
-        }
-        #overallScore {
-            transition: color 0.25s ease, transform 0.25s ease;
-        }
-        #overallScore.score-counting {
-            transform: translateY(-2px);
         }
         #metricKeywordBar,
         #metricExperienceBar,
@@ -94,9 +84,6 @@
             position: relative;
             flex: 0 0 auto;
             transition: background 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.25s ease;
-        }
-        .evidence-ring.ring-counting {
-            transform: translateY(-2px);
         }
         .evidence-ring::after {
             content: "";
@@ -164,7 +151,6 @@
             }
         }
         @media (prefers-reduced-motion: reduce) {
-            #overallScore,
             #metricKeywordBar,
             #metricExperienceBar,
             #metricAcademicBar,
@@ -172,43 +158,150 @@
                 transition: none;
             }
         }
+        :root {
+            --studio-canvas: #f7f9fc;
+            --studio-ink: #162338;
+            --studio-muted: #5b6b80;
+            --studio-teal: #176b89;
+            --studio-teal-dark: #11546d;
+            --studio-border: #e0e7ef;
+        }
+        [hidden] { display: none !important; }
+        html { scroll-behavior: smooth; }
+        body { background: var(--studio-canvas); color: var(--studio-ink); }
+        .report-nav { border-bottom: 1px solid var(--studio-border); background: rgba(255,255,255,.96); }
+        .report-nav a, .report-nav button { letter-spacing: 0; }
+        .report-nav > div:first-child > a { color: var(--studio-ink); }
+        .report-brand { display: inline-flex; align-items: center; gap: .6rem; min-width: 0; text-decoration: none; }
+        .report-brand-mark { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; flex: 0 0 auto; border-radius: 10px; background: var(--studio-teal); color: white; }
+        .report-brand-name { display: grid; min-width: 0; line-height: 1.1; }
+        .report-brand-name small { color: var(--studio-teal); font-size: .61rem; font-weight: 800; letter-spacing: .16em; }
+        .report-brand-name strong { color: var(--studio-ink); font-family: Manrope,Inter,sans-serif; font-size: .98rem; font-weight: 800; white-space: nowrap; }
+        .report-nav #openAuthModalBtn { border-radius: 10px; background: var(--studio-teal); color: white; }
+        .report-nav #openAuthModalBtn:hover { background: var(--studio-teal-dark); }
+        .report-nav #openHistoryBtn { border-radius: 10px; background: #edf5f7; color: var(--studio-teal-dark); }
+        .report-nav a[href="analysis_result.html"] { color: var(--studio-teal); border-color: var(--studio-teal); }
+        .report-nav a[href="home_page.html"]:hover { color: var(--studio-teal-dark); }
+        .report-main { max-width: 1200px; }
+        .report-empty { max-width: 680px; margin: clamp(4rem, 12vh, 9rem) auto; padding: clamp(2rem, 6vw, 4rem); border: 1px solid var(--studio-border); border-radius: 24px; background: white; box-shadow: 0 12px 36px rgba(22,35,56,.06); text-align: center; }
+        .report-empty-icon { width: 4rem; height: 4rem; margin: 0 auto 1.5rem; display: grid; place-items: center; border-radius: 18px; background: #dff6ee; color: var(--studio-teal); }
+        .report-empty h1 { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-height: 1.12; }
+        .report-empty p { max-width: 29rem; margin: 1rem auto 1.75rem; color: var(--studio-muted); line-height: 1.7; }
+        .studio-button { display: inline-flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1.25rem; border-radius: 10px; background: var(--studio-teal); color: white; font-weight: 700; text-decoration: none; transition: background .18s ease, transform .18s ease; }
+        .studio-button:hover { background: var(--studio-teal-dark); transform: translateY(-1px); }
+        .report-shell { color: var(--studio-ink); }
+        .report-shell :is(.bg-surface-container-lowest, .bg-surface-container-low) { background-color: #fff; }
+        .report-shell :is(.bg-primary, .bg-primary-container) { background-color: var(--studio-ink); }
+        .report-shell .bg-secondary { background-color: var(--studio-teal); }
+        .report-shell :is(.text-primary, .text-on-surface) { color: var(--studio-ink); }
+        .report-shell .text-secondary { color: var(--studio-teal); }
+        .report-shell .text-on-surface-variant { color: var(--studio-muted); }
+        .report-shell .bg-gradient-to-r { background: var(--studio-teal); }
+        .report-shell :is(.rounded-xl, .rounded-2xl) { border-radius: 18px; }
+        .report-shell :is(button, a, input):focus-visible, .report-nav :is(button, a):focus-visible, .report-empty a:focus-visible { outline: 3px solid #176b89; outline-offset: 3px; }
+        .report-hero { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(15rem,.6fr); gap: clamp(1.5rem, 4vw, 3rem); align-items: center; padding: clamp(1.75rem, 5vw, 3.5rem); background: #fff; border: 1px solid var(--studio-border); border-radius: 24px; box-shadow: 0 12px 36px rgba(22,35,56,.07); }
+        .report-eyebrow { color: var(--studio-teal); font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .16em; }
+        .report-hero h1 { margin-top: .8rem; font-size: clamp(2.2rem,4.5vw,3.65rem); letter-spacing: -.05em; line-height: 1.08; font-weight: 800; }
+        .report-hero-copy { max-width: 42rem; margin-top: 1.1rem; color: var(--studio-muted); font-size: 1rem; line-height: 1.7; }
+        .report-score-card { border-radius: 18px; background: #f1f8fa; border: 1px solid #d5e9ee; padding: 1.6rem; }
+        .report-score-label { color: var(--studio-muted); font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .13em; }
+        .report-score-number { display: flex; align-items: baseline; gap: .25rem; margin: .45rem 0; color: var(--studio-ink); font-family: Manrope,sans-serif; font-weight: 800; line-height: 1; }
+        .report-score-number #overallScore { font-size: clamp(3.4rem,6vw,5.2rem); letter-spacing: -.07em; }
+        .report-score-number span:last-child { font-size: 1.2rem; color: var(--studio-muted); }
+        .report-score-note { color: var(--studio-muted); font-size: .76rem; line-height: 1.5; }
+        .report-quick { margin: 1.4rem 0 1rem; padding: clamp(1.3rem,3vw,2rem); border: 1px solid var(--studio-border); border-radius: 20px; background: white; }
+        .report-quick-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .5rem 1rem; }
+        .report-quick h2 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.025em; }
+        .report-quick a { color: var(--studio-teal); font-size: .85rem; font-weight: 700; text-decoration: underline; text-underline-offset: .2rem; }
+        .report-quick-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .85rem; margin-top: 1.1rem; }
+        .report-quick-list article { min-width: 0; padding: 1rem; border: 1px solid var(--studio-border); border-radius: 12px; background: #f9fbfc; }
+        .report-quick-list span { color: var(--studio-teal); font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
+        .report-quick-list h3 { margin-top: .55rem; color: var(--studio-ink); font-size: .95rem; font-weight: 800; }
+        .report-quick-list p { margin-top: .4rem; color: var(--studio-muted); font-size: .84rem; line-height: 1.55; }
+        .report-tabs { display: flex; gap: .45rem; overflow-x: auto; margin: 1.3rem 0 2.5rem; padding: .35rem; border: 1px solid var(--studio-border); border-radius: 12px; background: white; scrollbar-width: thin; }
+        .report-tabs a { flex: 0 0 auto; padding: .6rem .9rem; border-radius: 8px; color: var(--studio-muted); font-size: .86rem; font-weight: 700; white-space: nowrap; text-decoration: none; }
+        .report-tabs a:hover, .report-tabs a:focus-visible { background: #eaf4f6; color: var(--studio-teal-dark); }
+        .report-section { scroll-margin-top: 5.5rem; }
+        .report-section-title { margin-bottom: 1rem; font-size: clamp(1.5rem,2.8vw,2rem); font-weight: 800; letter-spacing: -.035em; }
+        .report-sample-banner { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid #d8e8ee; border-radius: 10px; background: #ecf6f9; color: #11546d; font-size: .88rem; line-height: 1.5; }
+        .report-shell section > div:is(.bg-surface-container-lowest,.bg-surface-container-high) { border: 1px solid var(--studio-border); box-shadow: 0 12px 36px rgba(22,35,56,.04); }
+        .report-shell .evidence-ring { background: conic-gradient(var(--studio-teal) calc(var(--score) * 1%), #e0e7ef 0); }
+        .report-shell .evidence-ring span { color: var(--studio-ink); }
+        .report-shell .evidence-ring .soft-count { font-size: .72rem; }
+        .report-shell .priority-action-grid article { min-height: auto; }
+        .site-footer { background: #162338; }
+        @media (max-width: 700px) {
+            .report-hero { grid-template-columns: 1fr; }
+            .report-score-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+            .report-score-number { margin: 0; }
+            .report-score-note { max-width: 12rem; }
+            .report-quick-list { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 420px) { .report-score-card { display: block; } }
+        @media (max-width: 600px) { .report-nav .mobile-home-link { display: none; } }
+        @media (max-width: 430px) { .report-brand-name strong { display: none; } .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .55rem; padding-right: .55rem; } }
+        @media (max-width: 370px) { .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .4rem; padding-right: .4rem; font-size: .67rem; } }
+        @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .studio-button { transition: none; } }
     </style>
 </head>
 <body class="min-h-screen bg-background text-on-background">
 <!-- TopNavBar Shell -->
-<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+<nav class="report-nav fixed top-0 w-full z-50 backdrop-blur-xl">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-<a class="text-base sm:text-xl font-bold tracking-tight text-blue-900 dark:text-white font-headline truncate min-w-0 hover:text-secondary transition-colors" href="home_page.html" aria-label="Back to dashboard">UTS CS Career Navigator</a>
+<a class="report-brand" href="home_page.html" aria-label="UTS CS Career Navigator home"><span class="report-brand-mark" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 32 32" fill="none"><path d="M9 5.5h10l4 4V26H9a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M19 5.5v5h4M11.5 18l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="report-brand-name"><small>UTS CS</small><strong>Career Navigator</strong></span></a>
 <div class="hidden md:flex items-center space-x-8">
 <a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="home_page.html">Dashboard</a>
 <a class="font-headline text-sm font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out" href="analysis_result.html">Results</a>
 <a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
 </div>
 <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-<button class="material-symbols-outlined text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" data-icon="account_circle" type="button">account_circle</button>
+<button class="hidden" id="accountStatusBtn" type="button" aria-hidden="true">Account</button>
 <button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
 <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
-<a class="md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
-<span class="material-symbols-outlined text-base">home</span>
+<a class="mobile-home-link md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
+<span aria-hidden="true">←</span>
 </a>
 </div>
 </div>
 <div class="bg-slate-100 dark:bg-slate-800 h-[1px] w-full"></div>
 </nav>
-<main class="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6">
-<!-- Header Section: High-Level Compatibility -->
-<section class="mb-12">
-<div class="flex flex-col md:flex-row gap-6 md:items-end justify-between mb-8">
+<main class="report-main pt-24 pb-20 mx-auto px-4 sm:px-6">
+<section class="report-empty" id="reportLoadingState" role="status" aria-live="polite">
+<span class="report-eyebrow">Opening your report</span>
+<p>Checking for a saved analysis...</p>
+</section>
+<section class="report-empty" id="noAnalysisState" aria-labelledby="noAnalysisTitle" hidden>
+<div class="report-empty-icon" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5h9l5 5V26H8a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2Z"/><path d="M17 3.5v5h5M10 15h8M10 20h8"/></svg></div>
+<span class="report-eyebrow">Your report starts here</span>
+<h1 id="noAnalysisTitle">No resume analysis yet</h1>
+<p>Choose a resume on the home page to see your role match, ATS checks, and practical next steps. If you have a saved report, sign in and open History. You can also view a clearly labelled sample.</p>
+<a class="studio-button" href="home_page.html">Check my resume <span aria-hidden="true">→</span></a>
+<div class="mt-4"><a class="text-sm font-semibold underline underline-offset-4" href="analysis_result.html?sample=1">See a sample report</a></div>
+</section>
+<div class="report-shell" id="reportContent" hidden>
+<div class="report-sample-banner" id="reportSampleBanner" role="status" hidden><strong>Sample report · fictional data.</strong> This example shows how feedback appears. Its score and recommendations are not based on your resume.</div>
+<section class="report-hero" aria-labelledby="reportTitle">
 <div>
-<span class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-2 block">Comprehensive Analysis Report</span>
-<h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">UTS CS Readiness Score</h1>
+<span class="report-eyebrow" id="reportEyebrow">Resume feedback</span>
+<h1 id="reportTitle">Your resume, clearly reviewed.</h1>
+<p class="report-hero-copy" id="reportSummaryRole">Your role comparison and resume evidence appear below.</p>
+<p class="report-hero-copy"><strong>Matched evidence:</strong> <span id="reportSummaryEvidence">Your matched resume signals will appear here.</span></p>
 </div>
-<div class="flex items-baseline gap-2">
-<span class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-secondary tracking-tight" id="overallScore">0</span>
-<span class="text-xl font-bold text-on-surface-variant">/100</span>
+<div class="report-score-card" aria-label="Final readiness score">
+<div><p class="report-score-label">UTS CS Readiness Score</p><div class="report-score-number"><span id="overallScore">—</span><span>/100</span></div></div>
+<p class="report-score-note">Evidence match and ATS feedback. This is not a hiring probability.</p>
 </div>
-</div>
-<!-- Hero Bento Grid -->
+</section>
+<section class="report-quick" aria-labelledby="quickActionsTitle">
+<div class="report-quick-head"><div><span class="report-eyebrow">Start here</span><h2 id="quickActionsTitle">Your next three edits</h2></div><a href="#improve">Read the full improvement plan</a></div>
+<div class="report-quick-list" id="quickActionList" aria-live="polite"></div>
+</section>
+<nav class="report-tabs" aria-label="Report sections">
+<a href="#overview">Overview</a><a href="#job-match">Job match</a><a href="#ats-checks">ATS checks</a><a href="#improve">Improve</a><a href="#resume-draft">Resume draft</a>
+</nav>
+<section class="report-section mb-12" id="overview">
+<p class="report-eyebrow mb-2">Understand your result</p><h2 class="report-section-title">What the analysis found</h2>
+<!-- Evidence and score detail -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
 <!-- Score Breakdown -->
 <div class="md:col-span-2 h-full flex flex-col space-y-4">
@@ -235,7 +328,7 @@
 <div class="bg-gradient-to-r from-secondary to-secondary-container h-full" id="metricAcademicBar" style="width: 0%;"></div>
 </div>
 <span class="text-sm font-bold text-primary" id="metricAcademicValue">Pending</span>
-<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Academic Rigor</span>
+<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Education &amp; skills</span>
 </div>
 </div>
 </div>
@@ -253,7 +346,7 @@
 </div>
 </article>
 <article class="rounded-xl bg-surface-container-lowest border border-outline-variant/60 p-4 flex items-center gap-3 shadow-sm">
-<div class="evidence-ring" id="softSkillsRing" style="--score: 0;"><span id="softSkillsScore">-</span></div>
+<div class="evidence-ring" id="softSkillsRing" style="--score: 0;"><span class="soft-count" id="softSkillsScore">-</span></div>
 <div class="min-w-0">
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Soft Skills</p>
 <h4 class="text-sm font-extrabold text-primary">Work Style</h4>
@@ -270,12 +363,12 @@
 </article>
 </div>
 </div>
-<!-- AI Insight Panel -->
+<!-- Assessment summary -->
 <div class="bg-primary p-8 rounded-xl text-on-primary flex flex-col justify-between h-full">
 <div>
 <div class="flex items-center gap-2 mb-4">
-<span class="material-symbols-outlined text-secondary-fixed-dim" data-icon="psychology">psychology</span>
-<span class="text-xs font-bold uppercase tracking-widest text-on-primary/60">AI Summary</span>
+<span class="text-secondary-fixed-dim" aria-hidden="true">▤</span>
+<span class="text-xs font-bold uppercase tracking-widest text-on-primary/60">Assessment summary</span>
 </div>
 <p class="text-lg leading-relaxed font-medium" id="aiSummary">Run an analysis to see the resume score and role recommendation.</p>
 </div>
@@ -290,7 +383,7 @@
 </div>
 </div>
 </section>
-<section class="mb-8">
+<section class="report-section mb-8" id="job-match">
 <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 lg:p-8">
 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-6">
 <div class="max-w-3xl">
@@ -325,10 +418,10 @@ Top role matches will appear after analysis.
 </div>
 </div>
 </section>
-<section class="mb-12" id="recommendationPlanSection">
+<section class="report-section mb-12" id="improve">
 <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
 <div class="max-w-3xl">
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Part 8 Recommendation Output</p>
+<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Personal improvement plan</p>
 <h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight">Priority Improvement Plan</h2>
 <p class="text-sm sm:text-base text-on-surface-variant mt-3 leading-relaxed" id="recommendationPlanSummary">Run an analysis to see the recommended next actions for the selected role.</p>
 </div>
@@ -358,7 +451,7 @@ Recommendation actions will appear after analysis.
 </article>
 </div>
 </section>
-<section class="mb-12">
+<section class="report-section mb-12" id="score-notes">
 <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 lg:p-8">
 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
 <div>
@@ -406,7 +499,7 @@ Recommendation actions will appear after analysis.
 </div>
 </div>
 </section>
-<section class="mb-12">
+<section class="report-section mb-12" id="ats-checks">
 <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 lg:p-8">
 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
 <div class="max-w-3xl">
@@ -434,7 +527,7 @@ Recommendation actions will appear after analysis.
 </div>
 </section>
 <!-- Bottom Section: Future ATS Resume Generation & Actions -->
-<section class="mt-20">
+<section class="report-section mt-20" id="resume-draft">
 <div class="bg-surface-container-high rounded-xl p-5 sm:p-8 lg:p-10 overflow-hidden relative">
 <div class="relative z-10 bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 mb-6">
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -481,7 +574,6 @@ Recommendation actions will appear after analysis.
 <p class="text-sm font-semibold text-primary mb-5" id="generatedResumeStatus">Ready after analysis.</p>
 </div>
 <button class="w-full px-5 py-3 rounded-xl bg-secondary text-on-primary font-bold hover:bg-primary transition-colors active:scale-95 flex items-center justify-center gap-2" id="generateResumeBtn" type="button">
-<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>
 Generate Optimized Resume
 </button>
 </div>
@@ -496,11 +588,9 @@ Generate Optimized Resume
 Back to Home
 </a>
 <button class="px-8 py-4 bg-gradient-to-r from-secondary to-secondary-container text-white font-bold rounded-xl shadow-lg shadow-black/10 flex items-center justify-center gap-2 active:scale-95 transition-all" id="exportResumeBtn" type="button">
-<span class="material-symbols-outlined" data-icon="picture_as_pdf">picture_as_pdf</span>
 Export PDF Feedback Report
 </button>
 <button class="px-8 py-4 bg-surface-container-lowest text-primary font-bold rounded-xl border border-outline-variant hover:bg-white transition-colors active:scale-95 shadow-sm flex items-center justify-center gap-2" id="exportHtmlReportBtn" type="button">
-<span class="material-symbols-outlined" data-icon="code">code</span>
 Export HTML Feedback Report
 </button>
 </div>
@@ -517,15 +607,12 @@ Export HTML Feedback Report
 </div>
 <div class="flex flex-col sm:flex-row gap-3">
 <button class="px-4 py-2 rounded-xl bg-surface-container-low text-primary font-bold border border-outline-variant/70 hover:bg-surface-container-high transition-colors inline-flex items-center justify-center gap-2" id="copyGeneratedResumeBtn" type="button">
-<span class="material-symbols-outlined text-base">content_copy</span>
 Copy Content
 </button>
 <button class="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container hover:text-on-primary-container transition-colors inline-flex items-center justify-center gap-2" id="downloadGeneratedHtmlBtn" type="button">
-<span class="material-symbols-outlined text-base">download</span>
 Download HTML
 </button>
 <button class="px-4 py-2 rounded-xl bg-secondary text-on-primary font-bold hover:bg-primary transition-colors inline-flex items-center justify-center gap-2" id="downloadGeneratedPdfBtn" type="button">
-<span class="material-symbols-outlined text-base">picture_as_pdf</span>
 Download PDF
 </button>
 </div>
@@ -536,6 +623,7 @@ Download PDF
 </div>
 </div>
 </section>
+</div>
 </main>
 <!-- Footer Shell -->
 <footer class="site-footer w-full py-10 md:py-12">
@@ -543,17 +631,17 @@ Download PDF
 <div class="space-y-3">
 <p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary-fixed-dim">UTS CS Career Navigator</p>
 <h2 class="font-headline text-2xl md:text-3xl font-extrabold text-white leading-tight max-w-xl">Academic ATS feedback for computer science graduates.</h2>
-<p class="font-inter text-sm leading-relaxed text-white/70 max-w-2xl">(c) 2026 UTS CS Career Navigator. Built for UTS Computer Science students.</p>
+<p class="font-inter text-sm leading-relaxed text-white/70 max-w-2xl">© 2026 UTS CS Career Navigator. Student project for University of Technology Sarawak, Malaysia.</p>
 </div>
 <div class="footer-link-row font-inter text-xs font-semibold">
 <button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openPrivacyPolicyBtn" type="button">Privacy Policy</button>
 <button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openTermsOfServiceBtn" type="button">Terms of Service</button>
 <button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openResearchCreditsBtn" type="button">Research Credits</button>
-<button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openUniversityPartnersBtn" type="button">University Partners</button>
+<button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openUniversityPartnersBtn" type="button">About This Project</button>
 </div>
 </div>
 </footer>
-<div class="fixed inset-0 z-[85] hidden" id="authModal" aria-hidden="true">
+<div class="fixed inset-0 z-[85] hidden" id="authModal" role="dialog" aria-modal="true" aria-label="Account access" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="authModalBackdrop"></div>
 <div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
 <div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
@@ -563,7 +651,7 @@ Download PDF
 <h3 class="font-headline text-2xl font-extrabold text-primary">Sign up or log in to continue</h3>
 <p class="text-sm text-on-surface-variant mt-2">You need an account before exporting analysis results.</p>
 </div>
-<button class="text-on-surface-variant hover:text-primary" id="closeAuthModalBtn" type="button"><span class="material-symbols-outlined">close</span></button>
+<button class="text-on-surface-variant hover:text-primary" id="closeAuthModalBtn" type="button" aria-label="Close account dialog"><span aria-hidden="true">&times;</span></button>
 </div>
 <div class="flex gap-2 mb-5">
 <button class="px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold" id="authLoginTabBtn" type="button">Log In</button>
@@ -573,7 +661,7 @@ Download PDF
 <form class="space-y-4" id="authLoginForm">
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="loginEmailInput">Email</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginEmailInput" type="email" placeholder="you@uts.edu.au" required>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginEmailInput" type="email" placeholder="you@uts.edu.my" required>
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="loginPasswordInput">Password</label>
@@ -591,7 +679,7 @@ Download PDF
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="registerEmailInput">Email</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="registerEmailInput" type="email" placeholder="you@uts.edu.au" required>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="registerEmailInput" type="email" placeholder="you@uts.edu.my" required>
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="registerPasswordInput">Password</label>
@@ -610,7 +698,7 @@ Download PDF
 <form class="space-y-4 hidden" id="authResetForm">
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="resetEmailInput">Email</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="resetEmailInput" type="email" placeholder="you@uts.edu.au" required>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="resetEmailInput" type="email" placeholder="you@uts.edu.my" required>
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="resetPinInput">Reset PIN</label>
@@ -629,7 +717,7 @@ Download PDF
 </div>
 </div>
 </div>
-<div class="fixed inset-0 z-[85] hidden" id="profileModal" aria-hidden="true">
+<div class="fixed inset-0 z-[85] hidden" id="profileModal" role="dialog" aria-modal="true" aria-label="My profile" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="profileModalBackdrop"></div>
 <div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
 <div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
@@ -639,7 +727,7 @@ Download PDF
 <h3 class="font-headline text-2xl font-extrabold text-primary">Student Account Information</h3>
 <p class="text-sm text-on-surface-variant mt-2">View your account details and securely change your password.</p>
 </div>
-<button class="text-on-surface-variant hover:text-primary" id="closeProfileModalBtn" type="button"><span class="material-symbols-outlined">close</span></button>
+<button class="text-on-surface-variant hover:text-primary" id="closeProfileModalBtn" type="button" aria-label="Close profile dialog"><span aria-hidden="true">&times;</span></button>
 </div>
 <p class="text-sm mb-4 hidden" id="profileMessage"></p>
 <form class="space-y-4" id="profileForm">
@@ -671,7 +759,7 @@ Download PDF
 </div>
 </div>
 </div>
-<div class="fixed inset-0 z-[80] hidden" id="privacyPolicyModal" aria-hidden="true">
+<div class="fixed inset-0 z-[80] hidden" id="privacyPolicyModal" role="dialog" aria-modal="true" aria-label="Privacy policy" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="privacyPolicyModalBackdrop"></div>
 <div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
 <div class="w-full max-w-2xl rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
@@ -680,20 +768,20 @@ Download PDF
 <p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">Privacy Policy</p>
 <h3 class="font-headline text-2xl font-extrabold text-primary">Data use for UTS CS Career Navigator</h3>
 </div>
-<button class="text-on-surface-variant hover:text-primary" id="closePrivacyPolicyBtn" type="button">
-<span class="material-symbols-outlined">close</span>
+<button class="text-on-surface-variant hover:text-primary" id="closePrivacyPolicyBtn" type="button" aria-label="Close privacy dialog">
+<span aria-hidden="true">&times;</span>
 </button>
 </div>
 <div class="space-y-4 text-sm text-on-surface-variant leading-relaxed">
-<p>We collect only the information needed to run resume analysis for UTS Computer Science students.</p>
+<p>We use account details and resume content to provide this educational tool.</p>
 <p>Uploaded resumes are processed to generate ATS feedback, keyword matching, and improvement suggestions.</p>
-<p>User account data stores name, email, and hashed password for sign-in and saved analysis history.</p>
-<p>Do not upload sensitive third-party information without permission. For production use, add HTTPS and retention controls.</p>
+<p>Your account stores your name, email, and a password hash. Saved analysis records can include text extracted from your resume.</p>
+<p>Do not upload confidential or third-party information without permission. Review the feedback before using it in a job application.</p>
 </div>
 </div>
 </div>
 </div>
-<div class="fixed inset-0 z-[80] hidden" id="termsOfServiceModal" aria-hidden="true">
+<div class="fixed inset-0 z-[80] hidden" id="termsOfServiceModal" role="dialog" aria-modal="true" aria-label="Terms of service" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="termsOfServiceModalBackdrop"></div>
 <div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
 <div class="w-full max-w-2xl rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
@@ -702,7 +790,7 @@ Download PDF
 <p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">Terms of Service</p>
 <h3 class="font-headline text-2xl font-extrabold text-primary">Guidelines for using the UTS CS career tool</h3>
 </div>
-<button class="text-on-surface-variant hover:text-primary" id="closeTermsOfServiceBtn" type="button"><span class="material-symbols-outlined">close</span></button>
+<button class="text-on-surface-variant hover:text-primary" id="closeTermsOfServiceBtn" type="button" aria-label="Close terms dialog"><span aria-hidden="true">&times;</span></button>
 </div>
 <div class="space-y-4 text-sm text-on-surface-variant leading-relaxed">
 <p>This tool provides resume feedback for UTS Computer Science students and is intended as guidance only.</p>
@@ -712,7 +800,7 @@ Download PDF
 </div>
 </div>
 </div>
-<div class="fixed inset-0 z-[80] hidden" id="researchCreditsModal" aria-hidden="true">
+<div class="fixed inset-0 z-[80] hidden" id="researchCreditsModal" role="dialog" aria-modal="true" aria-label="Research credits" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="researchCreditsModalBackdrop"></div>
 <div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
 <div class="w-full max-w-2xl rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
@@ -721,7 +809,7 @@ Download PDF
 <p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">Research Credits</p>
 <h3 class="font-headline text-2xl font-extrabold text-primary">Methods used in the project</h3>
 </div>
-<button class="text-on-surface-variant hover:text-primary" id="closeResearchCreditsBtn" type="button"><span class="material-symbols-outlined">close</span></button>
+<button class="text-on-surface-variant hover:text-primary" id="closeResearchCreditsBtn" type="button" aria-label="Close research credits dialog"><span aria-hidden="true">&times;</span></button>
 </div>
 <div class="space-y-4 text-sm text-on-surface-variant leading-relaxed">
 <p>The app uses PDF text extraction, optional image OCR, TF-IDF similarity scoring, and rule-based feedback generation.</p>
@@ -730,33 +818,33 @@ Download PDF
 </div>
 </div>
 </div>
-<div class="fixed inset-0 z-[80] hidden" id="universityPartnersModal" aria-hidden="true">
+<div class="fixed inset-0 z-[80] hidden" id="universityPartnersModal" role="dialog" aria-modal="true" aria-label="About this project" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="universityPartnersModalBackdrop"></div>
 <div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
 <div class="w-full max-w-2xl rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
 <div class="flex items-start justify-between gap-4 mb-4">
 <div>
-<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">University Partners</p>
-<h3 class="font-headline text-2xl font-extrabold text-primary">Built around UTS and CS student support</h3>
+<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">About This Project</p>
+<h3 class="font-headline text-2xl font-extrabold text-primary">Built for student resume learning</h3>
 </div>
-<button class="text-on-surface-variant hover:text-primary" id="closeUniversityPartnersBtn" type="button"><span class="material-symbols-outlined">close</span></button>
+<button class="text-on-surface-variant hover:text-primary" id="closeUniversityPartnersBtn" type="button" aria-label="Close project information dialog"><span aria-hidden="true">&times;</span></button>
 </div>
 <div class="space-y-4 text-sm text-on-surface-variant leading-relaxed">
-<p>The platform is designed for University of Technology Sydney computer science students.</p>
-<p>It can be extended later to support student services, career mentoring, and academic employability workshops.</p>
+<p>This student project was developed for University of Technology Sarawak (UTS), Malaysia. It provides educational resume feedback and does not represent an official university recruitment service.</p>
+<p>Its role comparisons and ATS checks are guidance for revision, not a guarantee of interviews or employment.</p>
 </div>
 </div>
 </div>
 </div>
 
 <!-- History Modal -->
-<div class="fixed inset-0 z-[90] hidden" id="historyModal" aria-hidden="true">
+<div class="fixed inset-0 z-[90] hidden" id="historyModal" role="dialog" aria-modal="true" aria-label="Analysis history" aria-hidden="true">
     <div class="absolute inset-0 bg-slate-900/55" id="historyModalBackdrop"></div>
     <div class="absolute inset-0 p-4 md:p-10 overflow-y-auto flex items-center justify-center">
         <div class="w-full max-w-3xl bg-surface-container-lowest rounded-2xl p-6 md:p-8 shadow-2xl border border-outline-variant/40">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-headline text-2xl font-extrabold text-primary">Evaluation History</h3>
-                <button id="closeHistoryModalBtn" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">close</span></button>
+                <button id="closeHistoryModalBtn" class="text-on-surface-variant hover:text-primary" type="button" aria-label="Close history dialog"><span aria-hidden="true">&times;</span></button>
             </div>
             <div id="historyList" class="space-y-3 max-h-96 overflow-y-auto"></div>
             <div class="mt-4 flex justify-end gap-2">
@@ -965,7 +1053,9 @@ Download PDF
             return;
         }
         populateProfileForm();
+        profileModal._focusBeforeOpen = document.activeElement;
         window.CareerNavigatorCommon.setModalOpen(profileModal, true);
+        if (closeProfileModalBtn) closeProfileModalBtn.focus({ preventScroll: true });
     }
 
     function closeProfileModal() {
@@ -973,6 +1063,9 @@ Download PDF
             return;
         }
         window.CareerNavigatorCommon.setModalOpen(profileModal, false);
+        if (profileModal._focusBeforeOpen && document.contains(profileModal._focusBeforeOpen)) {
+            profileModal._focusBeforeOpen.focus({ preventScroll: true });
+        }
     }
 
     async function submitProfileUpdate(event) {
@@ -1022,12 +1115,43 @@ Download PDF
         }
     }
 
-    function logoutUser() {
-        fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    async function logoutUser() {
+        const loadingState = document.getElementById("reportLoadingState");
+        document.getElementById("reportContent").hidden = true;
+        document.getElementById("noAnalysisState").hidden = true;
+        loadingState.hidden = false;
+        loadingState.querySelector("p").textContent = "Signing out...";
+        const logoutRequest = fetch(API_BASE_URL + "/users/logout", {
+            method: "POST",
+            credentials: "same-origin",
+            signal: AbortSignal.timeout(8000)
+        });
         setAuthUser(null);
         closeProfileModal();
         clearAuthForms();
         clearProfileSensitiveFields();
+        try {
+            ["analysisResult", "analysisOwner", "pipelineStatus", "uploadedResumeName", "selectedJobRole", "selectedJobDescription", "analysisStartedAt"].forEach((key) => localStorage.removeItem(key));
+            ["resumeVisualPreviewDataUrl", "resumeVisualPreviewType", "resumeVisualPreviewName", "resumeRenderedPreviewDataUrl", "resumeRenderedPreviewName"].forEach((key) => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
+        } catch (error) {
+            // Storage can be unavailable in private browsing.
+        }
+        try {
+            const response = await logoutRequest;
+            if (!response.ok) throw new Error("Sign-out request failed.");
+            window.location.replace("home_page.html");
+        } catch (error) {
+            await window.CareerNavigatorCommon.syncAuthUserFromServer();
+            if (window.CareerNavigatorCommon.isAuthSessionVerified() && !getAuthUser()) {
+                window.location.replace("home_page.html");
+                return;
+            }
+            loadingState.innerHTML = '<span class="report-eyebrow">Sign out</span><h1>Could not confirm sign out</h1><p>Your report was cleared from this browser. Check your connection, then try again.</p><button class="studio-button" id="retryLogoutBtn" type="button">Try signing out again</button>';
+            document.getElementById("retryLogoutBtn").addEventListener("click", logoutUser);
+        }
     }
 
     function setAuthMessage(message, isError = false, showPopup = false) {
@@ -1100,6 +1224,7 @@ Download PDF
         authModal.setAttribute("aria-hidden", "false");
         document.body.classList.add("overflow-hidden");
         preparePinInputs();
+        if (closeAuthModalBtn) closeAuthModalBtn.focus({ preventScroll: true });
     }
 
     function closeAuthModal() {
@@ -1110,6 +1235,7 @@ Download PDF
         authModal.setAttribute("aria-hidden", "true");
         document.body.classList.remove("overflow-hidden");
         clearAuthForms();
+        if (openAuthModalBtn) openAuthModalBtn.focus({ preventScroll: true });
     }
 
     updateAuthUi();
@@ -1235,9 +1361,12 @@ Download PDF
         if (!modal) {
             return;
         }
+        modal._focusBeforeOpen = document.activeElement;
         modal.classList.remove("hidden");
         modal.setAttribute("aria-hidden", "false");
         document.body.classList.add("overflow-hidden");
+        const closeButton = modal.querySelector('button[id^="close"]');
+        if (closeButton) closeButton.focus({ preventScroll: true });
     }
 
     function closeModal(modal) {
@@ -1247,6 +1376,9 @@ Download PDF
         modal.classList.add("hidden");
         modal.setAttribute("aria-hidden", "true");
         document.body.classList.remove("overflow-hidden");
+        if (modal._focusBeforeOpen && document.contains(modal._focusBeforeOpen)) {
+            modal._focusBeforeOpen.focus({ preventScroll: true });
+        }
     }
 
     if (openPrivacyPolicyBtn) {
@@ -1392,101 +1524,48 @@ Download PDF
         return "Needs work";
     }
 
-    function prefersReducedMotion() {
-        return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    }
-
     function animateScoreNumber(element, targetValue) {
         if (!element) {
             return;
         }
         const target = Math.round(clampPercent(targetValue));
-        if (prefersReducedMotion()) {
-            element.textContent = String(target);
-            return;
-        }
-
-        const duration = 950;
-        const startTime = performance.now();
-        element.classList.add("score-counting");
-
-        function step(now) {
-            const progress = Math.min((now - startTime) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            element.textContent = String(Math.round(target * eased));
-            if (progress < 1) {
-                requestAnimationFrame(step);
-            } else {
-                element.textContent = String(target);
-                element.classList.remove("score-counting");
-            }
-        }
-
-        requestAnimationFrame(step);
+        element.textContent = String(target);
     }
 
     function setMetric(barId, labelId, percent) {
-        const safePercent = clampPercent(percent);
         const bar = document.getElementById(barId);
         const label = document.getElementById(labelId);
+        const hasScore = percent !== null && percent !== undefined && percent !== "" && Number.isFinite(Number(percent));
+        const safePercent = hasScore ? clampPercent(Number(percent)) : 0;
 
-        if (bar) {
-            if (prefersReducedMotion()) {
-                bar.style.width = safePercent + "%";
-            } else {
-                bar.style.width = "0%";
-                bar.getBoundingClientRect();
-                requestAnimationFrame(() => {
-                    bar.style.width = safePercent + "%";
-                });
-            }
+        if (!hasScore) {
+            if (bar) bar.style.width = "0%";
+            if (label) label.textContent = "Not scored";
+            return;
         }
-        if (label) {
-            label.textContent = "Loading";
-            window.setTimeout(() => {
-                label.textContent = getMetricLabel(safePercent);
-            }, prefersReducedMotion() ? 0 : 850);
-        }
+
+        if (bar) bar.style.width = safePercent + "%";
+        if (label) label.textContent = getMetricLabel(safePercent);
     }
 
     function setEvidenceCircle(ringId, scoreId, percent) {
-        const safePercent = Math.round(clampPercent(Number(percent || 0)));
         const ring = document.getElementById(ringId);
         const score = document.getElementById(scoreId);
         if (!ring || !score) {
             return;
         }
-
-        if (prefersReducedMotion()) {
-            ring.style.setProperty("--score", String(safePercent));
-            score.textContent = safePercent ? safePercent + "%" : "-";
+        const hasScore = percent !== null && percent !== undefined && percent !== "" && Number.isFinite(Number(percent));
+        if (!hasScore) {
+            ring.style.setProperty("--score", "0");
+            score.textContent = "—";
+            ring.setAttribute("aria-label", "Not scored");
             return;
         }
+        const safePercent = Math.round(clampPercent(Number(percent)));
+        ring.setAttribute("aria-label", safePercent + " percent");
 
-        ring.style.setProperty("--score", "0");
-        score.textContent = "0%";
-        ring.classList.add("ring-counting");
-        ring.getBoundingClientRect();
-
-        const duration = 900;
-        const startTime = performance.now();
-
-        function step(now) {
-            const progress = Math.min((now - startTime) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = Math.round(safePercent * eased);
-            ring.style.setProperty("--score", String(current));
-            score.textContent = current ? current + "%" : "-";
-            if (progress < 1) {
-                requestAnimationFrame(step);
-            } else {
-                ring.style.setProperty("--score", String(safePercent));
-                score.textContent = safePercent ? safePercent + "%" : "-";
-                ring.classList.remove("ring-counting");
-            }
-        }
-
-        requestAnimationFrame(step);
+        ring.style.setProperty("--score", String(safePercent));
+        score.textContent = safePercent + "%";
     }
 
     function findSoftSkillSignals(result, resumeSummary, matchedSignals) {
@@ -1496,10 +1575,10 @@ Download PDF
             "training", "customer", "client", "agile", "scrum", "coordination"
         ];
         const sourceText = [
+            result.resume_text_for_generation || "",
             result.resume_excerpt || "",
             (resumeSummary.skills || []).join(" "),
-            (matchedSignals || []).join(" "),
-            (result.structured_feedback || []).join(" ")
+            (matchedSignals || []).join(" ")
         ].join(" ").toLowerCase();
 
         return softTerms.filter((term) => sourceText.includes(term)).slice(0, 4);
@@ -1508,19 +1587,21 @@ Download PDF
     function renderEvidenceCircles(result, resumeSummary, matchedSignals, compatibility, scoreBreakdown) {
         const safeCompatibility = compatibility || {};
         const safeBreakdown = scoreBreakdown || {};
-        const hardScore = safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match ?? 0;
-        const experienceScore = safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment ?? 0;
-        const roleEvidenceScore = safeBreakdown.role_evidence ?? safeCompatibility.role_evidence ?? 0;
+        const hardScore = safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match ?? null;
+        const experienceScore = safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment ?? null;
         const softSignals = findSoftSkillSignals(result, resumeSummary, matchedSignals);
-        const softScore = softSignals.length
-            ? Math.min(92, 40 + (softSignals.length * 13))
-            : Math.round((Number(roleEvidenceScore || 0) * 0.35) + (Number(experienceScore || 0) * 0.25));
         const hardSignals = Array.isArray(matchedSignals) ? matchedSignals.filter(Boolean).slice(0, 3) : [];
         const experienceMarkers = Array.isArray(resumeSummary.experience_markers) ? resumeSummary.experience_markers.length : 0;
 
         setEvidenceCircle("hardSkillsRing", "hardSkillsScore", hardScore);
-        setEvidenceCircle("softSkillsRing", "softSkillsScore", softScore);
         setEvidenceCircle("experienceRing", "experienceScore", experienceScore);
+        const softSkillsRing = document.getElementById("softSkillsRing");
+        const softSkillsScore = document.getElementById("softSkillsScore");
+        if (softSkillsRing) {
+            softSkillsRing.style.setProperty("--score", "0");
+            softSkillsRing.setAttribute("aria-label", softSignals.length + " soft skill signals found");
+        }
+        if (softSkillsScore) softSkillsScore.textContent = softSignals.length + " found";
         setText(
             "hardSkillsDetail",
             hardSignals.length ? "Matched: " + hardSignals.join(", ") + "." : "No strong technical keyword evidence yet."
@@ -1658,13 +1739,13 @@ Download PDF
         }
 
         container.innerHTML = contextNotice + cleanMatches.map((item, index) => {
-            const rawScore = Number(item.score);
+            const rawScore = item.score === null || item.score === undefined || item.score === "" ? Number.NaN : Number(item.score);
             const score = Number.isFinite(rawScore) ? clampPercent(rawScore) : 0;
             const roundedScore = Math.round(score * 10) / 10;
-            const scoreLabel = Number.isFinite(rawScore) ? roundedScore + "/100" : "Pending";
+            const scoreLabel = Number.isFinite(rawScore) ? roundedScore + "/100" : "Not scored";
             const rank = Number(item.rank || index + 1);
             const roleName = item.role || item.database_role || "Role match";
-            const confidenceLabel = item.confidence_label || metricStatus(score);
+            const confidenceLabel = item.confidence_label || (Number.isFinite(rawScore) ? metricStatus(score) : "Not scored");
             const matchedKeywords = Array.isArray(item.matched_keywords) ? item.matched_keywords.filter(Boolean).slice(0, 4) : [];
             const missingKeywords = Array.isArray(item.missing_keywords) ? item.missing_keywords.filter(Boolean).slice(0, 3) : [];
             const isFinal = Boolean(item.is_final_recommended);
@@ -1733,7 +1814,7 @@ Download PDF
             return;
         }
         list.innerHTML = cleanItems.map((item) => (
-            '<li class="flex gap-3"><span class="material-symbols-outlined text-secondary text-base mt-0.5">check_circle</span><span>' + escapeHtml(item) + '</span></li>'
+            '<li class="flex gap-3"><span class="text-secondary font-bold" aria-hidden="true">✓</span><span>' + escapeHtml(item) + '</span></li>'
         )).join("");
     }
 
@@ -1854,19 +1935,9 @@ Download PDF
             return;
         }
 
-        const iconByCategory = {
-            role_fit: "work",
-            keyword_gap: "key",
-            evidence_gap: "fact_check",
-            experience: "timeline",
-            ats_quality: "rule",
-            education: "school",
-            impact: "trending_up"
-        };
         actionList.innerHTML = actions.map((item, index) => {
             const priority = Number(item.priority || index + 1);
             const category = String(item.category || "recommendation").replace(/_/g, " ");
-            const icon = iconByCategory[item.category] || "task_alt";
             const keywords = Array.isArray(item.keywords) ? item.keywords.filter(Boolean).slice(0, 4) : [];
             const keywordMarkup = keywords.length
                 ? '<div class="mt-4 flex flex-wrap gap-1.5">' + keywords.map((keyword) => (
@@ -1877,7 +1948,6 @@ Download PDF
                 '<article class="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-5 min-h-[230px] flex flex-col">' +
                     '<div class="flex items-start justify-between gap-3">' +
                         '<span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-on-primary font-extrabold">' + escapeHtml(priority) + '</span>' +
-                        '<span class="material-symbols-outlined text-secondary">' + escapeHtml(icon) + '</span>' +
                     '</div>' +
                     '<p class="mt-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">' + escapeHtml(category) + '</p>' +
                     '<h3 class="mt-2 text-lg font-extrabold text-primary leading-tight">' + escapeHtml(item.title || "Recommendation action") + '</h3>' +
@@ -1887,6 +1957,42 @@ Download PDF
                 '</article>'
             );
         }).join("");
+    }
+
+    function renderQuickActions(recommendationModule, missingKeywords, qualityCriteria) {
+        const list = document.getElementById("quickActionList");
+        if (!list) return;
+        const actions = Array.isArray(recommendationModule && recommendationModule.priority_actions)
+            ? recommendationModule.priority_actions.filter((item) => item && (item.action || item.title || item.detail))
+            : [];
+        const quickActions = actions.slice(0, 3).map((item) => ({
+            title: String(item.title || "Review this finding"),
+            detail: String(item.action || item.detail || "")
+        }));
+        const seen = new Set(quickActions.map((item) => item.detail.toLowerCase()));
+        const addAction = (title, detail) => {
+            const cleanDetail = String(detail || "").trim();
+            if (!cleanDetail || quickActions.length >= 3 || seen.has(cleanDetail.toLowerCase())) return;
+            seen.add(cleanDetail.toLowerCase());
+            quickActions.push({ title, detail: cleanDetail });
+        };
+        if (Array.isArray(missingKeywords) && missingKeywords.length) {
+            addAction("Review missing role terms", "Check whether you can truthfully demonstrate " + missingKeywords.slice(0, 3).join(", ") + " in a project or experience bullet.");
+        }
+        (Array.isArray(qualityCriteria) ? qualityCriteria : []).forEach((item) => {
+            if (item && item.status !== "pass") addAction(String(item.title || "Improve ATS format"), item.suggestion || item.detail);
+        });
+        if (!quickActions.length) {
+            list.innerHTML = '<p class="text-sm text-on-surface-variant">This analysis did not return prioritized edits. Review the detailed findings below.</p>';
+            return;
+        }
+        list.innerHTML = quickActions.map((item, index) => (
+            '<article><span>' + String(index + 1).padStart(2, "0") + ' / EDIT</span>' +
+            '<h3>' + escapeHtml(item.title) + '</h3>' +
+            '<p>' + escapeHtml(item.detail) + '</p></article>'
+        )).join("");
+        const heading = document.getElementById("quickActionsTitle");
+        if (heading) heading.textContent = quickActions.length === 1 ? "Your next edit" : "Your next " + quickActions.length + " edits";
     }
 
     function getResumePreviewLines(text, limit = 14) {
@@ -2341,14 +2447,14 @@ Download PDF
         const issueMarkup = issues.length
             ? issues.slice(0, 5).map((item) => (
                 '<li class="flex gap-3 border-b border-outline-variant/50 pb-3 last:border-b-0 last:pb-0">' +
-                    '<span class="material-symbols-outlined text-error text-lg mt-0.5">warning</span>' +
+                    '<span class="text-error text-lg mt-0.5" aria-hidden="true">!</span>' +
                     '<span>' +
                         '<span class="block text-sm font-bold text-primary">' + escapeHtml(item.title || item.category || "ATS issue") + '</span>' +
                         '<span class="block text-sm text-on-surface-variant leading-relaxed mt-1">' + escapeHtml(item.suggestion || item.detail || "") + '</span>' +
                     '</span>' +
                 '</li>'
             )).join("")
-            : '<li class="flex gap-3"><span class="material-symbols-outlined text-secondary text-lg mt-0.5">check_circle</span><span class="text-sm text-on-surface-variant">No major ATS quality issues detected.</span></li>';
+            : '<li class="flex gap-3"><span class="text-secondary text-lg mt-0.5" aria-hidden="true">✓</span><span class="text-sm text-on-surface-variant">No major ATS quality issues detected.</span></li>';
         const passMarkup = passes.length
             ? passes.map((item) => (
                 '<span class="px-3 py-1 rounded-full bg-secondary-container/20 text-on-secondary-container text-xs font-semibold">' + escapeHtml(item.category || item.title || "Passed") + '</span>'
@@ -2513,8 +2619,8 @@ Download PDF
         }
 
         return cleanMatches.map((item, index) => {
-            const rawScore = Number(item.score);
-            const score = Number.isFinite(rawScore) ? Math.round(clampPercent(rawScore)) + "/100" : "Pending";
+            const rawScore = item.score === null || item.score === undefined || item.score === "" ? Number.NaN : Number(item.score);
+            const score = Number.isFinite(rawScore) ? Math.round(clampPercent(rawScore)) + "/100" : "Not scored";
             const labels = [
                 item.is_final_recommended ? "Used for ATS score" : "",
                 item.is_selected_database_role ? "Selected" : ""
@@ -2530,7 +2636,7 @@ Download PDF
                 "<tr>" +
                     "<td>" + escapeHtml(item.rank || index + 1) + "<\/td>" +
                     "<td>" + escapeHtml(item.role || item.database_role || "Role match") + "<\/td>" +
-                    "<td>" + escapeHtml(score + " - " + (item.confidence_label || metricStatus(rawScore))) + "<\/td>" +
+                    "<td>" + escapeHtml(score + " - " + (item.confidence_label || (Number.isFinite(rawScore) ? metricStatus(rawScore) : "Not scored"))) + "<\/td>" +
                     "<td>" + escapeHtml(labels) + "<\/td>" +
                     "<td><strong>Matched:<\/strong> " + escapeHtml(matched) + "<br><strong>Improve:<\/strong> " + escapeHtml(missing) + "<\/td>" +
                 "<\/tr>"
@@ -2636,7 +2742,7 @@ Download PDF
             ".visual-report{border:1px solid #d9e1ec;border-radius:10px;background:#f8fafc;padding:14px;margin-top:12px}.visual-report-head{display:flex;justify-content:space-between;gap:16px;color:#064b86;font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}.visual-report-head span{text-transform:none;letter-spacing:0;color:#64748b;font-weight:700}.visual-frame{position:relative;background:#fff;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.visual-frame img{display:block;width:100%;height:auto;background:#fff;border:0}.visual-frame object,.visual-frame iframe{display:block;width:100%;height:760px;background:#fff;border:0}.visual-unavailable{background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#64748b;margin-top:10px}" +
             "footer{padding:18px 32px;color:#64748b;font-size:12px}.clear{clear:both}@media print{body{background:#fff}.page{margin:0;border:0}.score{float:none;display:block;margin-top:10px}}" +
             "<\/style><\/head><body><div class=\"page\">" +
-            "<header><div class=\"score\">" + escapeHtml(score) + "<\/div><h1>UTS CS Career Navigator Feedback Report<\/h1><p>Structured ATS and role-fit feedback for resume improvement.<\/p><div class=\"clear\"><\/div><\/header>" +
+            "<header><div class=\"score\">" + escapeHtml(score) + "<\/div><h1>UTS CS Career Navigator Feedback Report<\/h1><p>" + (report.sampleOnly ? "Fictional sample report. These findings are not based on your resume." : "Structured ATS and role-fit feedback for resume improvement.") + "<\/p><div class=\"clear\"><\/div><\/header>" +
             "<section><p class=\"section-title\">Summary<\/p><table>" + summaryRows + "<\/table><\/section>" +
             "<section><p class=\"section-title\">Score Explanation<\/p><h2>" + escapeHtml((report.scoreExplanation && report.scoreExplanation.label) || "Score meaning") + "<\/h2><div class=\"note\">" + escapeHtml((report.scoreExplanation && report.scoreExplanation.text) || "The final readiness score combines role match, resume evidence, and ATS format quality.") + "<\/div><p class=\"note\" style=\"margin-top:12px\">" + escapeHtml((report.scoreExplanation && (report.scoreExplanation.detail || report.scoreExplanation.formula)) || "Formula details were not available.") + "<\/p><\/section>" +
             "<section><p class=\"section-title\">Role Fit Explanation<\/p><div class=\"note\">" + escapeHtml(report.roleReason || "Selected role and recommendation are aligned.") + "<\/div><\/section>" +
@@ -2831,8 +2937,8 @@ Download PDF
     function getResumeGeneratorButtonHtml(result) {
         const decision = getResumeExampleDecision(result);
         return decision.showExample
-            ? '<span class="material-symbols-outlined" data-icon="description">description</span>View Target-Role Example'
-            : '<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>Generate Optimized Resume';
+            ? 'View Target-Role Example'
+            : 'Generate Optimized Resume';
     }
 
     function isGeneratedResumeAdviceLine(value) {
@@ -2909,16 +3015,13 @@ Download PDF
                 : "ATS Resume Preview";
         }
         if (copyButton) {
-            copyButton.innerHTML = '<span class="material-symbols-outlined text-base">content_copy</span>' +
-                (isExample ? "Copy Example Text" : "Copy Resume Text");
+            copyButton.textContent = isExample ? "Copy Example Text" : "Copy Resume Text";
         }
         if (htmlButton) {
-            htmlButton.innerHTML = '<span class="material-symbols-outlined text-base">code</span>' +
-                (isExample ? "Download Example HTML" : "Download HTML");
+            htmlButton.textContent = isExample ? "Download Example HTML" : "Download HTML";
         }
         if (pdfButton) {
-            pdfButton.innerHTML = '<span class="material-symbols-outlined text-base">picture_as_pdf</span>' +
-                (isExample ? "Download Example PDF" : "Download PDF");
+            pdfButton.textContent = isExample ? "Download Example PDF" : "Download PDF";
         }
         preview.srcdoc = draft && draft.html
             ? draft.html
@@ -2928,7 +3031,7 @@ Download PDF
             const notes = Array.isArray(draft.ats_notes) ? draft.ats_notes.filter(Boolean).slice(0, 8) : [];
             notesList.innerHTML = notes.length
                 ? notes.map((note) => (
-                    '<li class="flex gap-3"><span class="material-symbols-outlined text-secondary text-base mt-0.5">task_alt</span><span>' + escapeHtml(note) + '</span></li>'
+                    '<li class="flex gap-3"><span class="text-secondary text-base mt-0.5" aria-hidden="true">✓</span><span>' + escapeHtml(note) + '</span></li>'
                 )).join("")
                 : '<li class="text-on-surface-variant">No extra ATS notes returned.</li>';
         }
@@ -3077,7 +3180,7 @@ Download PDF
     }
 
     async function downloadFeedbackReportPdf(report, analysisId) {
-        const fileName = "uts-cs-career-navigator-feedback-report.pdf";
+        const fileName = report.sampleOnly ? "uts-sample-feedback-report.pdf" : "uts-cs-career-navigator-feedback-report.pdf";
         try {
             showToast("Preparing PDF feedback report...", "info");
             const response = await fetch(API_BASE_URL + "/feedback-report-pdf", {
@@ -3100,7 +3203,7 @@ Download PDF
     }
 
     async function downloadFeedbackReportHtml(report, analysisId) {
-        const fileName = "uts-cs-career-navigator-feedback-report.html";
+        const fileName = report.sampleOnly ? "uts-sample-feedback-report.html" : "uts-cs-career-navigator-feedback-report.html";
         try {
             const reportHtml = buildFeedbackReportHtml(report);
             downloadGeneratedFile(reportHtml, "text/html;charset=utf-8", fileName);
@@ -3139,7 +3242,7 @@ Download PDF
         if (generateBtn) {
             generateBtn.disabled = true;
             generateBtn.classList.add("opacity-70", "cursor-wait");
-            generateBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span>Generating...';
+            generateBtn.textContent = 'Generating...';
         }
         setGeneratedResumeStatus(
             exampleDecision.showExample
@@ -3226,54 +3329,49 @@ Download PDF
     }
 
     function loadAnalysisResult() {
-        // Prefer a user-owned analysis stored in `analysisResult` (with optional `analysisOwner`),
-        // otherwise fall back to the public demo stored in `sampleAnalysis`.
-        const resultRaw = localStorage.getItem("analysisResult");
+        document.getElementById("reportLoadingState").hidden = true;
+        const sampleRequested = new URLSearchParams(window.location.search).get("sample") === "1";
         let result = null;
-
-        if (resultRaw) {
+        if (sampleRequested) {
+            result = window.CareerNavigatorCommon.createSampleAnalysis();
+        } else {
             try {
+                const resultRaw = localStorage.getItem("analysisResult");
                 const analysisOwner = (localStorage.getItem("analysisOwner") || "").toLowerCase();
                 const currentUser = getAuthUser();
-                if (!analysisOwner || (currentUser && currentUser.email && (currentUser.email || "").toLowerCase() === analysisOwner)) {
+                if (resultRaw && analysisOwner && window.CareerNavigatorCommon.isAuthSessionVerified() && currentUser && currentUser.email && (currentUser.email || "").toLowerCase() === analysisOwner) {
                     result = JSON.parse(resultRaw);
-                } else {
-                    // analysis belongs to another user; do not load it
-                    result = null;
                 }
             } catch (err) {
                 result = null;
             }
         }
-
-        // If no accessible personal analysis, try the stored public demo.
-        if (!result) {
-            const sampleRaw = localStorage.getItem("sampleAnalysis");
-            if (sampleRaw) {
-                try {
-                    result = JSON.parse(sampleRaw);
-                    // ensure selectedRole/uploadedResumeName read from storage
-                } catch (err) {
-                    result = null;
-                }
-            }
+        const rawScore = result && result.matching_percentage;
+        const hasValidScore = (typeof rawScore === "number" || typeof rawScore === "string") && String(rawScore).trim() !== ""
+            && Number.isFinite(Number(rawScore)) && Number(rawScore) >= 0 && Number(rawScore) <= 100;
+        const hasReportEvidence = result && typeof result === "object" && (
+            result.resume_summary || result.compatibility || result.role_recommendation ||
+            result.feedback || result.analysis_id
+        );
+        if (!hasValidScore || !hasReportEvidence) {
+            document.getElementById("noAnalysisState").hidden = false;
+            document.getElementById("reportContent").hidden = true;
+            return;
         }
-
-        if (!result) {
-            // Keep the report usable when storage is unavailable or opened directly.
-            result = window.CareerNavigatorCommon.createSampleAnalysis();
-            localStorage.setItem("uploadedResumeName", result.uploaded_resume_name || "sample_resume.pdf");
-            localStorage.setItem("selectedJobRole", localStorage.getItem("selectedJobRole") || "Sample Role");
-        }
+        document.getElementById("noAnalysisState").hidden = true;
+        document.getElementById("reportContent").hidden = false;
+        document.getElementById("reportSampleBanner").hidden = !sampleRequested;
+        setText("reportEyebrow", sampleRequested ? "Sample report · fictional data" : "Your resume report");
+        setText("reportTitle", sampleRequested ? "A sample report, clearly explained." : "Your resume, clearly reviewed.");
 
         showAccuracyTestingSaveStatus(result);
 
-        const percentage = clampPercent(Number(result.matching_percentage || 0));
+        const percentage = clampPercent(Number(rawScore));
         const scoreOutOf100 = Math.round(percentage);
         const feedback = String(result.feedback || "Analysis completed successfully.");
         const roleRecommendation = result.role_recommendation || {};
         const recommendationModule = result.recommendation_module || {};
-        const selectedRole = roleRecommendation.selected_role || result.selected_role || localStorage.getItem("selectedJobRole") || "";
+        const selectedRole = roleRecommendation.selected_role || result.selected_role || (sampleRequested ? "" : localStorage.getItem("selectedJobRole")) || "";
         const selectedDatabaseRole = roleRecommendation.selected_database_role || "";
         const recommendedRole = roleRecommendation.recommended_role || result.target_role || selectedRole || "selected role";
         const detectedRole = roleRecommendation.detected_database_role || "";
@@ -3286,7 +3384,7 @@ Download PDF
         const roleReason = roleRecommendation.reason_summary || "";
         const roleIsDifferent = Boolean(roleRecommendation.is_different_from_selected);
         const roleMatchIsClose = Boolean(roleRecommendation.is_close_match);
-        const uploadedResumeName = result.uploaded_resume_name || localStorage.getItem("uploadedResumeName") || "No resume selected.";
+        const uploadedResumeName = result.uploaded_resume_name || (sampleRequested ? "" : localStorage.getItem("uploadedResumeName")) || "No resume selected.";
         const resumeSummary = result.resume_summary || {};
         const jobAnalysis = result.job_description_analysis || {};
         const resumeQuality = result.resume_quality || {};
@@ -3301,8 +3399,8 @@ Download PDF
             : (Array.isArray(result.top_role_matches) ? result.top_role_matches : []);
         const qualityCriteria = Array.isArray(resumeQuality.criteria) ? resumeQuality.criteria : [];
         const resumePreviewText = result.resume_text_for_generation || result.resume_excerpt || "";
-        const resumeVisualPreview = getStoredResumeVisualPreview();
-        const submittedAt = result.generated_at || localStorage.getItem("analysisStartedAt") || "";
+        const resumeVisualPreview = sampleRequested ? null : getStoredResumeVisualPreview();
+        const submittedAt = result.generated_at || (sampleRequested ? "" : localStorage.getItem("analysisStartedAt")) || "";
         const fileType = formatFileType(uploadedResumeName, documentInfo);
         const guidanceContext = buildGuidanceContext({
             selectedRole,
@@ -3312,6 +3410,11 @@ Download PDF
             missingKeywords,
             overallScore: scoreOutOf100
         });
+        const evidenceItems = Array.isArray(matchedSignals) ? matchedSignals.map((item) => String(item).trim()).filter(Boolean) : [];
+        setText("reportSummaryEvidence", evidenceItems.length ? evidenceItems.slice(0, 4).join(", ") + "." : "No matched resume signals were returned for this comparison.");
+        setText("reportSummaryRole", humanReviewRequired
+            ? "The evidence for " + (selectedRole || recommendedRole || "this role") + " needs human review. Use the findings below as guidance for your next edit."
+            : "Compared with " + recommendedRole + ". Review the matched evidence and start with the suggested edits below.");
 
         const overallScore = document.getElementById("overallScore");
         const aiSummary = document.getElementById("aiSummary");
@@ -3353,9 +3456,9 @@ Download PDF
                 : (recommendedRole || selectedRole || "No role selected")
         );
 
-        setMetric("metricKeywordBar", "metricKeywordValue", compatibility.keyword_match ?? (percentage + 8));
-        setMetric("metricExperienceBar", "metricExperienceValue", compatibility.experience_alignment ?? percentage);
-        setMetric("metricAcademicBar", "metricAcademicValue", compatibility.academic_rigor ?? (percentage + 4));
+        setMetric("metricKeywordBar", "metricKeywordValue", compatibility.keyword_match ?? scoreBreakdown.keyword_coverage ?? null);
+        setMetric("metricExperienceBar", "metricExperienceValue", compatibility.experience_alignment ?? scoreBreakdown.experience_alignment ?? null);
+        setMetric("metricAcademicBar", "metricAcademicValue", compatibility.academic_rigor ?? scoreBreakdown.academic_rigor ?? null);
         renderEvidenceCircles(result, resumeSummary, matchedSignals, compatibility, scoreBreakdown);
 
         if (aiSummary) {
@@ -3468,6 +3571,12 @@ Download PDF
             : result.resume_text_for_generation ? "Ready to generate from extracted resume text." : "Ready to generate from available analysis context.";
         const detectedContactLinks = prefillGeneratedContactLinks(result);
         setGeneratedResumeStatus(generatorReadyMessage + (detectedContactLinks ? " Existing LinkedIn/GitHub link detected." : ""));
+        if (sampleRequested && generateResumeBtn) {
+            generateResumeBtn.disabled = true;
+            generateResumeBtn.classList.add("opacity-70", "cursor-not-allowed");
+            generateResumeBtn.textContent = "Analyze your own resume to create a draft";
+            setGeneratedResumeStatus("Resume drafting is available after you analyze your own resume. This report uses fictional sample data.");
+        }
         setText(
             "fitReasonInsight",
             roleReason || "The system compares your selected role, resume-detected role, and weighted database requirements before choosing the recommended role."
@@ -3498,6 +3607,7 @@ Download PDF
             missingKeywords,
             structuredFeedback
         });
+        renderQuickActions(recommendationModule, missingKeywords, qualityCriteria);
         renderFeedbackList("structuredFeedbackList", structuredFeedback, feedback);
 
         if (parsedSkillsCount) {
@@ -3528,7 +3638,7 @@ Download PDF
             matchScoreDetail.textContent = scoreExplanation.detail || "One final score combines database role match, resume evidence, education signals, and ATS format quality.";
         }
 
-        if (generateResumeBtn && generateResumeBtn.dataset.bound !== "true") {
+        if (!sampleRequested && generateResumeBtn && generateResumeBtn.dataset.bound !== "true") {
             generateResumeBtn.dataset.bound = "true";
             generateResumeBtn.addEventListener("click", () => {
                 generateOptimizedResume({ result, recommendedRole });
@@ -3561,7 +3671,7 @@ Download PDF
         }
 
         const buildCurrentReportPayload = () => ({
-            uploadedResumeName,
+            uploadedResumeName: sampleRequested ? "Fictional sample: " + uploadedResumeName : uploadedResumeName,
             selectedRole,
             selectedDatabaseRole,
             recommendedRole,
@@ -3572,7 +3682,8 @@ Download PDF
             submittedAt: formatSubmittedTime(submittedAt),
             qualityCriteria,
             compatibility,
-            roleReason,
+            roleReason: sampleRequested ? "Fictional sample report; not based on your resume. " + roleReason : roleReason,
+            sampleOnly: sampleRequested,
             recommendationModule,
             recommendationPlan: Array.isArray(recommendationModule.priority_actions)
                 ? recommendationModule.priority_actions
@@ -3583,7 +3694,7 @@ Download PDF
             structuredFeedback,
             feedback,
             resumeExcerpt: resumePreviewText,
-            resumeVisualPreview: getReportResumeVisualPreview(resumeVisualPreview),
+            resumeVisualPreview: sampleRequested ? null : getReportResumeVisualPreview(resumeVisualPreview),
             generatedAt: new Date().toLocaleString()
         });
 
@@ -3596,7 +3707,7 @@ Download PDF
                 const originalButtonHtml = exportResumeBtn.innerHTML;
                 exportResumeBtn.disabled = true;
                 exportResumeBtn.classList.add("opacity-70", "cursor-wait");
-                exportResumeBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span>Preparing PDF...';
+                exportResumeBtn.textContent = 'Preparing PDF...';
 
                 try {
                     await downloadFeedbackReportPdf(buildCurrentReportPayload(), result.analysis_id || null);
@@ -3617,7 +3728,7 @@ Download PDF
                 const originalButtonHtml = exportHtmlReportBtn.innerHTML;
                 exportHtmlReportBtn.disabled = true;
                 exportHtmlReportBtn.classList.add("opacity-70", "cursor-wait");
-                exportHtmlReportBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span>Preparing HTML...';
+                exportHtmlReportBtn.textContent = 'Preparing HTML...';
 
                 try {
                     await downloadFeedbackReportHtml(buildCurrentReportPayload(), result.analysis_id || null);
@@ -3631,7 +3742,11 @@ Download PDF
 
     }
 
-    loadAnalysisResult();
+    if (new URLSearchParams(window.location.search).get("sample") === "1") {
+        loadAnalysisResult();
+    } else {
+        window.CareerNavigatorCommon.syncAuthUserFromServer().then(loadAnalysisResult, loadAnalysisResult);
+    }
 
     function saveAnalysisToHistory(analysis) {
         const role = localStorage.getItem("selectedJobRole") || "";
@@ -3658,7 +3773,7 @@ Download PDF
         emptyDescription: "Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.",
         onEmptyAction: () => {
             window.CareerNavigatorCommon.writeSampleAnalysisForDemo();
-            window.location.href = "analysis_result.html";
+            window.location.href = "analysis_result.html?sample=1";
         },
         onView: (entry) => {
             try {

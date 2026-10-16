@@ -6,30 +6,52 @@
 <title>UTS CS Career Navigator - Admin Insights</title>
 <link href="/tailwind.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <script src="app_common.js"></script>
 <style>
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
-}
+.admin-icon { width: 1.25rem; height: 1.25rem; flex: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 html, body {
   max-width: 100%;
   overflow-x: hidden;
 }
 body {
   font-family: "Inter", sans-serif;
-  background: #f8f9fa;
-  color: #191c1d;
+  background: #f7f9fc;
+  color: #162338;
 }
 h1, h2, h3, .font-headline {
   font-family: "Manrope", sans-serif;
 }
+.admin-page .text-primary { color: #162338; }
+.admin-page .text-secondary { color: #176b89; }
+.admin-page .text-on-surface-variant { color: #5b6b80; }
+.admin-page .bg-primary { background-color: #176b89; }
+.admin-page .bg-primary:hover { background-color: #11546d; }
+.admin-page .bg-surface-container-low { background-color: #eef5f8; }
+.admin-page .bg-surface-container-low:hover { background-color: #e3eef3; }
+.admin-page .border-outline-variant { border-color: #e0e7ef; }
+.admin-nav {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #e0e7ef;
+}
+.admin-brand,
+.admin-nav a:hover,
+.admin-nav a[aria-current="page"] { color: #176b89; }
+.admin-hero { background: #ffffff; border-bottom: 1px solid #e0e7ef; }
+.admin-eyebrow { letter-spacing: 0.14em; }
+.admin-page :is(a, button, input):focus-visible {
+  outline: 3px solid #176b89;
+  outline-offset: 3px;
+}
 .metric-card,
 .data-card {
-  border: 1px solid rgba(116, 119, 128, 0.24);
+  border: 1px solid #e0e7ef;
   background: #ffffff;
-  border-radius: 0.5rem;
-  box-shadow: 0 16px 42px rgba(0, 37, 85, 0.07);
+  border-radius: 18px;
+  box-shadow: 0 12px 36px rgba(22, 35, 56, 0.07);
+}
+.metric-card,
+.data-card {
+  padding: 1.5rem;
 }
 .metric-card {
   min-height: 8.25rem;
@@ -37,29 +59,31 @@ h1, h2, h3, .font-headline {
 .icon-button {
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 0.5rem;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .bar-track {
-  height: 0.7rem;
+  height: 0.6rem;
   border-radius: 999px;
   overflow: hidden;
-  background: #e7e8e9;
+  background: #e8eef3;
 }
 .bar-fill {
   height: 100%;
-  min-width: 0.35rem;
   border-radius: 999px;
   transition: width 0.28s ease;
 }
 .table-shell {
   overflow-x: auto;
+  scrollbar-color: #b8cad3 #f7f9fc;
 }
 th, td {
   white-space: nowrap;
 }
+th { color: #5b6b80; letter-spacing: 0.04em; }
+tbody tr:hover { background: #f7fafc; }
 .pill {
   display: inline-flex;
   align-items: center;
@@ -71,37 +95,57 @@ th, td {
 .modal-backdrop {
   background: rgba(15, 23, 42, 0.58);
 }
+@media (max-width: 640px) {
+  .admin-nav .nav-inner {
+    height: auto;
+    min-height: 6.5rem;
+    flex-wrap: wrap;
+    align-content: center;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+    row-gap: 0.45rem;
+  }
+  .admin-brand { flex-basis: 100%; }
+  .admin-actions { width: 100%; justify-content: flex-end; }
+  .admin-mobile-home { display: none; }
+  .admin-main { padding-top: 7.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill { transition: none; }
+}
 </style>
 </head>
-<body class="min-h-screen bg-background text-on-surface">
-<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-    <a class="text-base sm:text-xl font-bold tracking-tight text-blue-900 dark:text-white font-headline truncate min-w-0 hover:text-secondary transition-colors" href="home_page.html" aria-label="Back to dashboard">UTS CS Career Navigator</a>
+<body class="admin-page min-h-screen bg-background text-on-surface">
+<nav class="admin-nav fixed top-0 w-full z-50 backdrop-blur-xl">
+  <div class="nav-inner max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <a class="admin-brand text-base sm:text-xl font-bold tracking-tight font-headline truncate min-w-0 transition-colors" href="home_page.html" aria-label="Back to home">UTS CS Career Navigator</a>
     <div class="hidden md:flex items-center space-x-8">
-      <a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="home_page.html">Dashboard</a>
-      <a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="analysis_result.html">Results</a>
-      <a class="font-headline text-sm font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
+      <a class="font-headline text-sm font-semibold tracking-tight text-on-surface-variant transition-colors" href="home_page.html">Home</a>
+      <a class="font-headline text-sm font-semibold tracking-tight text-on-surface-variant transition-colors" href="analysis_result.html">Results</a>
+      <a class="font-headline text-sm font-semibold tracking-tight border-b-2 pb-1 transition-colors" href="job_data_insights.html" aria-current="page" data-admin-link>Admin Insights</a>
     </div>
-    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-      <button class="material-symbols-outlined text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" data-icon="account_circle" type="button">account_circle</button>
+    <div class="admin-actions flex items-center gap-2 sm:gap-4 shrink-0">
+      <button class="text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" type="button" aria-label="Account profile">
+        <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+      </button>
       <button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
       <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap" type="button">History</button>
       <button id="refreshBtn" class="h-10 w-10 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" type="button" title="Refresh insights" aria-label="Refresh insights">
-        <span class="material-symbols-outlined text-base">refresh</span>
+        <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.4 6"/><path d="M20 4v7h-7"/></svg>
       </button>
-      <a class="md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
-        <span class="material-symbols-outlined text-base">home</span>
+      <a class="admin-mobile-home md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
+        <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v11H3V10Z"/><path d="M9 21v-7h6v7"/></svg>
       </a>
     </div>
   </div>
-  <div class="bg-slate-100 dark:bg-slate-800 h-[1px] w-full"></div>
 </nav>
 
-<main class="pt-24 pb-20">
-  <section class="border-b border-outline-variant bg-white">
+<main class="admin-main pt-24 pb-20">
+  <section class="admin-hero">
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <p class="text-sm font-bold uppercase tracking-[0.24em] text-secondary">Admin Dashboard</p>
-      <h1 class="mt-2 font-headline text-3xl font-extrabold text-primary sm:text-4xl">System Insights</h1>
+      <p class="admin-eyebrow text-xs font-bold uppercase text-secondary">Admin workspace</p>
+      <h1 class="mt-2 font-headline text-3xl font-extrabold text-primary sm:text-4xl">System insights</h1>
+      <p class="mt-3 max-w-2xl text-sm leading-6 text-on-surface-variant sm:text-base">Review account activity, resume evaluations, and the job-role dataset.</p>
       <p id="pageMessage" class="mt-3 hidden text-sm font-semibold"></p>
     </div>
   </section>
@@ -113,16 +157,15 @@ th, td {
   <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
-        <h2 class="font-headline text-xl font-extrabold text-primary">Resume Improvement</h2>
-        <span class="material-symbols-outlined text-secondary">trending_up</span>
+        <h2 class="font-headline text-xl font-extrabold text-primary">Estimated resume improvement</h2>
       </div>
+      <p class="mb-5 text-sm leading-6 text-on-surface-variant">After scores estimate potential gains from suggested changes. They do not measure a revised resume.</p>
       <div id="improvementGrid" class="grid gap-3 sm:grid-cols-2"></div>
     </article>
 
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Evaluation Score Bands</h2>
-        <span class="material-symbols-outlined text-secondary">stacked_bar_chart</span>
       </div>
       <div id="scoreDistributionBars" class="space-y-4"></div>
     </article>
@@ -155,7 +198,6 @@ th, td {
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Top Evaluated Roles</h2>
-        <span class="material-symbols-outlined text-secondary">query_stats</span>
       </div>
       <div id="evaluatedRoleBars" class="space-y-4"></div>
     </article>
@@ -197,7 +239,6 @@ th, td {
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Requirement Types</h2>
-        <span class="material-symbols-outlined text-secondary">stacked_bar_chart</span>
       </div>
       <div id="requirementTypeBars" class="space-y-4"></div>
     </article>
@@ -205,7 +246,6 @@ th, td {
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Role Families</h2>
-        <span class="material-symbols-outlined text-secondary">account_tree</span>
       </div>
       <div id="roleFamilyBars" class="space-y-4"></div>
     </article>
@@ -215,7 +255,6 @@ th, td {
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Top Skill Keywords</h2>
-        <span class="material-symbols-outlined text-secondary">psychology</span>
       </div>
       <div id="skillBars" class="space-y-4"></div>
     </article>
@@ -223,7 +262,6 @@ th, td {
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Top Text Keywords</h2>
-        <span class="material-symbols-outlined text-secondary">manage_search</span>
       </div>
       <div id="keywordBars" class="space-y-4"></div>
     </article>
@@ -252,7 +290,7 @@ th, td {
   </section>
 </main>
 
-<div id="userEditModal" class="fixed inset-0 z-[70] hidden items-center justify-center modal-backdrop px-4 py-6">
+<div id="userEditModal" class="fixed inset-0 z-[70] hidden items-center justify-center modal-backdrop px-4 py-6" role="dialog" aria-modal="true" aria-label="Edit user account" aria-hidden="true">
   <section class="w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl">
     <div class="mb-5 flex items-start justify-between gap-4">
       <div>
@@ -260,7 +298,7 @@ th, td {
         <h2 class="mt-2 font-headline text-2xl font-extrabold text-primary">Edit User</h2>
       </div>
       <button id="closeUserModalBtn" class="icon-button text-on-surface-variant hover:bg-surface-container" type="button" aria-label="Close user editor">
-        <span class="material-symbols-outlined">close</span>
+        <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
     <form id="userEditForm" class="space-y-4">
@@ -296,7 +334,7 @@ const API_BASE_URL = window.location.origin && window.location.protocol.startsWi
   : "http://127.0.0.1:5000";
 const numberFormatter = new Intl.NumberFormat("en-US");
 const scoreFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
-const barColors = ["#002555", "#0060ac", "#0f766e", "#9a3412", "#6d28d9", "#166534", "#7c2d12", "#334155"];
+const barColors = ["#176b89", "#0f766e", "#3a8fa4", "#4b7596", "#42927e", "#5b87a0", "#317d93", "#527f76"];
 const openAuthModalBtn = document.getElementById("openAuthModalBtn");
 const openHistoryBtn = document.getElementById("openHistoryBtn");
 const accountStatusBtn = document.getElementById("accountStatusBtn");
@@ -397,10 +435,7 @@ async function fetchAdminJson(path, options = {}) {
 function renderMetricCards(containerId, metrics) {
   document.getElementById(containerId).innerHTML = metrics.map((item) => `
     <article class="metric-card p-5">
-      <div class="flex items-start justify-between gap-4">
-        <p class="text-sm font-bold text-on-surface-variant">${escapeHtml(item.label)}</p>
-        <span class="material-symbols-outlined text-secondary">${escapeHtml(item.icon)}</span>
-      </div>
+      <p class="text-sm font-bold text-on-surface-variant">${escapeHtml(item.label)}</p>
       <p class="mt-5 font-headline text-3xl font-extrabold text-primary">${escapeHtml(item.value)}</p>
     </article>
   `).join("");
@@ -408,26 +443,27 @@ function renderMetricCards(containerId, metrics) {
 
 function renderAdminMetrics(summary) {
   renderMetricCards("adminMetricGrid", [
-    { label: "Registered Users", value: formatNumber(summary.registered_users), icon: "groups" },
-    { label: "Resume Evaluations", value: formatNumber(summary.resume_evaluations), icon: "fact_check" },
-    { label: "Users Evaluated", value: formatNumber(summary.evaluating_users), icon: "person_check" },
-    { label: "Download Records", value: formatNumber(summary.download_records), icon: "download" }
+    { label: "Registered Users", value: formatNumber(summary.registered_users) },
+    { label: "Resume Evaluations", value: formatNumber(summary.resume_evaluations) },
+    { label: "Users Evaluated", value: formatNumber(summary.evaluating_users) },
+    { label: "Download Records", value: formatNumber(summary.download_records) }
   ]);
 }
 
 function renderImprovement(summary) {
+  if (!Number(summary.resume_evaluations || 0)) {
+    document.getElementById("improvementGrid").innerHTML = '<p class="col-span-full rounded-xl bg-surface-container-low p-4 text-sm text-on-surface-variant">No resume evaluations yet. Estimates will appear after the first analysis.</p>';
+    return;
+  }
   const metrics = [
-    { label: "Avg. Before Score", value: formatScore(summary.average_before_score), icon: "analytics" },
-    { label: "Est. After Score", value: formatScore(summary.estimated_average_after_score), icon: "trending_up" },
-    { label: "Avg. Est. Gain", value: "+" + scoreFormatter.format(Number(summary.average_estimated_gain || 0)), icon: "add_chart" },
-    { label: "Est. Improved", value: `${formatNumber(summary.estimated_improved_evaluations)} (${formatPercent(summary.estimated_improvement_rate)})`, icon: "task_alt" }
+    { label: "Avg. Before Score", value: formatScore(summary.average_before_score) },
+    { label: "Est. After Score", value: formatScore(summary.estimated_average_after_score) },
+    { label: "Avg. Est. Gain", value: "+" + scoreFormatter.format(Number(summary.average_estimated_gain || 0)) },
+    { label: "Est. Improved", value: `${formatNumber(summary.estimated_improved_evaluations)} (${formatPercent(summary.estimated_improvement_rate)})` }
   ];
   document.getElementById("improvementGrid").innerHTML = metrics.map((item) => `
     <div class="rounded-xl bg-surface-container-low p-4">
-      <div class="flex items-center justify-between gap-3">
-        <p class="text-xs font-bold uppercase text-on-surface-variant">${escapeHtml(item.label)}</p>
-        <span class="material-symbols-outlined text-secondary text-base">${escapeHtml(item.icon)}</span>
-      </div>
+      <p class="text-xs font-bold uppercase text-on-surface-variant">${escapeHtml(item.label)}</p>
       <p class="mt-3 font-headline text-2xl font-extrabold text-primary">${escapeHtml(item.value)}</p>
     </div>
   `).join("");
@@ -435,10 +471,10 @@ function renderImprovement(summary) {
 
 function renderDatasetMetrics(summary) {
   renderMetricCards("datasetMetricGrid", [
-    { label: "Job Roles", value: formatNumber(summary.total_roles), icon: "workspaces" },
-    { label: "Requirements", value: formatNumber(summary.total_requirements), icon: "database" },
-    { label: "Avg. Requirements", value: scoreFormatter.format(Number(summary.average_requirements_per_role || 0)), icon: "monitoring" },
-    { label: "Detected Skills", value: formatNumber(summary.distinct_detected_skill_keywords), icon: "data_object" }
+    { label: "Job Roles", value: formatNumber(summary.total_roles) },
+    { label: "Requirements", value: formatNumber(summary.total_requirements) },
+    { label: "Avg. Requirements", value: scoreFormatter.format(Number(summary.average_requirements_per_role || 0)) },
+    { label: "Detected Skills", value: formatNumber(summary.distinct_detected_skill_keywords) }
   ]);
 }
 
@@ -449,7 +485,7 @@ function renderBars(elementId, items, labelKey = "label", valueKey = "value", su
   container.innerHTML = cleanItems.map((item, index) => {
     const label = item[labelKey] || item.label || "";
     const value = Number(item[valueKey] || item.value || 0);
-    const width = Math.max(2, (value / maxValue) * 100);
+    const width = value > 0 ? (value / maxValue) * 100 : 0;
     const color = barColors[index % barColors.length];
     return `
       <div>
@@ -502,10 +538,10 @@ function renderUserTable(users) {
       <td class="px-3 py-3">
         <div class="flex justify-end gap-2">
           <button class="icon-button bg-surface-container-low text-primary hover:bg-surface-container-high" type="button" data-action="edit-user" data-user-id="${escapeHtml(user.id)}" title="Edit user" aria-label="Edit user">
-            <span class="material-symbols-outlined text-base">edit</span>
+            <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4"/></svg>
           </button>
           <button class="icon-button bg-error-container text-error hover:opacity-90" type="button" data-action="delete-user" data-user-id="${escapeHtml(user.id)}" title="Delete user" aria-label="Delete user">
-            <span class="material-symbols-outlined text-base">delete</span>
+            <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 10v7M14 10v7"/></svg>
           </button>
         </div>
       </td>
@@ -541,8 +577,10 @@ function openUserEditor(userId) {
   editPasswordInput.value = "";
   editIsAdminInput.checked = Boolean(user.is_admin);
   setUserEditMessage("");
+  userEditModal._focusBeforeOpen = document.activeElement;
   userEditModal.classList.remove("hidden");
   userEditModal.classList.add("flex");
+  userEditModal.setAttribute("aria-hidden", "false");
   editFullNameInput.focus();
 }
 
@@ -552,6 +590,10 @@ function closeUserEditor() {
   }
   userEditModal.classList.add("hidden");
   userEditModal.classList.remove("flex");
+  userEditModal.setAttribute("aria-hidden", "true");
+  if (userEditModal._focusBeforeOpen && document.contains(userEditModal._focusBeforeOpen)) {
+    userEditModal._focusBeforeOpen.focus({ preventScroll: true });
+  }
 }
 
 function setUserEditMessage(message, isError = false) {
