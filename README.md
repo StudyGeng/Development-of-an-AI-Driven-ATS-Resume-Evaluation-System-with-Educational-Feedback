@@ -1,6 +1,6 @@
 ﻿# UTS CS Career Navigator
 
-UTS CS Career Navigator is a Final Year Project web application for Computer Science students. It compares a résumé with CS job requirements, gives an ATS-style readiness score, and explains what matched and what to improve. It can also suggest related roles and help create a résumé draft.
+UTS CS Career Navigator is a Final Year Project web application for Computer Science students at the University of Technology Sarawak (UTS), Malaysia. It compares a résumé with CS job requirements, gives an ATS-style readiness score, and explains what matched and what to improve. It can also suggest related roles and help create a résumé draft. This is an educational prototype, not an official university service.
 
 ## Open the live app
 
@@ -11,14 +11,14 @@ The app runs on Render Free. After a period without visitors, the first page loa
 ## How to use it
 
 1. Open the live app and click **Log In / Sign Up**. New users choose **Sign Up**, enter their details, click **Send PIN**, enter the six-digit code received by email, and click **Create Account**. Returning users log in with their email and password.
-2. Click **Evaluate My Resume**.
+2. Click **Check my resume**.
 3. Search for a target CS job role, or leave the role blank to let the system suggest one from the résumé.
 4. Click **Choose File** or drag a résumé into the upload area. The app accepts PDF, PNG, JPG, and JPEG files up to 10 MB. A PDF with selectable text usually gives the clearest analysis; scanned PDFs may not provide readable text.
-5. Click **Start ATS + NLP Analysis** and wait for the results page.
+5. Click **Analyze resume** and wait for the results page.
 6. Review the **UTS CS Readiness Score**, job-role match, matched and missing keywords, and improvement suggestions.
 7. If useful, click **Generate Optimized Resume** to preview a draft and download it as PDF or HTML. You can also export the feedback report as PDF or HTML without generating a résumé.
 
-Click **History** to reopen recent results saved in the current browser. To explore the interface before uploading a résumé, use **View Sample Feedback** on the home page.
+Click **History** to reopen recent results saved in the current browser. To explore the interface before uploading a résumé, use **See a sample report** on the home page. The sample uses fictional information and is clearly labelled.
 
 ## What the feedback means
 
