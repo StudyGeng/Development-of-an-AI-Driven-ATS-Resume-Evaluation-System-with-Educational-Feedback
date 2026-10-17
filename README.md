@@ -35,6 +35,7 @@ The project uses Python, Flask, scikit-learn, pypdf, Tesseract OCR for supported
 ## For developers
 
 - To preview locally, build the stylesheet with `npm ci` and `npm run build:css`, then start the configured Flask app with `.\\.venv\\Scripts\\python.exe backend/app.py`. Open `http://127.0.0.1:5000/`. Opening an HTML file directly cannot load account or admin data.
+- `outputs/` contains local evaluation data and is ignored by Git. QA screenshots and temporary browser profiles are not needed by the app and should be removed after testing.
 - [Render and Supabase deployment guide](DEPLOY_RENDER_FREE.md)
 - [Environment variable example](config/env.example)
 - Run the backend tests from the project root with `python -m unittest discover -s backend/tests -v`.

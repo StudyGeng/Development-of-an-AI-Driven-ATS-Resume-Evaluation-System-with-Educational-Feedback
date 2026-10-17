@@ -204,7 +204,6 @@ tbody tr:hover { background: #f1f8f8; }
   .admin-brand-name strong { font-size: 14px; }
   .admin-actions { width: 100%; justify-content: flex-end; }
   .admin-mobile-home { display: none; }
-  .admin-main { padding-top: 0; }
   .admin-access-card { grid-template-columns: 1fr; }
   .admin-overview { padding-top: 4rem; padding-bottom: 4rem; }
   .admin-overview-row { grid-template-columns: minmax(6rem, .7fr) minmax(0, 1fr); gap: 1rem; min-height: 7rem; }
@@ -231,9 +230,6 @@ tbody tr:hover { background: #f1f8f8; }
       <a class="font-headline text-sm font-semibold tracking-tight border-b-2 pb-1 transition-colors" href="job_data_insights.html" aria-current="page" data-admin-link>Admin Insights</a>
     </div>
     <div class="admin-actions flex items-center gap-2 sm:gap-4 shrink-0">
-      <button class="text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" type="button" aria-label="Account profile">
-        <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
-      </button>
       <button class="admin-button admin-button-primary h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
       <button id="openHistoryBtn" class="admin-button admin-button-secondary h-10 inline-flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" type="button">History</button>
       <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights" hidden>
@@ -465,7 +461,6 @@ const scoreFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1
 const barColors = ["#087fec", "#2c9af4", "#367dc8", "#5aa9ee", "#5c75bb", "#78b8ee", "#4b94d2", "#7aa9d2"];
 const openAuthModalBtn = document.getElementById("openAuthModalBtn");
 const openHistoryBtn = document.getElementById("openHistoryBtn");
-const accountStatusBtn = document.getElementById("accountStatusBtn");
 const refreshBtn = document.getElementById("refreshBtn");
 const adminDashboard = document.getElementById("adminDashboard");
 const adminAccessState = document.getElementById("adminAccessState");
@@ -528,10 +523,6 @@ function updateHeaderAuthUi() {
     openAuthModalBtn.title = currentUser
       ? "Open profile for " + (currentUser.full_name || "current user")
       : "Sign in or create account";
-  }
-  if (accountStatusBtn) {
-    accountStatusBtn.classList.add("hidden");
-    accountStatusBtn.title = "";
   }
 }
 
@@ -809,7 +800,6 @@ async function loadInsights() {
   if (window.location.protocol === "file:") {
     openAuthModalBtn.hidden = true;
     openHistoryBtn.hidden = true;
-    accountStatusBtn.hidden = true;
     showAdminAccessState(
       "Admin access",
       "Open the running app to view insights",

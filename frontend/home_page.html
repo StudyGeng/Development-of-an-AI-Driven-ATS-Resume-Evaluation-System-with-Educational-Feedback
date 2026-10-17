@@ -16,13 +16,6 @@
             max-width: 100%;
             overflow-x: clip;
         }
-        .editorial-shadow {
-            box-shadow: 0 0 32px 0 rgba(25, 28, 29, 0.06);
-        }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-        }
         .toast-stack {
             position: fixed;
             top: 5rem;
@@ -225,7 +218,6 @@
         }
         :root {
             --career-canvas: #ffffff;
-            --career-white: #ffffff;
             --career-ink: #17202e;
             --career-muted: #526276;
             --career-teal: #087fec;
@@ -233,7 +225,6 @@
             --career-mint: #e8f3ff;
             --career-line: #dce6f1;
             --career-warm: #fff3df;
-            --career-radius: 18px;
         }
         html { scroll-behavior: smooth; }
         body { margin: 0; background: var(--career-canvas); color: var(--career-ink); font-family: Inter, Arial, sans-serif; }
@@ -518,7 +509,6 @@
       <a class="hidden" href="job_data_insights.html" data-admin-link>Admin insights</a>
     </div>
     <div class="career-nav-actions">
-      <button class="hidden" id="accountStatusBtn" type="button" aria-hidden="true">Account</button>
       <button class="career-nav-login" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
       <button class="career-nav-history" id="openHistoryBtn" type="button">History</button>
     </div>
@@ -1047,7 +1037,6 @@
   const universityPartnersModalBackdrop = document.getElementById("universityPartnersModalBackdrop");
   const closeUniversityPartnersBtn = document.getElementById("closeUniversityPartnersBtn");
   const openAuthModalBtn = document.getElementById("openAuthModalBtn");
-  const accountStatusBtn = document.getElementById("accountStatusBtn");
   const authModal = document.getElementById("authModal");
   const authModalBackdrop = document.getElementById("authModalBackdrop");
   const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
@@ -1126,10 +1115,6 @@
     if (openAuthModalBtn) {
       openAuthModalBtn.textContent = currentUser ? "My Profile" : "Log In / Sign Up";
       openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Sign in or create account";
-    }
-    if (accountStatusBtn) {
-      accountStatusBtn.classList.add("hidden");
-      accountStatusBtn.title = "";
     }
     document.querySelectorAll("[data-admin-link]").forEach((link) => {
       link.classList.toggle("hidden", !(currentUser && currentUser.is_admin));

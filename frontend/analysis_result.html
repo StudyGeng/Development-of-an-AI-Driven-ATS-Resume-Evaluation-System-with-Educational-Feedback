@@ -111,10 +111,6 @@
             line-height: 1.1;
             text-align: left;
         }
-        .site-footer {
-            background:
-                linear-gradient(135deg, #011a3a 0%, #052b5f 52%, #0060ac 100%);
-        }
         .footer-link-row {
             display: flex;
             flex-wrap: nowrap;
@@ -160,12 +156,12 @@
             }
         }
         :root {
-            --studio-canvas: #f7f9fc;
-            --studio-ink: #162338;
-            --studio-muted: #5b6b80;
-            --studio-teal: #176b89;
-            --studio-teal-dark: #11546d;
-            --studio-border: #e0e7ef;
+            --studio-canvas: #fff;
+            --studio-ink: #171b22;
+            --studio-muted: #526174;
+            --studio-teal: #087fec;
+            --studio-teal-dark: #086ac5;
+            --studio-border: #dfe7f0;
         }
         [hidden] { display: none !important; }
         :where(.hidden) { display: none; }
@@ -244,18 +240,8 @@
         @media (max-width: 430px) { .report-brand-name strong { display: none; } .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .55rem; padding-right: .55rem; } }
         @media (max-width: 370px) { .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .4rem; padding-right: .4rem; font-size: .67rem; } }
         /* Report surface and controls */
-        :root {
-            --studio-canvas: #fff;
-            --studio-ink: #171b22;
-            --studio-muted: #526174;
-            --studio-teal: #087fec;
-            --studio-teal-dark: #086ac5;
-            --studio-border: #dfe7f0;
-        }
-        body { background: var(--studio-canvas); }
         .report-nav { box-shadow: none; }
         .report-main { max-width: 1240px; }
-        .report-brand-mark { background: var(--studio-teal); }
         .report-nav #openHistoryBtn { background: #edf6ff; }
         .report-hero {
             position: relative;
@@ -332,7 +318,6 @@
         .report-quick-list p { margin-top: .25rem; font-size: .86rem; }
         .report-tabs { position: sticky; top: 4.65rem; z-index: 30; margin-bottom: 3.75rem; box-shadow: none; }
         .report-tabs a { transition: background-color .18s ease, color .18s ease; }
-        .report-tabs a.is-active { background: #eaf5ff; color: var(--studio-teal-dark); }
         .report-section { margin-bottom: 4rem; }
         .report-section-title { max-width: 25ch; margin-bottom: 1.8rem; font-size: clamp(1.9rem,3.2vw,2.75rem); line-height: 1.15; }
         .report-sample-banner { margin-bottom: 1.25rem; border-color: #b8dfff; background: #eaf5ff; color: #16466f; }
@@ -445,7 +430,6 @@
 <a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
 </div>
 <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-<button class="hidden" id="accountStatusBtn" type="button" aria-hidden="true">Account</button>
 <button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
 <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
 <a class="mobile-home-link md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
@@ -1066,7 +1050,6 @@ Download PDF
     const universityPartnersModal = document.getElementById("universityPartnersModal");
     const universityPartnersModalBackdrop = document.getElementById("universityPartnersModalBackdrop");
     const closeUniversityPartnersBtn = document.getElementById("closeUniversityPartnersBtn");
-    const accountStatusBtn = document.getElementById("accountStatusBtn");
     const openAuthModalBtn = document.getElementById("openAuthModalBtn");
     const authModal = document.getElementById("authModal");
     const authModalBackdrop = document.getElementById("authModalBackdrop");
@@ -1162,10 +1145,6 @@ Download PDF
 
     function updateAuthUi() {
         const currentUser = getAuthUser();
-        if (accountStatusBtn) {
-            accountStatusBtn.classList.add("hidden");
-            accountStatusBtn.title = "";
-        }
         if (openAuthModalBtn) {
             openAuthModalBtn.textContent = currentUser ? "My Profile" : "Log In / Sign Up";
             openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Sign in or create account";
