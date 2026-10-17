@@ -4,6 +4,7 @@
 <title>UTS CS Career Navigator - Analysis Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tailwind.css">
+<link rel="stylesheet" href="account_workspace.css">
 <script src="app_common.js"></script>
 <style>
         *, *::before, *::after { box-sizing: border-box; }
@@ -462,7 +463,7 @@
 <a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
 </div>
 <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-<button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account"><span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span></button>
+<button class="account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account"><span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span></button>
 <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
 <a class="mobile-home-link md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
 <span aria-hidden="true">←</span>
@@ -924,47 +925,52 @@ Download PDF
 </div>
 </div>
 </div>
-<div class="fixed inset-0 z-[85] hidden" id="profileModal" role="dialog" aria-modal="true" aria-label="My profile" aria-hidden="true">
-<div class="absolute inset-0 bg-slate-900/60" id="profileModalBackdrop"></div>
-<div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
-<div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
-<div class="flex items-start justify-between gap-4 mb-4">
-<div>
-<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">Profile</p>
-<h3 class="font-headline text-2xl font-extrabold text-primary">Student Account Information</h3>
-<p class="text-sm text-on-surface-variant mt-2">View your account details and securely change your password.</p>
-</div>
-<button class="text-on-surface-variant hover:text-primary" id="closeProfileModalBtn" type="button" aria-label="Close profile dialog"><span aria-hidden="true">&times;</span></button>
-</div>
-<p class="text-sm mb-4 hidden" id="profileMessage"></p>
-<form class="space-y-4" id="profileForm">
-<div>
-<label class="text-sm font-semibold text-on-surface mb-2 block" for="profileNameInput">Full name</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-low text-sm" id="profileNameInput" type="text" readonly aria-readonly="true">
-</div>
-<div>
-<label class="text-sm font-semibold text-on-surface mb-2 block" for="profileEmailInput">Email</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-low text-sm" id="profileEmailInput" type="email" readonly aria-readonly="true">
-</div>
-<div>
-<label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordInput">New password</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profilePasswordInput" type="password" placeholder="8+ chars with letter, number, special character">
-</div>
-<div>
-<label class="text-sm font-semibold text-on-surface mb-2 block" for="profilePasswordPinInput">Password change PIN</label>
-<div class="flex flex-col sm:flex-row gap-2">
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN for password change">
-<button class="px-4 py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold hover:bg-surface-container-high transition-colors whitespace-nowrap" id="sendProfilePinBtn" type="button">Send PIN</button>
-</div>
-<p class="text-xs text-on-surface-variant mt-2">Required only when changing your password.</p>
-</div>
-<div class="flex flex-col sm:flex-row gap-3 pt-2">
-<button class="px-5 py-3 rounded-xl bg-primary text-on-primary font-bold" type="submit">Update Password</button>
-<button class="px-5 py-3 rounded-xl bg-surface-container-low text-primary font-semibold" id="logoutBtn" type="button">Log Out</button>
-</div>
-</form>
-</div>
-</div>
+<div class="fixed inset-0 z-[85] hidden" id="profileModal" role="dialog" aria-modal="true" aria-label="Account and evaluation history" aria-hidden="true">
+  <div class="account-backdrop" id="profileModalBackdrop"></div>
+  <div class="account-overlay">
+    <div class="account-workspace">
+      <aside class="account-sidebar">
+        <div class="account-identity"><span class="account-avatar" data-account-avatar>U</span><div><strong class="account-identity-name" data-account-name>Your account</strong><small class="account-identity-email" data-account-email>UTS CS Career Navigator</small></div></div>
+        <nav class="account-menu" aria-label="Account sections">
+          <button class="account-menu-button" data-account-view="info" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>User info</button>
+          <button class="account-menu-button" data-account-view="settings" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg>Settings</button>
+          <button class="account-menu-button" data-account-view="history" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>History</button>
+          <button class="account-logout" id="logoutBtn" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.5 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4.5M13 7l5 5-5 5M18 12H8"/></svg>Log out</button>
+        </nav>
+      </aside>
+      <div class="account-main">
+        <div class="account-topbar"><span>My account</span><button class="account-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button></div>
+        <section class="account-panel" data-account-panel="info">
+          <span class="account-eyebrow">User info</span><h2 class="account-panel-title">Your profile</h2>
+          <p class="account-panel-intro">Your account details in one place. You can update your password in Settings.</p>
+          <div class="account-profile-hero"><span class="account-avatar" data-account-avatar>U</span><div><strong data-account-name>Your account</strong><small>UTS CS Career Navigator account</small></div></div>
+          <div class="account-info-grid">
+            <div class="account-info-card"><label class="account-field-label" for="profileNameInput">Full name</label><input class="account-field-value" id="profileNameInput" type="text" readonly aria-readonly="true"></div>
+            <div class="account-info-card"><label class="account-field-label" for="profileEmailInput">Email</label><input class="account-field-value" id="profileEmailInput" type="email" readonly aria-readonly="true"></div>
+          </div>
+          <p class="account-info-note">Your name and email are linked to your verified account.</p>
+        </section>
+        <section class="account-panel" data-account-panel="settings" hidden>
+          <span class="account-eyebrow">Settings</span><h2 class="account-panel-title">Account security</h2>
+          <p class="account-panel-intro">Change your password using a PIN sent to your account email.</p>
+          <p class="text-sm mb-4 hidden" id="profileMessage" role="status" aria-live="polite"></p>
+          <form class="account-form" id="profileForm">
+            <div class="account-form-grid">
+              <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="8+ characters, letter, number, special character"></div>
+              <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button">Send PIN</button></div><p>Required only when changing your password.</p></div>
+            </div>
+            <div class="account-form-actions"><button class="account-primary" type="submit">Update password</button></div>
+          </form>
+        </section>
+        <section class="account-panel" data-account-panel="history" hidden>
+          <span class="account-eyebrow">History</span><h2 class="account-panel-title">Your evaluations</h2>
+          <p class="account-panel-intro">Open a previous report or remove evaluations you no longer need.</p>
+          <div class="account-history-list" id="historyList" aria-live="polite"></div>
+          <div class="account-history-actions"><button class="account-secondary" id="clearHistoryBtn" type="button">Clear history</button><button class="account-primary" id="doneHistoryBtn" type="button">Done</button></div>
+        </section>
+      </div>
+    </div>
+  </div>
 </div>
 <div class="fixed inset-0 z-[80] hidden" id="privacyPolicyModal" role="dialog" aria-modal="true" aria-label="Privacy policy" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="privacyPolicyModalBackdrop"></div>
@@ -1044,23 +1050,6 @@ Download PDF
 </div>
 </div>
 
-<!-- History Modal -->
-<div class="fixed inset-0 z-[90] hidden" id="historyModal" role="dialog" aria-modal="true" aria-label="Analysis history" aria-hidden="true">
-    <div class="absolute inset-0 bg-slate-900/55" id="historyModalBackdrop"></div>
-    <div class="absolute inset-0 p-4 md:p-10 overflow-y-auto flex items-center justify-center">
-        <div class="w-full max-w-3xl bg-surface-container-lowest rounded-2xl p-6 md:p-8 shadow-2xl border border-outline-variant/40">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-headline text-2xl font-extrabold text-primary">Evaluation History</h3>
-                <button id="closeHistoryModalBtn" class="text-on-surface-variant hover:text-primary" type="button" aria-label="Close history dialog"><span aria-hidden="true">&times;</span></button>
-            </div>
-            <div id="historyList" class="space-y-3 max-h-96 overflow-y-auto"></div>
-            <div class="mt-4 flex justify-end gap-2">
-                <button id="clearHistoryBtn" class="px-4 py-2 rounded-xl bg-surface-container-low text-primary font-semibold">Clear History</button>
-                <button id="doneHistoryBtn" class="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold">Done</button>
-            </div>
-        </div>
-    </div>
-</div>
 </div>
 <script>
     const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
@@ -1083,6 +1072,7 @@ Download PDF
     const universityPartnersModalBackdrop = document.getElementById("universityPartnersModalBackdrop");
     const closeUniversityPartnersBtn = document.getElementById("closeUniversityPartnersBtn");
     const openAuthModalBtn = document.getElementById("openAuthModalBtn");
+    const openHistoryBtn = document.getElementById("openHistoryBtn");
     const authModal = document.getElementById("authModal");
     const authModalBackdrop = document.getElementById("authModalBackdrop");
     const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
@@ -1102,6 +1092,11 @@ Download PDF
     const sendProfilePinBtn = document.getElementById("sendProfilePinBtn");
     const profileMessage = document.getElementById("profileMessage");
     const logoutBtn = document.getElementById("logoutBtn");
+    let renderAccountHistory = () => {};
+    const accountWorkspace = window.CareerNavigatorCommon.createAccountWorkspace({
+        modal: profileModal,
+        onHistory: () => renderAccountHistory()
+    });
     const loginEmailInput = document.getElementById("loginEmailInput");
     const loginPasswordInput = document.getElementById("loginPasswordInput");
     const registerNameInput = document.getElementById("registerNameInput");
@@ -1179,11 +1174,13 @@ Download PDF
         const currentUser = getAuthUser();
         if (openAuthModalBtn) {
             openAuthModalBtn.innerHTML = currentUser
-                ? '<span class="report-auth-long">My Profile</span><span class="report-auth-short">Profile</span>'
+                ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg></span><span>Account</span>'
                 : '<span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span>';
-            openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open my profile" : "Sign in or create account");
+            openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account settings" : "Sign in or create account");
             openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Sign in or create account";
         }
+        if (openHistoryBtn) openHistoryBtn.hidden = Boolean(currentUser);
+        accountWorkspace.setUser(currentUser);
         document.querySelectorAll("[data-admin-link]").forEach((link) => {
             link.classList.toggle("hidden", !(currentUser && currentUser.is_admin));
         });
@@ -1253,11 +1250,14 @@ Download PDF
         });
     }
 
-    function openProfileModal() {
-        if (!getAuthUser() || !profileModal) {
+    function openProfileModal(view = "info") {
+        const currentUser = getAuthUser();
+        if (!profileModal || (!currentUser && view !== "history")) {
             return;
         }
-        populateProfileForm();
+        if (currentUser) populateProfileForm();
+        accountWorkspace.setUser(currentUser);
+        accountWorkspace.show(view);
         profileModal._focusBeforeOpen = document.activeElement;
         window.CareerNavigatorCommon.setModalOpen(profileModal, true);
         if (closeProfileModalBtn) closeProfileModalBtn.focus({ preventScroll: true });
@@ -1267,6 +1267,7 @@ Download PDF
         if (!profileModal) {
             return;
         }
+        clearProfileSensitiveFields();
         window.CareerNavigatorCommon.setModalOpen(profileModal, false);
         if (profileModal._focusBeforeOpen && document.contains(profileModal._focusBeforeOpen)) {
             profileModal._focusBeforeOpen.focus({ preventScroll: true });
@@ -4117,23 +4118,14 @@ Download PDF
         window.CareerNavigatorCommon.saveAnalysisToHistory(analysis, role);
     }
 
-    // --- History modal UI handlers ---
-    const openHistoryBtn = document.getElementById("openHistoryBtn");
-    const historyModal = document.getElementById("historyModal");
-    const historyModalBackdrop = document.getElementById("historyModalBackdrop");
-    const closeHistoryModalBtn = document.getElementById("closeHistoryModalBtn");
+    // History is a view inside the account window.
     const historyList = document.getElementById("historyList");
     const clearHistoryBtn = document.getElementById("clearHistoryBtn");
     const doneHistoryBtn = document.getElementById("doneHistoryBtn");
 
-    window.CareerNavigatorCommon.createHistoryModal({
-        modal: historyModal,
-        openButton: openHistoryBtn,
-        backdrop: historyModalBackdrop,
-        closeButton: closeHistoryModalBtn,
+    const historyController = window.CareerNavigatorCommon.createHistoryModal({
         list: historyList,
         clearButton: clearHistoryBtn,
-        doneButton: doneHistoryBtn,
         emptyDescription: "Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.",
         onEmptyAction: () => {
             window.CareerNavigatorCommon.writeSampleAnalysisForDemo();
@@ -4154,5 +4146,8 @@ Download PDF
             window.location.href = "analysis_result.html";
         }
     });
+    renderAccountHistory = historyController.render;
+    if (openHistoryBtn) openHistoryBtn.addEventListener("click", () => openProfileModal("history"));
+    if (doneHistoryBtn) doneHistoryBtn.addEventListener("click", closeProfileModal);
 </script>
 </body></html>

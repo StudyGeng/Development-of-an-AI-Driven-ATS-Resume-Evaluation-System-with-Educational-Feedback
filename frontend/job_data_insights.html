@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>UTS CS Career Navigator - Admin Insights</title>
 <link href="tailwind.css" rel="stylesheet">
+<link href="account_workspace.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <script src="app_common.js"></script>
 <style>
@@ -230,7 +231,7 @@ tbody tr:hover { background: #f1f8f8; }
       <a class="font-headline text-sm font-semibold tracking-tight border-b-2 pb-1 transition-colors" href="job_data_insights.html" aria-current="page" data-admin-link>Admin Insights</a>
     </div>
     <div class="admin-actions flex items-center gap-2 sm:gap-4 shrink-0">
-      <button class="admin-button admin-button-primary h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
+      <button class="admin-button admin-button-primary account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
       <button id="openHistoryBtn" class="admin-button admin-button-secondary h-10 inline-flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" type="button">History</button>
       <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights" hidden>
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.4 6"/><path d="M20 4v7h-7"/></svg>
@@ -452,6 +453,53 @@ tbody tr:hover { background: #f1f8f8; }
   </section>
 </div>
 
+<div class="fixed inset-0 z-[85] hidden" id="profileModal" role="dialog" aria-modal="true" aria-label="Account and evaluation history" aria-hidden="true">
+  <div class="account-backdrop" id="profileModalBackdrop"></div>
+  <div class="account-overlay">
+    <div class="account-workspace">
+      <aside class="account-sidebar">
+        <div class="account-identity"><span class="account-avatar" data-account-avatar>U</span><div><strong class="account-identity-name" data-account-name>Your account</strong><small class="account-identity-email" data-account-email>UTS CS Career Navigator</small></div></div>
+        <nav class="account-menu" aria-label="Account sections">
+          <button class="account-menu-button" data-account-view="info" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>User info</button>
+          <button class="account-menu-button" data-account-view="settings" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg>Settings</button>
+          <button class="account-menu-button" data-account-view="history" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>History</button>
+          <button class="account-logout" id="logoutBtn" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.5 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4.5M13 7l5 5-5 5M18 12H8"/></svg>Log out</button>
+        </nav>
+      </aside>
+      <div class="account-main">
+        <div class="account-topbar"><span>My account</span><button class="account-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button></div>
+        <section class="account-panel" data-account-panel="info">
+          <span class="account-eyebrow">User info</span><h2 class="account-panel-title">Your profile</h2>
+          <p class="account-panel-intro">Your account details in one place. You can update your password in Settings.</p>
+          <div class="account-profile-hero"><span class="account-avatar" data-account-avatar>U</span><div><strong data-account-name>Your account</strong><small>UTS CS Career Navigator account</small></div></div>
+          <div class="account-info-grid">
+            <div class="account-info-card"><label class="account-field-label" for="profileNameInput">Full name</label><input class="account-field-value" id="profileNameInput" type="text" readonly aria-readonly="true"></div>
+            <div class="account-info-card"><label class="account-field-label" for="profileEmailInput">Email</label><input class="account-field-value" id="profileEmailInput" type="email" readonly aria-readonly="true"></div>
+          </div>
+          <p class="account-info-note">Your name and email are linked to your verified account.</p>
+        </section>
+        <section class="account-panel" data-account-panel="settings" hidden>
+          <span class="account-eyebrow">Settings</span><h2 class="account-panel-title">Account security</h2>
+          <p class="account-panel-intro">Change your password using a PIN sent to your account email.</p>
+          <p class="text-sm mb-4 hidden" id="profileMessage" role="status" aria-live="polite"></p>
+          <form class="account-form" id="profileForm">
+            <div class="account-form-grid">
+              <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="8+ characters, letter, number, special character"></div>
+              <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button">Send PIN</button></div><p>Required only when changing your password.</p></div>
+            </div>
+            <div class="account-form-actions"><button class="account-primary" type="submit">Update password</button></div>
+          </form>
+        </section>
+        <section class="account-panel" data-account-panel="history" hidden>
+          <span class="account-eyebrow">History</span><h2 class="account-panel-title">Your evaluations</h2>
+          <p class="account-panel-intro">Open a previous report or remove evaluations you no longer need.</p>
+          <div class="account-history-list" id="historyList" aria-live="polite"></div>
+          <div class="account-history-actions"><button class="account-secondary" id="clearHistoryBtn" type="button">Clear history</button><button class="account-primary" id="doneHistoryBtn" type="button">Done</button></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
   ? window.location.origin
@@ -461,6 +509,25 @@ const scoreFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1
 const barColors = ["#087fec", "#2c9af4", "#367dc8", "#5aa9ee", "#5c75bb", "#78b8ee", "#4b94d2", "#7aa9d2"];
 const openAuthModalBtn = document.getElementById("openAuthModalBtn");
 const openHistoryBtn = document.getElementById("openHistoryBtn");
+const profileModal = document.getElementById("profileModal");
+const profileModalBackdrop = document.getElementById("profileModalBackdrop");
+const closeProfileModalBtn = document.getElementById("closeProfileModalBtn");
+const profileForm = document.getElementById("profileForm");
+const profileMessage = document.getElementById("profileMessage");
+const profileNameInput = document.getElementById("profileNameInput");
+const profileEmailInput = document.getElementById("profileEmailInput");
+const profilePasswordInput = document.getElementById("profilePasswordInput");
+const profilePasswordPinInput = document.getElementById("profilePasswordPinInput");
+const sendProfilePinBtn = document.getElementById("sendProfilePinBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const historyList = document.getElementById("historyList");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const doneHistoryBtn = document.getElementById("doneHistoryBtn");
+let renderAccountHistory = () => {};
+const accountWorkspace = window.CareerNavigatorCommon.createAccountWorkspace({
+  modal: profileModal,
+  onHistory: () => renderAccountHistory()
+});
 const refreshBtn = document.getElementById("refreshBtn");
 const adminDashboard = document.getElementById("adminDashboard");
 const adminAccessState = document.getElementById("adminAccessState");
@@ -519,11 +586,16 @@ function getStoredUser() {
 function updateHeaderAuthUi() {
   const currentUser = getStoredUser();
   if (openAuthModalBtn) {
-    openAuthModalBtn.textContent = currentUser ? "My Profile" : "Log In / Sign Up";
+    openAuthModalBtn.innerHTML = currentUser
+      ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg></span><span>Account</span>'
+      : "Log In / Sign Up";
+    openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account settings" : "Sign in or create account");
     openAuthModalBtn.title = currentUser
       ? "Open profile for " + (currentUser.full_name || "current user")
       : "Sign in or create account";
   }
+  if (openHistoryBtn) openHistoryBtn.hidden = Boolean(currentUser);
+  accountWorkspace.setUser(currentUser);
 }
 
 window.addEventListener("career-navigator-auth-changed", updateHeaderAuthUi);
@@ -852,18 +924,124 @@ async function loadInsights() {
   }
 }
 
-if (openAuthModalBtn) {
-  openAuthModalBtn.addEventListener("click", () => {
-    const currentUser = getStoredUser();
-    window.location.href = currentUser ? "home_page.html?open_profile=1" : "home_page.html?open_auth=1";
-  });
+function setProfileMessage(message, isError = false) {
+  profileMessage.textContent = message;
+  profileMessage.className = isError ? "text-sm mb-4 text-error" : "text-sm mb-4 text-secondary";
+  profileMessage.classList.remove("hidden");
 }
 
-if (openHistoryBtn) {
-  openHistoryBtn.addEventListener("click", () => {
-    window.location.href = "home_page.html?open_history=1";
-  });
+function openAccountWorkspace(view = "info") {
+  const currentUser = getStoredUser();
+  if (!currentUser && view !== "history") {
+    window.location.href = "home_page.html?open_auth=1";
+    return;
+  }
+  if (currentUser) {
+    window.CareerNavigatorCommon.populateProfileForm(currentUser, {
+      nameInput: profileNameInput,
+      emailInput: profileEmailInput,
+      passwordInput: profilePasswordInput,
+      pinInput: profilePasswordPinInput,
+      message: profileMessage
+    });
+  }
+  accountWorkspace.setUser(currentUser);
+  accountWorkspace.show(view);
+  profileModal._focusBeforeOpen = document.activeElement;
+  window.CareerNavigatorCommon.setModalOpen(profileModal, true);
+  closeProfileModalBtn.focus({ preventScroll: true });
 }
+
+function closeAccountWorkspace() {
+  window.CareerNavigatorCommon.clearProfileSensitiveFields({
+    passwordInput: profilePasswordInput,
+    pinInput: profilePasswordPinInput,
+    message: profileMessage
+  });
+  window.CareerNavigatorCommon.setModalOpen(profileModal, false);
+  if (profileModal._focusBeforeOpen && document.contains(profileModal._focusBeforeOpen)) {
+    profileModal._focusBeforeOpen.focus({ preventScroll: true });
+  }
+}
+
+const historyController = window.CareerNavigatorCommon.createHistoryModal({
+  list: historyList,
+  clearButton: clearHistoryBtn,
+  emptyDescription: "Open a sample evaluated resume to see the score, feedback, recommendation, and generated resume flow.",
+  onEmptyAction: () => {
+    window.CareerNavigatorCommon.writeSampleAnalysisForDemo();
+    window.location.href = "analysis_result.html?sample=1";
+  },
+  onView: (entry) => {
+    try {
+      localStorage.setItem("analysisResult", JSON.stringify(entry.full));
+      const user = getStoredUser();
+      if (user && user.email) localStorage.setItem("analysisOwner", user.email.toLowerCase());
+      else localStorage.removeItem("analysisOwner");
+    } catch (error) {
+      // The report can still open if local storage is unavailable.
+    }
+    window.location.href = "analysis_result.html";
+  }
+});
+renderAccountHistory = historyController.render;
+
+if (openAuthModalBtn) openAuthModalBtn.addEventListener("click", () => openAccountWorkspace("info"));
+if (openHistoryBtn) openHistoryBtn.addEventListener("click", () => openAccountWorkspace("history"));
+if (profileModalBackdrop) profileModalBackdrop.addEventListener("click", closeAccountWorkspace);
+if (closeProfileModalBtn) closeProfileModalBtn.addEventListener("click", closeAccountWorkspace);
+if (doneHistoryBtn) doneHistoryBtn.addEventListener("click", closeAccountWorkspace);
+if (profilePasswordPinInput) profilePasswordPinInput.addEventListener("input", () => {
+  window.CareerNavigatorCommon.sanitizePinInput(profilePasswordPinInput, true);
+});
+if (sendProfilePinBtn) sendProfilePinBtn.addEventListener("click", async () => {
+  try {
+    const user = getStoredUser();
+    if (!user || !user.email) throw new Error("Please sign in first.");
+    setProfileMessage("Sending password-change PIN...");
+    await window.CareerNavigatorCommon.requestAuthPin(user.email, "password_reset", sendProfilePinBtn, setProfileMessage, API_BASE_URL);
+  } catch (error) {
+    setProfileMessage(error.message || "Could not send PIN", true);
+  }
+});
+if (profileForm) profileForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const user = getStoredUser();
+  if (!user) return setProfileMessage("Please sign in first.", true);
+  const password = profilePasswordInput.value;
+  const pin = profilePasswordPinInput.value.trim();
+  const issue = window.CareerNavigatorCommon.getPasswordValidationMessage(password);
+  if (issue) return setProfileMessage(issue, true);
+  if (!/^[0-9]{6}$/.test(pin)) return setProfileMessage("Enter the 6-digit PIN sent to your email.", true);
+  try {
+    setProfileMessage("Verifying PIN and updating password...");
+    const response = await fetch(API_BASE_URL + "/users/password-reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, verification_pin: pin, new_password: password })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "Password update failed");
+    window.CareerNavigatorCommon.clearProfileSensitiveFields({
+      passwordInput: profilePasswordInput,
+      pinInput: profilePasswordPinInput,
+      message: profileMessage
+    });
+    setProfileMessage("Password updated after PIN verification.");
+  } catch (error) {
+    setProfileMessage(error.message || "Password update failed", true);
+  }
+});
+if (logoutBtn) logoutBtn.addEventListener("click", () => {
+  fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+  window.CareerNavigatorCommon.setAuthUser(null);
+  try {
+    ["analysisResult", "analysisOwner", "pipelineStatus", "uploadedResumeName", "selectedJobRole", "selectedJobDescription", "analysisStartedAt"].forEach((key) => localStorage.removeItem(key));
+  } catch (error) {
+    // Navigation still completes when browser storage is unavailable.
+  }
+  window.location.href = "home_page.html";
+});
 
 document.getElementById("userTableBody").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-action]");

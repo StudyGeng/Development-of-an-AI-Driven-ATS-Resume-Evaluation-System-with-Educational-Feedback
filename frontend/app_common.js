@@ -538,6 +538,43 @@
     saveHistory(history.slice(0, 50));
   }
 
+  function createAccountWorkspace(options) {
+    const modal = options.modal;
+    const buttons = modal ? Array.from(modal.querySelectorAll("[data-account-view]")) : [];
+    const panels = modal ? Array.from(modal.querySelectorAll("[data-account-panel]")) : [];
+    let hasAccount = false;
+    let currentView = "info";
+
+    function show(view) {
+      currentView = hasAccount && (view === "info" || view === "settings") ? view : "history";
+      buttons.forEach((button) => {
+        const active = button.dataset.accountView === currentView;
+        button.classList.toggle("is-active", active);
+        if (active) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+      });
+      panels.forEach((panel) => { panel.hidden = panel.dataset.accountPanel !== currentView; });
+      if (currentView === "history" && typeof options.onHistory === "function") options.onHistory();
+    }
+
+    function setUser(user) {
+      hasAccount = Boolean(user);
+      const name = user ? String(user.full_name || "Your account") : "Guest history";
+      const email = user ? String(user.email || "") : "Saved on this browser";
+      const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "U";
+      if (modal) {
+        modal.querySelectorAll("[data-account-name]").forEach((element) => { element.textContent = name; });
+        modal.querySelectorAll("[data-account-email]").forEach((element) => { element.textContent = email; });
+        modal.querySelectorAll("[data-account-avatar]").forEach((element) => { element.textContent = initials; });
+        modal.querySelectorAll("[data-account-auth-only]").forEach((element) => { element.hidden = !hasAccount; });
+      }
+      if (!hasAccount) show("history");
+    }
+
+    buttons.forEach((button) => button.addEventListener("click", () => show(button.dataset.accountView)));
+    return { show, setUser, getCurrentView: () => currentView };
+  }
+
   function createHistoryModal(options) {
     const modal = options.modal;
     const list = options.list;
@@ -562,6 +599,7 @@
       const items = dedupeHistoryItems(loadHistory());
       saveHistory(items.slice(0, 50));
       list.innerHTML = "";
+      if (options.clearButton) options.clearButton.disabled = items.length === 0;
 
       if (!items.length) {
         const emptyState = document.createElement("div");
@@ -657,6 +695,7 @@
     getAnalysisHistoryKey,
     dedupeHistoryItems,
     saveAnalysisToHistory,
+    createAccountWorkspace,
     createHistoryModal
   };
 
