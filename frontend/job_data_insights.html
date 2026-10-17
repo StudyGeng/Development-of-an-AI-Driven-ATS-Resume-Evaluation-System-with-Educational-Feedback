@@ -8,6 +8,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <script src="app_common.js"></script>
 <style>
+:root {
+  --admin-canvas: #f7f9fc;
+  --admin-ink: #162338;
+  --admin-muted: #5b6b80;
+  --admin-teal: #176b89;
+  --admin-teal-deep: #11546d;
+  --admin-line: #e0e7ef;
+}
 .admin-icon { width: 1.25rem; height: 1.25rem; flex: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 html, body {
   max-width: 100%;
@@ -15,39 +23,56 @@ html, body {
 }
 body {
   font-family: "Inter", sans-serif;
-  background: #f7f9fc;
-  color: #162338;
+  background: var(--admin-canvas);
+  color: var(--admin-ink);
 }
 h1, h2, h3, .font-headline {
   font-family: "Manrope", sans-serif;
 }
-.admin-page .text-primary { color: #162338; }
-.admin-page .text-secondary { color: #176b89; }
-.admin-page .text-on-surface-variant { color: #5b6b80; }
-.admin-page .bg-primary { background-color: #176b89; }
-.admin-page .bg-primary:hover { background-color: #11546d; }
+.admin-page .text-primary { color: var(--admin-ink); }
+.admin-page .text-secondary { color: var(--admin-teal); }
+.admin-page .text-on-surface-variant { color: var(--admin-muted); }
+.admin-page .bg-primary { background-color: var(--admin-teal); }
+.admin-page .bg-primary:hover { background-color: var(--admin-teal-deep); }
 .admin-page .bg-surface-container-low { background-color: #eef5f8; }
 .admin-page .bg-surface-container-low:hover { background-color: #e3eef3; }
-.admin-page .border-outline-variant { border-color: #e0e7ef; }
+.admin-page .border-outline-variant { border-color: var(--admin-line); }
 .admin-nav {
+  position: sticky;
+  top: 0;
   background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid #e0e7ef;
+  border-bottom: 1px solid var(--admin-line);
+  box-shadow: 0 4px 24px rgba(22, 35, 56, 0.035);
 }
+.admin-nav .nav-inner { min-height: 78px; height: auto; }
+.admin-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.admin-brand-mark { display: grid; width: 38px; height: 38px; flex: none; place-items: center; border-radius: 11px; background: var(--admin-teal); color: #fff; }
+.admin-brand-mark svg { width: 25px; height: 25px; }
+.admin-brand-name { display: grid; line-height: 1.12; letter-spacing: -.025em; }
+.admin-brand-name small { color: var(--admin-teal); font-size: 10px; font-weight: 800; letter-spacing: .17em; }
+.admin-brand-name strong { color: var(--admin-ink); font-size: 16px; }
+.admin-nav-links a { white-space: nowrap; }
 .admin-brand,
 .admin-nav a:hover,
-.admin-nav a[aria-current="page"] { color: #176b89; }
-.admin-hero { background: #ffffff; border-bottom: 1px solid #e0e7ef; }
-.admin-eyebrow { letter-spacing: 0.14em; }
+.admin-nav a[aria-current="page"] { color: var(--admin-teal); }
+.admin-nav a[aria-current="page"] { border-bottom-color: var(--admin-teal); }
+.admin-main { padding-top: 0; background: radial-gradient(circle at 95% 2%, rgba(223, 246, 238, .62), transparent 25%), var(--admin-canvas); }
+.admin-hero { position: relative; overflow: hidden; background: linear-gradient(122deg, #fff 0%, #f8fcfc 58%, #e8f4f3 100%); border-bottom: 1px solid var(--admin-line); }
+.admin-hero::after { position: absolute; right: max(2rem, calc((100vw - 80rem) / 2)); bottom: -4rem; width: 16rem; height: 16rem; border: 1px solid rgba(23, 107, 137, .12); border-radius: 50%; content: ""; pointer-events: none; }
+.admin-hero > div { position: relative; z-index: 1; padding-top: clamp(2.5rem, 5vw, 4.25rem); padding-bottom: clamp(2.5rem, 5vw, 4.25rem); }
+.admin-hero h1 { max-width: 46rem; letter-spacing: -.045em; line-height: 1.12; }
+.admin-eyebrow { display: inline-flex; align-items: center; gap: .65rem; letter-spacing: 0.14em; }
+.admin-eyebrow::before { display: inline-block; width: 1.5rem; height: 2px; background: currentColor; content: ""; }
 .admin-page :is(a, button, input):focus-visible {
-  outline: 3px solid #176b89;
+  outline: 3px solid #69bbd1;
   outline-offset: 3px;
 }
 .metric-card,
 .data-card {
-  border: 1px solid #e0e7ef;
+  border: 1px solid var(--admin-line);
   background: #ffffff;
   border-radius: 18px;
-  box-shadow: 0 12px 36px rgba(22, 35, 56, 0.07);
+  box-shadow: 0 12px 36px rgba(22, 35, 56, 0.055);
 }
 .metric-card,
 .data-card {
@@ -55,7 +80,22 @@ h1, h2, h3, .font-headline {
 }
 .metric-card {
   min-height: 8.25rem;
+  border-top: 3px solid #b5ded9;
+  background: linear-gradient(160deg, #fff 50%, #f6fbfa 100%);
+  transition: transform .2s ease, box-shadow .2s ease;
 }
+.metric-card:hover { transform: translateY(-3px); box-shadow: 0 18px 38px rgba(22, 35, 56, .09); }
+.metric-card > p:last-child { color: var(--admin-teal); letter-spacing: -.04em; }
+.data-card > div:first-child h2::before { display: inline-block; width: .25rem; height: .9em; margin-right: .65rem; border-radius: 99px; background: var(--admin-teal); content: ""; vertical-align: -.1em; }
+.admin-main > section:nth-of-type(6) { margin-top: 1.5rem; padding-top: 3rem; border-top: 1px solid var(--admin-line); }
+.admin-main > section:nth-of-type(6) h2 { letter-spacing: -.035em; }
+.admin-button { border-radius: 10px; font-weight: 800; transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.admin-button:hover:not(:disabled) { transform: translateY(-2px); }
+.admin-button-primary { box-shadow: 0 10px 22px rgba(23, 107, 137, .16); }
+.admin-button-primary:hover:not(:disabled) { box-shadow: 0 14px 26px rgba(23, 107, 137, .22); }
+.admin-button-secondary { border: 1px solid var(--admin-line); background: white; color: var(--admin-teal-deep); }
+.admin-button-secondary:hover:not(:disabled) { border-color: #9fcbd0; background: #f2faf9; }
+.admin-button:disabled { cursor: wait; }
 .icon-button {
   width: 2.5rem;
   height: 2.5rem;
@@ -63,27 +103,33 @@ h1, h2, h3, .font-headline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: background-color .18s ease, transform .18s ease;
 }
+.icon-button:hover { transform: translateY(-1px); }
 .bar-track {
   height: 0.6rem;
   border-radius: 999px;
   overflow: hidden;
-  background: #e8eef3;
+  background: #e7f1f2;
 }
 .bar-fill {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.28s ease;
+  transition: width 0.4s cubic-bezier(.2, .8, .2, 1);
 }
 .table-shell {
   overflow-x: auto;
-  scrollbar-color: #b8cad3 #f7f9fc;
+  border: 1px solid #edf1f4;
+  border-radius: 12px;
+  scrollbar-color: #a9cbd4 #f7f9fc;
 }
+thead { background: #f5f9fa; }
 th, td {
   white-space: nowrap;
 }
 th { color: #5b6b80; letter-spacing: 0.04em; }
-tbody tr:hover { background: #f7fafc; }
+tbody tr { transition: background-color .18s ease; }
+tbody tr:hover { background: #f1f8f8; }
 .pill {
   display: inline-flex;
   align-items: center;
@@ -92,9 +138,18 @@ tbody tr:hover { background: #f7fafc; }
   font-size: 0.72rem;
   font-weight: 800;
 }
+.pill.bg-primary-fixed { background: #dff6ee; color: #176b52; }
+.pill.bg-surface-container { background: #edf2f5; color: var(--admin-muted); }
 .modal-backdrop {
   background: rgba(15, 23, 42, 0.58);
 }
+.modal-backdrop > section { border: 1px solid var(--admin-line); border-radius: 18px; }
+.admin-main > section.is-revealed { animation: adminRevealUp .7s cubic-bezier(.2, .8, .2, 1) both; }
+.admin-main > section:nth-of-type(odd).is-revealed:not(.admin-hero) { animation-name: adminRevealLeft; }
+.admin-main > section:nth-of-type(even).is-revealed:not(.admin-hero) { animation-name: adminRevealRight; }
+@keyframes adminRevealUp { from { opacity: 0; filter: blur(7px); transform: translateY(22px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+@keyframes adminRevealLeft { from { opacity: 0; filter: blur(7px); transform: translateX(-22px); } to { opacity: 1; filter: blur(0); transform: translateX(0); } }
+@keyframes adminRevealRight { from { opacity: 0; filter: blur(7px); transform: translateX(22px); } to { opacity: 1; filter: blur(0); transform: translateX(0); } }
 @media (max-width: 640px) {
   .admin-nav .nav-inner {
     height: auto;
@@ -106,20 +161,29 @@ tbody tr:hover { background: #f7fafc; }
     row-gap: 0.45rem;
   }
   .admin-brand { flex-basis: 100%; }
+  .admin-brand-mark { width: 32px; height: 32px; }
+  .admin-brand-mark svg { width: 21px; height: 21px; }
+  .admin-brand-name strong { font-size: 14px; }
   .admin-actions { width: 100%; justify-content: flex-end; }
   .admin-mobile-home { display: none; }
-  .admin-main { padding-top: 7.5rem; }
+  .admin-main { padding-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar-fill { transition: none; }
+  .admin-main > section.is-revealed { animation: none; }
+  .admin-button, .icon-button, .metric-card, tbody tr { transition: none; }
+  .admin-button:hover:not(:disabled), .icon-button:hover, .metric-card:hover { transform: none; }
 }
 </style>
 </head>
 <body class="admin-page min-h-screen bg-background text-on-surface">
 <nav class="admin-nav fixed top-0 w-full z-50 backdrop-blur-xl">
   <div class="nav-inner max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-    <a class="admin-brand text-base sm:text-xl font-bold tracking-tight font-headline truncate min-w-0 transition-colors" href="home_page.html" aria-label="Back to home">UTS CS Career Navigator</a>
-    <div class="hidden md:flex items-center space-x-8">
+    <a class="admin-brand min-w-0" href="home_page.html" aria-label="UTS CS Career Navigator home">
+      <span class="admin-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M9 5.5h10l4 4V26H9a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M19 5.5v5h4M11.5 18l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="admin-brand-name"><small>UTS CS</small><strong>Career Navigator</strong></span>
+    </a>
+    <div class="admin-nav-links hidden md:flex items-center space-x-8">
       <a class="font-headline text-sm font-semibold tracking-tight text-on-surface-variant transition-colors" href="home_page.html">Home</a>
       <a class="font-headline text-sm font-semibold tracking-tight text-on-surface-variant transition-colors" href="analysis_result.html">Results</a>
       <a class="font-headline text-sm font-semibold tracking-tight border-b-2 pb-1 transition-colors" href="job_data_insights.html" aria-current="page" data-admin-link>Admin Insights</a>
@@ -128,12 +192,12 @@ tbody tr:hover { background: #f7fafc; }
       <button class="text-on-surface-variant p-2 active:scale-95 transition-transform hidden" id="accountStatusBtn" type="button" aria-label="Account profile">
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
       </button>
-      <button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
-      <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap" type="button">History</button>
-      <button id="refreshBtn" class="h-10 w-10 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" type="button" title="Refresh insights" aria-label="Refresh insights">
+      <button class="admin-button admin-button-primary h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
+      <button id="openHistoryBtn" class="admin-button admin-button-secondary h-10 inline-flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" type="button">History</button>
+      <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights">
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.4 6"/><path d="M20 4v7h-7"/></svg>
       </button>
-      <a class="admin-mobile-home md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
+      <a class="admin-mobile-home admin-button admin-button-secondary md:hidden h-9 w-9 inline-flex items-center justify-center" href="home_page.html" aria-label="Back to home" title="Back to home">
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v11H3V10Z"/><path d="M9 21v-7h6v7"/></svg>
       </a>
     </div>
@@ -321,8 +385,8 @@ tbody tr:hover { background: #f7fafc; }
       </label>
       <p id="userEditMessage" class="hidden text-sm font-semibold"></p>
       <div class="flex flex-wrap justify-end gap-3 pt-2">
-        <button id="cancelUserEditBtn" type="button" class="h-10 rounded-xl bg-surface-container-low px-4 text-sm font-bold text-primary hover:bg-surface-container-high">Cancel</button>
-        <button id="saveUserBtn" type="submit" class="h-10 rounded-xl bg-primary px-5 text-sm font-bold text-on-primary hover:bg-primary-container">Save User</button>
+        <button id="cancelUserEditBtn" type="button" class="admin-button admin-button-secondary h-10 px-4 text-sm">Cancel</button>
+        <button id="saveUserBtn" type="submit" class="admin-button admin-button-primary h-10 bg-primary px-5 text-sm text-on-primary">Save User</button>
       </div>
     </form>
   </section>
@@ -720,7 +784,24 @@ userEditModal.addEventListener("click", (event) => {
 });
 userEditForm.addEventListener("submit", saveUserChanges);
 refreshBtn.addEventListener("click", loadInsights);
+
+function enableScrollReveals() {
+  if (!("IntersectionObserver" in window) || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-revealed");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: "0px 0px -32px 0px" });
+  document.querySelectorAll(".admin-main > section").forEach((section) => observer.observe(section));
+}
+
 updateHeaderAuthUi();
+enableScrollReveals();
 loadInsights();
 </script>
 </body>

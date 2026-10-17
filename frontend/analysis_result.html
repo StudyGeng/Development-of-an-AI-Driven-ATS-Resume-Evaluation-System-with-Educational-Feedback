@@ -241,7 +241,110 @@
         @media (max-width: 600px) { .report-nav .mobile-home-link { display: none; } }
         @media (max-width: 430px) { .report-brand-name strong { display: none; } .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .55rem; padding-right: .55rem; } }
         @media (max-width: 370px) { .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .4rem; padding-right: .4rem; font-size: .67rem; } }
-        @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .studio-button { transition: none; } }
+        /* Report surface and controls */
+        :root {
+            --studio-canvas: #f5f8fa;
+            --studio-ink: #172b38;
+            --studio-muted: #536877;
+            --studio-teal: #176b89;
+            --studio-teal-dark: #11546d;
+            --studio-border: #dce6eb;
+        }
+        body { background: radial-gradient(circle at 90% 8%, #e9f3f6 0, transparent 30rem), var(--studio-canvas); }
+        .report-nav { box-shadow: 0 3px 22px rgba(23,43,56,.05); }
+        .report-main { max-width: 1200px; }
+        .report-hero { position: relative; overflow: hidden; background: linear-gradient(125deg, #fff 30%, #f3f8fa 100%); border-radius: 26px; box-shadow: 0 16px 42px rgba(23,43,56,.055); }
+        .report-hero::after { content: ""; position: absolute; width: 18rem; height: 18rem; border: 1px solid rgba(23,107,137,.1); border-radius: 50%; right: 12%; top: -12rem; pointer-events: none; }
+        .report-hero > * { position: relative; z-index: 1; }
+        .report-hero-copy { max-width: 39rem; }
+        .report-hero-copy + .report-hero-copy { margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--studio-border); font-size: .9rem; }
+        .report-score-card { background: #fff; border-color: #d3e4e9; box-shadow: 0 12px 32px rgba(23,107,137,.08); }
+        .report-score-number #overallScore { color: var(--studio-teal-dark); }
+        .report-quick { margin-top: 1.25rem; border-radius: 20px; box-shadow: 0 8px 30px rgba(23,43,56,.04); }
+        .report-quick-list article { border-color: #d8e6eb; background: #f6fafb; min-height: 8.5rem; }
+        .report-tabs { position: sticky; top: 4.65rem; z-index: 30; margin-bottom: 2.8rem; box-shadow: 0 8px 24px rgba(23,43,56,.07); }
+        .report-tabs a { transition: background-color .18s ease, color .18s ease; }
+        .report-tabs a.is-active { background: #e5f2f6; color: var(--studio-teal-dark); }
+        .report-section-title { line-height: 1.18; }
+        .report-shell section > div:is(.bg-surface-container-lowest,.bg-surface-container-high) { box-shadow: 0 8px 32px rgba(23,43,56,.045); }
+        .metric-row { grid-template-columns: minmax(0,1fr) auto; gap: .65rem 1rem; }
+        .metric-row .metric-label { grid-column: auto; font-size: .75rem; line-height: 1.35; letter-spacing: .07em; font-weight: 700; text-transform: none; }
+        .metric-row > div { grid-column: 1 / -1; grid-row: 2; height: .55rem; }
+        .metric-row > span:nth-child(2) { text-align: right; white-space: nowrap; color: var(--studio-teal-dark); }
+        .report-shell .evidence-ring { width: 4.2rem; height: 4.2rem; }
+        .report-shell .evidence-ring::after { inset: .4rem; }
+        .priority-action-grid article { border-color: var(--studio-border); box-shadow: 0 6px 20px rgba(23,43,56,.035); }
+        .report-workspace { margin-top: 4rem; }
+        .report-workspace-intro { margin-bottom: 1.5rem; }
+        .report-workspace-intro .report-section-title { margin: .4rem 0 .55rem; }
+        .report-workspace-intro > p:last-child { max-width: 38rem; color: var(--studio-muted); font-size: .94rem; line-height: 1.65; }
+        .submission-card, .report-work-card, .generated-resume-panel { border: 1px solid var(--studio-border); border-radius: 20px; background: #fff; box-shadow: 0 8px 28px rgba(23,43,56,.045); }
+        .submission-card { padding: clamp(1.25rem,3vw,1.8rem); }
+        .submission-card-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+        .submission-card h3, .report-work-card h3 { margin-top: .35rem; color: var(--studio-ink); font-family: Manrope,Inter,sans-serif; font-size: clamp(1.2rem,2.2vw,1.5rem); line-height: 1.25; font-weight: 800; letter-spacing: -.035em; }
+        .submission-meta { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border: 1px solid var(--studio-border); border-radius: 13px; overflow: hidden; }
+        .submission-meta-item { min-width: 0; padding: 1rem; background: #f8fafb; }
+        .submission-meta-item + .submission-meta-item { border-left: 1px solid var(--studio-border); }
+        .submission-meta-item p:first-child { color: var(--studio-muted); font-size: .68rem; letter-spacing: .08em; }
+        .submission-meta-item p:last-child { overflow-wrap: anywhere; line-height: 1.5; }
+        .report-workspace-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.25rem; margin-top: 1.25rem; }
+        .report-work-card { display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; min-width: 0; padding: clamp(1.4rem,3vw,2rem); }
+        .report-work-card h3 { margin-bottom: .65rem; }
+        .report-work-card p:not(.report-eyebrow) { color: var(--studio-muted); }
+        .report-work-card input { min-height: 2.75rem; border: 1px solid var(--studio-border); background: #f8fafb; }
+        .report-work-card input:focus { background: #fff; }
+        .report-export-card { background: linear-gradient(145deg, #173e55, #172f45); border-color: #173e55; color: #fff; }
+        .report-export-card h3 { color: #fff; }
+        .report-export-card .report-eyebrow { color: #acd8e5; }
+        .report-export-card p:not(.report-eyebrow) { color: #d8eaf0; }
+        .report-export-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; margin-top: 1.75rem; }
+        .report-action { display: inline-flex; align-items: center; justify-content: center; min-height: 3rem; padding: .75rem 1rem; border: 1px solid transparent; border-radius: 11px; font-family: Inter,sans-serif; font-size: .88rem; line-height: 1.25; font-weight: 750; text-align: center; cursor: pointer; transition: transform .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease; }
+        .report-action:hover:not(:disabled) { transform: translateY(-2px); }
+        .report-action:active:not(:disabled) { transform: translateY(0); }
+        .report-action:disabled { opacity: .55; cursor: not-allowed; }
+        .report-action-primary { background: var(--studio-teal); color: #fff; box-shadow: 0 8px 19px rgba(23,107,137,.17); }
+        .report-action-primary:hover:not(:disabled) { background: var(--studio-teal-dark); box-shadow: 0 12px 24px rgba(23,107,137,.22); }
+        .report-action-light { background: #fff; color: #173e55; }
+        .report-action-light:hover:not(:disabled) { background: #e8f3f7; }
+        .report-action-outline { border-color: var(--studio-border); background: #fff; color: var(--studio-ink); }
+        .report-action-outline:hover:not(:disabled) { border-color: var(--studio-teal); background: #f1f8fa; }
+        .report-export-card .report-action-outline { border-color: rgba(255,255,255,.36); background: transparent; color: #fff; }
+        .report-export-card .report-action-outline:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+        .report-back-link { grid-column: 1 / -1; display: inline-flex; justify-content: center; gap: .4rem; padding: .45rem; color: #d8eaf0; font-size: .82rem; font-weight: 700; text-decoration: underline; text-underline-offset: .2rem; }
+        .report-back-link:hover { color: #fff; }
+        .generated-resume-panel { margin-top: 1.25rem; padding: clamp(1.25rem,3vw,1.8rem); }
+        .generated-resume-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; }
+        .generated-resume-actions { display: flex; flex-wrap: wrap; gap: .55rem; }
+        .generated-resume-actions .report-action { min-height: 2.65rem; padding: .55rem .85rem; font-size: .8rem; }
+        .generated-resume-frame { width: 100%; height: min(74vh, 740px); min-height: 410px; border: 1px solid var(--studio-border); border-radius: 12px; background: #fff; }
+        .report-reveal { opacity: 0; filter: blur(8px); transform: translate3d(var(--reveal-x,0),22px,0); transition: opacity .75s ease, filter .75s ease, transform .75s cubic-bezier(.2,.8,.2,1); }
+        .report-reveal.is-visible { opacity: 1; filter: blur(0); transform: translate3d(0,0,0); }
+        .report-reveal[data-reveal-side="left"] { --reveal-x: -24px; }
+        .report-reveal[data-reveal-side="right"] { --reveal-x: 24px; }
+        @media (max-width: 850px) {
+            .submission-meta { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .submission-meta-item:nth-child(3) { border-left: 0; }
+            .submission-meta-item:nth-child(n+3) { border-top: 1px solid var(--studio-border); }
+        }
+        @media (max-width: 700px) {
+            .report-workspace-grid { grid-template-columns: 1fr; }
+            .report-tabs { top: 4.25rem; }
+            .report-reveal[data-reveal-side] { --reveal-x: 0; }
+        }
+        @media (max-width: 480px) {
+            .submission-meta { grid-template-columns: 1fr; }
+            .submission-meta-item + .submission-meta-item { border-left: 0; border-top: 1px solid var(--studio-border); }
+            .report-export-actions { grid-template-columns: 1fr; }
+            .report-back-link { grid-column: auto; }
+            .generated-resume-actions { width: 100%; }
+            .generated-resume-actions .report-action { flex: 1 1 100%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .studio-button, .report-action, .report-reveal { transition: none; }
+            .report-reveal { opacity: 1; filter: none; transform: none; }
+        }
+        @media print { .report-reveal { opacity: 1 !important; filter: none !important; transform: none !important; } }
     </style>
 </head>
 <body class="min-h-screen bg-background text-on-background">
@@ -310,25 +413,25 @@
 <h3 class="text-xl font-bold text-primary mb-6">Score Components</h3>
 <div class="space-y-6">
 <div class="metric-row">
+<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Keyword Match</span>
+<span class="text-sm font-bold text-primary" id="metricKeywordValue">Pending</span>
 <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
 <div class="bg-gradient-to-r from-secondary to-secondary-container h-full" id="metricKeywordBar" style="width: 0%;"></div>
 </div>
-<span class="text-sm font-bold text-primary" id="metricKeywordValue">Pending</span>
-<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Keyword Match</span>
 </div>
 <div class="metric-row">
+<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Experience Alignment</span>
+<span class="text-sm font-bold text-primary" id="metricExperienceValue">Pending</span>
 <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
 <div class="bg-gradient-to-r from-secondary to-secondary-container h-full" id="metricExperienceBar" style="width: 0%;"></div>
 </div>
-<span class="text-sm font-bold text-primary" id="metricExperienceValue">Pending</span>
-<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Experience Alignment</span>
 </div>
 <div class="metric-row">
+<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Education &amp; skills</span>
+<span class="text-sm font-bold text-primary" id="metricAcademicValue">Pending</span>
 <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
 <div class="bg-gradient-to-r from-secondary to-secondary-container h-full" id="metricAcademicBar" style="width: 0%;"></div>
 </div>
-<span class="text-sm font-bold text-primary" id="metricAcademicValue">Pending</span>
-<span class="metric-label text-xs text-on-surface-variant uppercase tracking-tighter">Education &amp; skills</span>
 </div>
 </div>
 </div>
@@ -526,40 +629,44 @@ Recommendation actions will appear after analysis.
 </div>
 </div>
 </section>
-<!-- Bottom Section: Future ATS Resume Generation & Actions -->
-<section class="report-section mt-20" id="resume-draft">
-<div class="bg-surface-container-high rounded-xl p-5 sm:p-8 lg:p-10 overflow-hidden relative">
-<div class="relative z-10 bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 mb-6">
-<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-<div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Submission Details</p>
-<h2 class="text-xl sm:text-2xl font-extrabold text-primary tracking-tight">Resume File Information</h2>
+<!-- Resume actions -->
+<section class="report-section report-workspace" id="resume-draft">
+<div class="report-workspace-intro">
+<p class="report-eyebrow">Put your feedback to work</p>
+<h2 class="report-section-title">Your files and next steps</h2>
+<p>Check the file used for this analysis, build an updated draft, or save the full feedback report.</p>
 </div>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto lg:min-w-[680px]">
+<div class="submission-card">
+<div class="submission-card-header">
 <div>
+<p class="report-eyebrow">Submission details</p>
+<h3>File reviewed</h3>
+</div>
+</div>
+<div class="submission-meta">
+<div class="submission-meta-item">
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">CV Name</p>
 <p class="text-sm font-bold text-primary break-words" id="submissionFileNameDisplay">No resume selected</p>
 </div>
-<div>
+<div class="submission-meta-item">
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">File Type</p>
 <p class="text-sm font-bold text-primary" id="submissionFileTypeDisplay">-</p>
 </div>
-<div>
+<div class="submission-meta-item">
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Submitted</p>
 <p class="text-sm font-bold text-primary" id="submissionTimeDisplay">-</p>
 </div>
-<div>
+<div class="submission-meta-item">
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Final role used</p>
 <p class="text-sm font-bold text-primary break-words" id="submissionRoleDisplay">No role selected</p>
 </div>
 </div>
 </div>
-</div>
-<div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
-<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/60 h-full min-h-[230px] flex flex-col justify-between">
+<div class="report-workspace-grid">
+<div class="report-work-card report-build-card">
 <div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">ATS Resume Builder</p>
-<h2 class="text-2xl font-extrabold text-primary mb-4">Generate ATS Resume</h2>
+<p class="report-eyebrow">ATS resume builder</p>
+<h3>Build an improved draft</h3>
 <p class="text-sm text-on-surface-variant leading-relaxed mb-5" id="futureAtsResumeText">After analysis, this area will generate a stronger ATS resume draft using the database role fit, missing keywords, and feedback.</p>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
 <label class="block">
@@ -573,54 +680,51 @@ Recommendation actions will appear after analysis.
 </div>
 <p class="text-sm font-semibold text-primary mb-5" id="generatedResumeStatus">Ready after analysis.</p>
 </div>
-<button class="w-full px-5 py-3 rounded-xl bg-secondary text-on-primary font-bold hover:bg-primary transition-colors active:scale-95 flex items-center justify-center gap-2" id="generateResumeBtn" type="button">
+<button class="report-action report-action-primary" id="generateResumeBtn" type="button">
 Generate Optimized Resume
 </button>
 </div>
-<div class="bg-primary rounded-2xl p-6 text-on-primary shadow-xl shadow-primary/10 flex flex-col justify-between min-h-[230px] h-full">
+<div class="report-work-card report-export-card">
 <div>
-<p class="text-xs uppercase tracking-widest text-on-primary/70 mb-3">Current Function</p>
-<h3 class="text-2xl font-bold mb-3">Export Feedback Report</h3>
-<p class="text-sm text-on-primary/80 leading-relaxed">Download the feedback report as PDF or HTML with ATS issues, resume evidence, and next-edit actions.</p>
+<p class="report-eyebrow">Keep a copy</p>
+<h3>Download your feedback</h3>
+<p class="text-sm leading-relaxed">Save the complete report with ATS checks, matched evidence, and the improvement plan.</p>
 </div>
-<div class="flex flex-col gap-4 mt-6">
-<a class="px-8 py-4 bg-surface-container-lowest text-primary font-bold rounded-xl border border-outline-variant hover:bg-white transition-colors active:scale-95 shadow-sm inline-flex items-center justify-center" href="home_page.html">
-Back to Home
-</a>
-<button class="px-8 py-4 bg-gradient-to-r from-secondary to-secondary-container text-white font-bold rounded-xl shadow-lg shadow-black/10 flex items-center justify-center gap-2 active:scale-95 transition-all" id="exportResumeBtn" type="button">
-Export PDF Feedback Report
+<div class="report-export-actions">
+<button class="report-action report-action-light" id="exportResumeBtn" type="button">
+Download PDF report
 </button>
-<button class="px-8 py-4 bg-surface-container-lowest text-primary font-bold rounded-xl border border-outline-variant hover:bg-white transition-colors active:scale-95 shadow-sm flex items-center justify-center gap-2" id="exportHtmlReportBtn" type="button">
-Export HTML Feedback Report
+<button class="report-action report-action-outline" id="exportHtmlReportBtn" type="button">
+Download HTML report
 </button>
+<a class="report-back-link" href="home_page.html">Back to home <span aria-hidden="true">&rarr;</span></a>
 </div>
 </div>
 </div>
-<div class="relative z-10 mt-6 hidden bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6" id="generatedResumePanel">
+<div class="generated-resume-panel hidden" id="generatedResumePanel">
 <div class="hidden mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" id="generatedResumeSampleNotice" role="status">
 <strong>Fictional example - not for submission.</strong> This complete target-role reference is not the user's resume and was not generated from the user's experience.
 </div>
-<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
+<div class="generated-resume-toolbar">
 <div>
 <p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2" id="generatedResumeEyebrow">Generated Draft</p>
 <h3 class="text-2xl font-extrabold text-primary tracking-tight" id="generatedResumeTitle">ATS Resume Preview</h3>
 </div>
-<div class="flex flex-col sm:flex-row gap-3">
-<button class="px-4 py-2 rounded-xl bg-surface-container-low text-primary font-bold border border-outline-variant/70 hover:bg-surface-container-high transition-colors inline-flex items-center justify-center gap-2" id="copyGeneratedResumeBtn" type="button">
+<div class="generated-resume-actions">
+<button class="report-action report-action-outline" id="copyGeneratedResumeBtn" type="button">
 Copy Content
 </button>
-<button class="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container hover:text-on-primary-container transition-colors inline-flex items-center justify-center gap-2" id="downloadGeneratedHtmlBtn" type="button">
+<button class="report-action report-action-outline" id="downloadGeneratedHtmlBtn" type="button">
 Download HTML
 </button>
-<button class="px-4 py-2 rounded-xl bg-secondary text-on-primary font-bold hover:bg-primary transition-colors inline-flex items-center justify-center gap-2" id="downloadGeneratedPdfBtn" type="button">
+<button class="report-action report-action-primary" id="downloadGeneratedPdfBtn" type="button">
 Download PDF
 </button>
 </div>
 </div>
-<iframe class="h-[720px] w-full rounded-lg bg-white border border-outline-variant/60" id="generatedResumePreview" title="Generated ATS resume preview"></iframe>
+<iframe class="generated-resume-frame" id="generatedResumePreview" title="Generated ATS resume preview"></iframe>
 <p class="mt-5 text-xs uppercase tracking-[0.16em] font-bold text-secondary">Improvement advice shown here only, not included in HTML/PDF downloads</p>
 <ul class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-on-surface-variant" id="generatedResumeNotesList"></ul>
-</div>
 </div>
 </section>
 </div>
@@ -2695,13 +2799,13 @@ Download PDF
             : '<div class="visual-unavailable">Open the result page first so the PDF page can render before exporting HTML.<\/div>';
 
         return (
-            '<div class="visual-report">' +
-                '<div class="visual-report-head"><strong>Full Resume Preview<\/strong><span>' + safeName + '<\/span><\/div>' +
+            '<details class="visual-report">' +
+                '<summary class="visual-report-head"><strong>View uploaded resume<\/strong><span>' + safeName + '<\/span><\/summary>' +
                 '<div class="visual-frame">' +
                     mediaMarkup +
                 '<\/div>' +
-                '<p class="note">Issues are listed separately; exact page coordinates are not inferred from the uploaded layout.<\/p>' +
-            '<\/div>'
+                '<p class="visual-caption">The checks above describe the resume as a whole; page locations are not inferred from this image.<\/p>' +
+            '<\/details>'
         );
     }
 
@@ -2725,36 +2829,106 @@ Download PDF
             ["ATS format quality", report.resumeQuality.risk_level ? report.resumeQuality.risk_level + " risk" : "Not available"]
         ]);
 
+        const reportCss = `
+            * { box-sizing: border-box; }
+            html { scroll-behavior: smooth; }
+            body { margin: 0; background: #eef3f6; color: #172b38; font: 15px/1.65 Arial, Helvetica, sans-serif; }
+            .page { max-width: 1000px; margin: 32px auto; background: #fff; border: 1px solid #dce6eb; border-radius: 20px; overflow: hidden; box-shadow: 0 22px 62px rgba(23,43,56,.09); }
+            .report-header { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 32px; padding: 42px 48px; background: linear-gradient(125deg, #173d55, #176b89); color: #fff; }
+            .report-kicker { margin: 0 0 12px; color: #c7e7f0; font-size: 11px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
+            h1, h2, h3, p { margin-top: 0; }
+            h1 { max-width: 560px; margin-bottom: 10px; font-size: clamp(27px,4vw,38px); line-height: 1.16; letter-spacing: -.035em; }
+            .report-header p:last-child { max-width: 570px; margin: 0; color: #dbeef3; }
+            .score { min-width: 158px; padding: 16px 18px; border: 1px solid rgba(255,255,255,.27); border-radius: 16px; background: rgba(255,255,255,.12); text-align: center; }
+            .score span { display: block; color: #cbe7ee; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+            .score strong { display: block; margin-top: 2px; font-size: 42px; line-height: 1.1; letter-spacing: -.05em; }
+            .score small { font-size: 17px; letter-spacing: 0; }
+            section { padding: 31px 48px; border-bottom: 1px solid #e5edf0; }
+            section:nth-of-type(even) { background: #fbfdfc; }
+            .section-title { margin: 0 0 17px; color: #173d55; font-size: 21px; line-height: 1.3; letter-spacing: -.025em; }
+            h3 { margin-bottom: 12px; color: #173d55; font-size: 17px; }
+            .note { margin: 0; padding: 14px 17px; border-left: 3px solid #176b89; border-radius: 0 9px 9px 0; background: #edf6f9; color: #25475b; }
+            .detail-note { margin-top: 12px; border-color: #b9d6e0; background: #f5f9fb; font-size: 13px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+            tr { border-bottom: 1px solid #e5edf0; }
+            tr:last-child { border-bottom: 0; }
+            th, td { padding: 11px 12px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+            th { width: 30%; color: #536877; font-weight: 700; }
+            td { color: #172b38; }
+            .table-scroll { overflow-x: auto; margin-top: 13px; border: 1px solid #dce6eb; border-radius: 12px; background: #fff; }
+            .table-scroll table { min-width: 720px; margin: 0; }
+            .table-scroll th { width: auto; background: #edf4f7; color: #25495c; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+            .table-scroll td { font-size: 12px; line-height: 1.5; }
+            .table-scroll tr:nth-child(2n+1):not(:first-child) { background: #f9fbfc; }
+            .status { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+            .pass { background: #ddf3e6; color: #176b3a; }
+            .warn { background: #fde5e1; color: #9b3029; }
+            ul { margin: 0; padding-left: 22px; }
+            li { margin: 9px 0; padding-left: 4px; }
+            li::marker { color: #176b89; font-weight: 800; }
+            .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+            .chip { display: inline-block; padding: 5px 10px; border: 1px solid #cde1e9; border-radius: 999px; background: #eef7fa; color: #11546d; font-size: 12px; font-weight: 700; }
+            .chip.missing { border-color: #f1d8d3; background: #fff2ef; color: #9b4037; }
+            .visual-report { margin-top: 23px; border: 1px solid #dce6eb; border-radius: 14px; background: #f5f9fb; overflow: hidden; }
+            .visual-report-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; color: #173d55; font-size: 14px; cursor: pointer; list-style: none; }
+            .visual-report-head::-webkit-details-marker { display: none; }
+            .visual-report-head::before { content: '▾'; color: #176b89; font-size: 16px; transition: transform .2s ease; }
+            .visual-report:not([open]) .visual-report-head::before { transform: rotate(-90deg); }
+            .visual-report-head strong { margin-right: auto; }
+            .visual-report-head span { max-width: 45%; color: #536877; font-size: 12px; overflow-wrap: anywhere; text-align: right; }
+            .visual-frame { max-height: 580px; overflow: auto; margin: 0 18px; padding: 20px; border: 1px solid #d7e2e7; border-radius: 10px; background: #eaf0f3; text-align: center; }
+            .visual-frame img { display: block; width: 100%; max-width: 570px; height: auto; margin: auto; border: 1px solid #d7e2e7; background: #fff; box-shadow: 0 8px 26px rgba(23,43,56,.12); }
+            .visual-unavailable { padding: 14px 16px; border: 1px solid #dce6eb; border-radius: 10px; background: #f5f9fb; color: #536877; }
+            .visual-caption { margin: 0; padding: 12px 18px 15px; color: #60747f; font-size: 12px; }
+            footer { padding: 23px 48px; background: #f5f9fb; color: #60747f; font-size: 12px; }
+            @media (max-width: 700px) {
+                .page { margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+                .report-header { grid-template-columns: 1fr; gap: 20px; padding: 32px 24px; }
+                .score { width: fit-content; min-width: 130px; text-align: left; }
+                section { padding: 25px 24px; }
+                th, td { padding: 9px 5px; }
+                th { width: 39%; }
+                .visual-report-head { flex-wrap: wrap; }
+                .visual-report-head span { max-width: 100%; width: 100%; padding-left: 28px; text-align: left; }
+                .visual-frame { margin: 0 12px; padding: 12px; max-height: 460px; }
+                footer { padding: 20px 24px; }
+            }
+            @media print {
+                @page { size: A4; margin: 15mm; }
+                body { background: #fff; font-size: 11px; color: #172b38; }
+                .page { max-width: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+                .report-header { padding: 22px 24px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                h1 { font-size: 25px; }
+                section { padding: 18px 24px; }
+                .section-title { font-size: 16px; }
+                .note, .chip, .status { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .table-scroll { overflow: visible; }
+                .table-scroll table { min-width: 0; }
+                .table-scroll th, .table-scroll td { padding: 6px; font-size: 9px; }
+                .visual-frame { max-height: none; overflow: visible; padding: 8px; }
+                .visual-frame img { width: auto; max-width: 100%; max-height: 225mm; box-shadow: none; }
+                section, tr, .visual-report { break-inside: avoid; }
+                footer { padding: 15px 24px; }
+            }
+        `;
+
         return "<!doctype html>" +
-            "<html><head><meta charset=\"utf-8\">" +
+            "<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
             "<title>UTS CS Career Navigator Feedback Report<\/title>" +
-            "<style>" +
-            "body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f5f7fb;color:#0b2545;line-height:1.5}" +
-            ".page{max-width:960px;margin:32px auto;background:#fff;border:1px solid #d7deea;border-radius:12px;overflow:hidden}" +
-            "header{background:#052e63;color:white;padding:28px 32px}" +
-            "header p{margin:6px 0 0;color:#bfd4f4}.score{float:right;font-size:40px;font-weight:800;color:#fff}" +
-            "section{padding:24px 32px;border-bottom:1px solid #e3e8f0}.section-title{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#0065b3;font-weight:800;margin:0 0 10px}" +
-            "h1{margin:0;font-size:28px}h2{margin:0 0 14px;font-size:20px}.note{background:#edf5ff;border-left:4px solid #0065b3;padding:12px 14px;border-radius:6px;color:#17324f}" +
-            "table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #d9e1ec;padding:10px 12px;text-align:left;vertical-align:top;font-size:14px}th{width:30%;background:#f1f5f9;color:#17324f}" +
-            ".quality th{width:auto}.status{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700}.pass{background:#dff6e8;color:#176b3a}.warn{background:#ffe1df;color:#9b1c1c}" +
-            ".chips{margin-top:10px}.chip{display:inline-block;background:#e7f0ff;color:#064b86;border-radius:999px;padding:5px 10px;margin:3px;font-size:12px;font-weight:700}.missing{background:#ffe7e4;color:#9b1c1c}" +
-            "ul{margin:10px 0 0;padding-left:20px}li{margin:7px 0}.excerpt{white-space:pre-wrap;background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#334155;max-height:260px;overflow:auto}" +
-            ".visual-report{border:1px solid #d9e1ec;border-radius:10px;background:#f8fafc;padding:14px;margin-top:12px}.visual-report-head{display:flex;justify-content:space-between;gap:16px;color:#064b86;font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}.visual-report-head span{text-transform:none;letter-spacing:0;color:#64748b;font-weight:700}.visual-frame{position:relative;background:#fff;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.visual-frame img{display:block;width:100%;height:auto;background:#fff;border:0}.visual-frame object,.visual-frame iframe{display:block;width:100%;height:760px;background:#fff;border:0}.visual-unavailable{background:#f8fafc;border:1px solid #d9e1ec;border-radius:8px;padding:14px;color:#64748b;margin-top:10px}" +
-            "footer{padding:18px 32px;color:#64748b;font-size:12px}.clear{clear:both}@media print{body{background:#fff}.page{margin:0;border:0}.score{float:none;display:block;margin-top:10px}}" +
-            "<\/style><\/head><body><div class=\"page\">" +
-            "<header><div class=\"score\">" + escapeHtml(score) + "<\/div><h1>UTS CS Career Navigator Feedback Report<\/h1><p>" + (report.sampleOnly ? "Fictional sample report. These findings are not based on your resume." : "Structured ATS and role-fit feedback for resume improvement.") + "<\/p><div class=\"clear\"><\/div><\/header>" +
-            "<section><p class=\"section-title\">Summary<\/p><table>" + summaryRows + "<\/table><\/section>" +
-            "<section><p class=\"section-title\">Score Explanation<\/p><h2>" + escapeHtml((report.scoreExplanation && report.scoreExplanation.label) || "Score meaning") + "<\/h2><div class=\"note\">" + escapeHtml((report.scoreExplanation && report.scoreExplanation.text) || "The final readiness score combines role match, resume evidence, and ATS format quality.") + "<\/div><p class=\"note\" style=\"margin-top:12px\">" + escapeHtml((report.scoreExplanation && (report.scoreExplanation.detail || report.scoreExplanation.formula)) || "Formula details were not available.") + "<\/p><\/section>" +
-            "<section><p class=\"section-title\">Role Fit Explanation<\/p><div class=\"note\">" + escapeHtml(report.roleReason || "Selected role and recommendation are aligned.") + "<\/div><\/section>" +
-            "<section><p class=\"section-title\">Priority Improvement Plan<\/p><ul>" + buildRecommendationActionRows(report.recommendationPlan, report.structuredFeedback) + "<\/ul><\/section>" +
-            "<section><p class=\"section-title\">Top 3 Role Matches<\/p><div class=\"note\">Evidence-match scores compare resume text with database requirements; they are not hiring probabilities or validated model accuracy.<\/div><table><tr><th>Rank<\/th><th>Database role<\/th><th>Evidence score<\/th><th>Status<\/th><th>Evidence<\/th><\/tr>" + buildTopRoleRows(report.topRoleMatches) + "<\/table><\/section>" +
-            "<section><p class=\"section-title\">Score Components<\/p><table>" + componentRows + "<\/table><p class=\"note\">Only the final readiness score is numeric. Component results are shown as status labels to avoid confusing users with multiple percentages.<\/p><\/section>" +
-            "<section><p class=\"section-title\">ATS Quality Criteria<\/p><table class=\"quality\"><tr><th>Criteria<\/th><th>Status<\/th><th>Finding<\/th><th>Suggested fix<\/th><\/tr>" + buildQualityRows(report.qualityCriteria) + "<\/table><\/section>" +
-            "<section><p class=\"section-title\">Resume Review Snapshot<\/p><h2>Resume Bad Habits<\/h2><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview) + "<\/section>" +
-            "<section><p class=\"section-title\">Resume Evidence<\/p><h2>Matched Signals<\/h2><div class=\"chips\">" + reportList(report.matchedSignals, "No matched signals").split(", ").map((item) => "<span class=\"chip\">" + item + "<\/span>").join("") + "<\/div><h2 style=\"margin-top:22px\">Missing Keywords<\/h2><div class=\"chips\">" + reportList(report.missingKeywords, "No missing keywords").split(", ").map((item) => "<span class=\"chip missing\">" + item + "<\/span>").join("") + "<\/div><\/section>" +
-            "<section><p class=\"section-title\">Next Actions<\/p><ul>" + buildFeedbackRows(report.structuredFeedback, report.feedback || "No feedback available.") + "<\/ul><\/section>" +
+            "<style>" + reportCss + "<\/style><\/head><body><div class=\"page\">" +
+            "<header class=\"report-header\"><div><p class=\"report-kicker\">UTS CS / Career Navigator<\/p><h1>Resume feedback report<\/h1><p>" + (report.sampleOnly ? "Fictional sample report. These findings are not based on your resume." : "Structured ATS and role-fit feedback for resume improvement.") + "<\/p><\/div><div class=\"score\"><span>Readiness score<\/span><strong>" + escapeHtml(String(report.scoreOutOf100 || 0)) + "<small>/100<\/small><\/strong><\/div><\/header>" +
+            "<section><h2 class=\"section-title\">At a glance<\/h2><table>" + summaryRows + "<\/table><\/section>" +
+            "<section><h2 class=\"section-title\">What your score means<\/h2><h3>" + escapeHtml((report.scoreExplanation && report.scoreExplanation.label) || "Score meaning") + "<\/h3><div class=\"note\">" + escapeHtml((report.scoreExplanation && report.scoreExplanation.text) || "The final readiness score combines role match, resume evidence, and ATS format quality.") + "<\/div><p class=\"note detail-note\">" + escapeHtml((report.scoreExplanation && (report.scoreExplanation.detail || report.scoreExplanation.formula)) || "Formula details were not available.") + "<\/p><\/section>" +
+            "<section><h2 class=\"section-title\">Role fit<\/h2><div class=\"note\">" + escapeHtml(report.roleReason || "Selected role and recommendation are aligned.") + "<\/div><\/section>" +
+            "<section><h2 class=\"section-title\">Priority improvement plan<\/h2><ul>" + buildRecommendationActionRows(report.recommendationPlan, report.structuredFeedback) + "<\/ul><\/section>" +
+            "<section><h2 class=\"section-title\">Top 3 role matches<\/h2><div class=\"note\">Evidence-match scores compare resume text with database requirements; they are not hiring probabilities or validated model accuracy.<\/div><div class=\"table-scroll\"><table><thead><tr><th>Rank<\/th><th>Database role<\/th><th>Evidence score<\/th><th>Status<\/th><th>Evidence<\/th><\/tr><\/thead><tbody>" + buildTopRoleRows(report.topRoleMatches) + "<\/tbody><\/table><\/div><\/section>" +
+            "<section><h2 class=\"section-title\">Score components<\/h2><table>" + componentRows + "<\/table><p class=\"note detail-note\">Only the final readiness score is numeric. Component results are shown as status labels to avoid confusing users with multiple percentages.<\/p><\/section>" +
+            "<section><h2 class=\"section-title\">ATS quality checks<\/h2><div class=\"table-scroll\"><table class=\"quality\"><thead><tr><th>Criteria<\/th><th>Status<\/th><th>Finding<\/th><th>Suggested fix<\/th><\/tr><\/thead><tbody>" + buildQualityRows(report.qualityCriteria) + "<\/tbody><\/table><\/div><\/section>" +
+            "<section><h2 class=\"section-title\">Resume review<\/h2><h3>Issues to fix<\/h3><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview) + "<\/section>" +
+            "<section><h2 class=\"section-title\">Resume evidence<\/h2><h3>Matched signals<\/h3><div class=\"chips\">" + reportList(report.matchedSignals, "No matched signals").split(", ").map((item) => "<span class=\"chip\">" + item + "<\/span>").join("") + "<\/div><h3 style=\"margin-top:22px\">Missing keywords<\/h3><div class=\"chips\">" + reportList(report.missingKeywords, "No missing keywords").split(", ").map((item) => "<span class=\"chip missing\">" + item + "<\/span>").join("") + "<\/div><\/section>" +
+            "<section><h2 class=\"section-title\">Next actions<\/h2><ul>" + buildFeedbackRows(report.structuredFeedback, report.feedback || "No feedback available.") + "<\/ul><\/section>" +
             "<footer>Generated locally by UTS CS Career Navigator. Open this file in a browser to print or save as PDF.<\/footer>" +
-            "<\/div><\/body><\/html>";
+            "<\/div><script>(function(){var preview=document.querySelector('.visual-report');if(!preview)return;var wasOpen=false;window.addEventListener('beforeprint',function(){wasOpen=preview.open;preview.open=true;});window.addEventListener('afterprint',function(){preview.open=wasOpen;});})();<\/script><\/body><\/html>";
     }
 
     function slugifyFileName(value, fallback) {
@@ -3328,6 +3502,37 @@ Download PDF
         return date.toLocaleString();
     }
 
+    function initializeReportMotion() {
+        const content = document.getElementById("reportContent");
+        const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!content || content.hidden || !window.IntersectionObserver ||
+            reduceMotion) {
+            return;
+        }
+
+        const targets = Array.from(content.querySelectorAll(
+            ".report-section, .priority-action-grid article"
+        ));
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+            });
+        }, { threshold: 0.08, rootMargin: "0px 0px -6% 0px" });
+
+        targets.forEach((element, index) => {
+            element.classList.add("report-reveal");
+            if (element.classList.contains("report-section")) {
+                element.dataset.revealSide = index % 2 ? "left" : "right";
+            }
+            if (element.matches(".priority-action-grid article")) {
+                element.style.transitionDelay = String((index % 3) * 75) + "ms";
+            }
+        });
+        requestAnimationFrame(() => targets.forEach((element) => observer.observe(element)));
+    }
+
     function loadAnalysisResult() {
         document.getElementById("reportLoadingState").hidden = true;
         const sampleRequested = new URLSearchParams(window.location.search).get("sample") === "1";
@@ -3739,6 +3944,8 @@ Download PDF
                 }
             });
         }
+
+        initializeReportMotion();
 
     }
 

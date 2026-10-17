@@ -4,7 +4,7 @@ This option runs the existing Flask website and API in one Render web service. S
 
 ## 1. Put the current code on GitHub
 
-The project already has a root `Dockerfile` that builds the frontend CSS, installs Python and Tesseract, and starts Gunicorn. Render can build it directly from a GitHub repository. **Commit and push the current code before creating the service**; Render cannot deploy changes that exist only on your laptop. Keep `config/env` and all passwords out of GitHub. [Render Docker deployment](https://render.com/docs/docker), [web service sources](https://render.com/docs/web-services).
+The project already has a root `Dockerfile` that builds the frontend CSS, installs Python and Tesseract, and starts Gunicorn. Render can build it directly from a GitHub repository. **Use the intended live commit on `main` when creating or updating the service**; Render cannot deploy changes that exist only on your laptop. Keep the in-progress frontend on `update_version` until it is ready for the live site. Keep `config/env` and all passwords out of GitHub. [Render Docker deployment](https://render.com/docs/docker), [web service sources](https://render.com/docs/web-services).
 
 The Supabase testing database has already been migrated and seeded locally. The role list and analysis history stay in Supabase when the Render process sleeps or restarts. The completed database URI is private; use the **Shared/Session pooler** connection string on port `5432` with `sslmode=require`. [Supabase connection methods](https://supabase.com/docs/guides/database/connecting-to-postgres).
 
@@ -14,7 +14,7 @@ In [Render Dashboard](https://dashboard.render.com/), choose **New → Web Servi
 
 | Setting | Value |
 | --- | --- |
-| Branch | `update_version` |
+| Branch | `main` |
 | Language/Runtime | `Docker` |
 | Root directory | Repository root (leave blank unless Render asks) |
 | Region | `Singapore` |
@@ -25,6 +25,8 @@ In [Render Dashboard](https://dashboard.render.com/), choose **New → Web Servi
 | Docker build context directory | `.` |
 | Dockerfile path | `./Dockerfile` |
 | Docker command | Leave empty |
+
+For an existing Render service, check its selected branch in the Render dashboard and set it to `main` for the current live version. Keep redesign commits on `update_version`; switch the live branch or merge the redesign into `main` only when the new frontend is ready to launch. Editing this guide does not change the service setting.
 
 The Dockerfile already binds Gunicorn to Render's `PORT`; no separate frontend service, build command, or start command is needed. Render provides an HTTPS `onrender.com` address after deployment. [Docker setup](https://render.com/docs/docker), [regions](https://render.com/docs/regions), [port binding](https://render.com/docs/web-services), [health checks](https://render.com/docs/health-checks).
 
@@ -95,7 +97,7 @@ A deployment can show **Deploy succeeded** while the Flask worker fails to start
 
 1. Finish the private `config/.env.render` file, including the real `BREVO_API_KEY`, and run the `--check` command above.
 2. In the existing Render service, open **Environment > Add from .env** and paste that file's contents. If matching keys already exist, deliberately replace their values with the prepared values; do not leave an old blank `FLASK_SECRET_KEY` row.
-3. Save the settings and choose **Save, rebuild, and deploy**. Ensure the service uses branch `update_version`; if it still shows an older commit, use **Manual Deploy > Deploy latest commit** after the latest code is on GitHub.
+3. Save the settings and choose **Save, rebuild, and deploy**. Ensure the service uses branch `main`; if it still shows an older commit, use **Manual Deploy > Deploy latest commit** after the intended live code is on `main` in GitHub.
 4. Under **Settings**, set **Health Check Path** to `/health` (without a `z`). Wait for the worker to start, then open the site's `/health` URL and continue the tests above.
 
 For supervisor and student testing, open the site shortly before the session. A Free service sleeps after 15 minutes without traffic and can take about a minute to wake. Free provides 0.1 CPU, 512 MB RAM, and 750 instance hours per workspace each month; PDF analysis and image OCR may be slow or run out of memory if several students use it together. Its local filesystem is temporary, so collect research evaluation results separately rather than relying on files inside the container. [Render Free limits](https://render.com/docs/free), [compute plans](https://render.com/docs/compute-plans).
