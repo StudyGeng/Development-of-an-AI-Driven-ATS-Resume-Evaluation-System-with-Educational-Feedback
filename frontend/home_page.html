@@ -319,7 +319,7 @@
         .career-float-score { top: 82px; right: 10px; width: 120px; padding: 10px 12px; transform: rotate(3deg); }
         .career-float-score small { display: block; color: var(--career-muted); font-size: 10px; line-height: 1.3; }
         .career-float-score strong { display: block; margin-top: 4px; color: var(--career-teal); font-family: Manrope, Inter, sans-serif; font-size: 26px; line-height: 1; }
-        .career-float-score strong span { font-size: 11px; color: var(--career-muted); }
+        .career-float-score strong span:last-child { font-size: 11px; color: var(--career-muted); }
         .career-visual-disclaimer { position: absolute; bottom: 15px; left: 20px; right: 20px; margin: 0; color: #526872; font-size: 10px; text-align: center; }
         .career-section { padding-block: clamp(96px, 10vw, 156px); scroll-margin-top: 90px; }
         .career-section h2 { margin: 0; font-size: clamp(2.45rem, 4.2vw, 4.1rem); line-height: 1.12; }
@@ -351,38 +351,89 @@
         .career-orbit-point-3 { bottom: 9%; left: 5%; }
         .career-orbit-note { margin: 6px 0 0; color: var(--career-muted); font-size: 12px; text-align: center; }
         .career-flow-section { background: #f7fbff; }
-        .career-flow-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: clamp(45px, 8vw, 120px); }
-        .career-flow-intro { max-width: 425px; }
-        .career-flow-intro > p:not(.career-eyebrow) { margin: 25px 0 0; color: var(--career-muted); font-size: 17px; line-height: 1.75; }
-        .career-flow-list { border-top: 1px solid #cddff1; }
-        .career-flow-row { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: center; gap: 24px; min-height: 155px; padding: 30px 0; border-bottom: 1px solid #cddff1; }
-        .career-flow-row-lead { display: flex; align-items: baseline; gap: 16px; }
-        .career-flow-row-index { color: var(--career-teal); font-family: Manrope, Inter, sans-serif; font-size: clamp(2.5rem, 4.2vw, 4.5rem); font-weight: 800; line-height: 1; letter-spacing: -.08em; }
-        .career-flow-row h3 { margin: 0; color: var(--career-ink); font-family: Manrope, Inter, sans-serif; font-size: clamp(17px, 1.45vw, 21px); line-height: 1.25; letter-spacing: -.035em; }
-        .career-flow-row p { margin: 0; color: var(--career-muted); font-size: 15px; line-height: 1.65; }
+        .career-flow-intro { max-width: 750px; }
+        .career-flow-intro > p:not(.career-eyebrow) { max-width: 660px; margin: 25px 0 0; color: var(--career-muted); font-size: 17px; line-height: 1.75; }
+        .career-flow-list { margin-top: 52px; border-top: 1px solid #d3e4f4; }
+        .career-flow-row { display: grid; grid-template-columns: minmax(0,.77fr) minmax(0,1.23fr); align-items: center; gap: clamp(34px,6vw,90px); padding: clamp(50px,6vw,84px) 0; border-bottom: 1px solid #d3e4f4; }
+        .career-flow-copy { max-width: 430px; }
+        .career-flow-row-index { display: block; margin-bottom: 14px; color: var(--career-teal); font-family: Manrope, Inter, sans-serif; font-size: clamp(3rem,5vw,4.8rem); font-weight: 800; line-height: 1; letter-spacing: -.08em; }
+        .career-flow-row h3 { max-width: 15ch; margin: 0 0 16px; color: var(--career-ink); font-family: Manrope, Inter, sans-serif; font-size: clamp(1.8rem,2.8vw,2.75rem); line-height: 1.15; letter-spacing: -.05em; }
+        .career-flow-row p { max-width: 43ch; margin: 0; color: var(--career-muted); font-size: 16px; line-height: 1.7; }
+        .career-flow-row .career-feature-link { display: inline-flex; align-items: center; gap: 9px; margin-top: 24px; color: var(--career-teal-deep); font-size: 13px; font-weight: 800; text-decoration: none; }
+        .career-flow-row .career-feature-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+        .career-flow-row.is-reversed .career-flow-copy { grid-column: 2; grid-row: 1; }
+        .career-flow-row.is-reversed .career-feature-visual { grid-column: 1; grid-row: 1; }
+        .career-feature-visual { position: relative; min-width: 0; padding: 18px; border: 1px solid #d4e7f8; border-radius: 24px; background: linear-gradient(135deg,#e4f2ff 0%,#f6fbff 58%,#e7f6f3 100%); }
+        .career-feature-visual::before { content: ""; position: absolute; inset: 30px -8px -9px 30px; border: 1px solid #bfdce9; border-radius: 22px; background: linear-gradient(135deg,rgba(8,127,236,.12),rgba(50,176,150,.11)); pointer-events: none; }
+        .career-ui-window { position: relative; overflow: hidden; border: 1px solid #d8e5ef; border-radius: 14px; background: white; box-shadow: 0 18px 34px rgba(22,48,77,.1); }
+        .career-ui-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; padding: 8px 15px; border-bottom: 1px solid #e4edf5; color: #5a6d7f; font-size: 10px; font-weight: 800; }
+        .career-ui-topbar strong { color: #183148; }
+        .career-ui-dots { display: inline-flex; align-items: center; gap: 4px; }
+        .career-ui-dots i { width: 6px; height: 6px; border-radius: 50%; background: #bad5e9; }
+        .career-ui-dots i:first-child { background: #7db6e3; }
+        .career-ui-body { padding: clamp(17px,3vw,31px); }
+        .career-ui-eyebrow { display: block; color: var(--career-teal-deep); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+        .career-ui-body h4 { margin: 7px 0 16px; color: var(--career-ink); font-family: Manrope,Inter,sans-serif; font-size: clamp(18px,2vw,24px); line-height: 1.2; letter-spacing: -.04em; }
+        .career-ui-role-card { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 13px; padding: 17px; border: 1px solid #d7e5f0; border-radius: 12px; background: #f8fbff; }
+        .career-ui-role-card small { display: block; margin-bottom: 6px; color: #617387; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+        .career-ui-role-card strong { color: #172b3e; font-size: clamp(12px,1.15vw,15px); line-height: 1.3; }
+        .career-ui-role-arrow { color: var(--career-teal); font-size: 21px; }
+        .career-ui-role-note { margin-top: 13px !important; color: #4f6478 !important; font-size: 12px !important; line-height: 1.5 !important; }
+        .career-ui-match-list { display: grid; gap: 8px; margin-top: 17px; }
+        .career-ui-match-list div { display: flex; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid #e3edf4; color: #41586c; font-size: 11px; }
+        .career-ui-match-list strong { color: var(--career-teal-deep); }
+        .career-ui-match-list small { color: #738499; font-size: 10px; }
+        .career-ui-metric { margin-top: 15px; }
+        .career-ui-metric:first-of-type { margin-top: 0; }
+        .career-ui-metric-label { display: flex; justify-content: space-between; gap: 12px; color: #40556a; font-size: 12px; font-weight: 700; }
+        .career-ui-metric-label strong { color: var(--career-teal-deep); }
+        .career-ui-meter { height: 8px; margin-top: 7px; overflow: hidden; border-radius: 999px; background: #e8eef5; }
+        .career-ui-meter span { display: block; width: var(--metric-value); height: 100%; border-radius: inherit; background: linear-gradient(90deg,#0064c8,#47a5ee); transition: width .95s cubic-bezier(.2,.8,.2,1); }
+        .career-ui-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 20px; }
+        .career-ui-chip-list span { padding: 5px 8px; border-radius: 6px; background: #e8f4fc; color: #145d9b; font-size: 10px; font-weight: 700; }
+        .career-ui-actions { border-top: 1px solid #e0eaf2; }
+        .career-ui-action { display: grid; grid-template-columns: 35px 1fr; gap: 8px; padding: 12px 0; border-bottom: 1px solid #e0eaf2; }
+        .career-ui-action:last-child { border-bottom: 0; }
+        .career-ui-action > span { color: var(--career-teal); font-family: Manrope,Inter,sans-serif; font-size: 20px; font-weight: 800; line-height: 1.2; }
+        .career-ui-action strong { color: #20344a; font-size: 12px; }
+        .career-ui-action p { margin-top: 3px !important; font-size: 11px !important; line-height: 1.45 !important; }
+        .career-ui-ats { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 17px; padding-top: 14px; border-top: 1px solid #e0eaf2; }
+        .career-ui-ats span { padding: 6px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+        .career-ui-ats .is-pass { background: #e5f5ee; color: #176b52; }
+        .career-ui-ats .is-warning { background: #fff3df; color: #8a530e; }
         .career-sample-section { background: #fff; }
-        .career-sample-grid { display: grid; grid-template-columns: minmax(0,.75fr) minmax(0,1.25fr); align-items: center; gap: clamp(28px,5vw,82px); }
+        .career-sample-grid { display: grid; grid-template-columns: minmax(0,.62fr) minmax(0,1.38fr); align-items: start; gap: clamp(28px,4vw,60px); }
+        .career-sample-copy { position: sticky; top: 120px; }
         .career-sample-copy > p:not(.career-eyebrow) { color: var(--career-muted); font-size: 15px; line-height: 1.7; }
         .career-sample-copy h2 { margin-bottom: 21px; }
         .career-sample-copy .career-sample-caveat { display: flex; gap: 8px; align-items: flex-start; margin-top: 27px; padding-top: 19px; border-top: 1px solid #d2dfe6; color: #486474; font-size: 13px; }
         .career-info-mark { display: inline-grid; place-items: center; flex: none; width: 17px; height: 17px; margin-top: 2px; border: 1.5px solid var(--career-teal); border-radius: 100%; color: var(--career-teal); font-size: 11px; font-weight: 800; font-style: normal; line-height: 1; }
-        .career-sample-report { overflow: hidden; border: 1px solid #d8e3e8; border-radius: 18px; background: white; box-shadow: 0 15px 42px rgba(22,35,56,.07); }
-        .career-report-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 17px 22px; border-bottom: 1px solid var(--career-line); color: var(--career-muted); font-size: 12px; font-weight: 700; }
-        .career-sample-badge { padding: 6px 9px; border-radius: 6px; background: var(--career-mint); color: #176b52; font-weight: 800; }
-        .career-report-main { display: grid; grid-template-columns: .8fr 1.2fr; }
-        .career-report-score { padding: 27px 23px; border-right: 1px solid var(--career-line); }
-        .career-report-score small { display: block; color: var(--career-muted); font-size: 12px; font-weight: 700; }
-        .career-report-score strong { display: block; margin-top: 10px; color: var(--career-teal); font-family: Manrope, Inter, sans-serif; font-size: 51px; line-height: 1; letter-spacing: -.06em; }
-        .career-report-score strong span { font-size: 16px; letter-spacing: 0; color: var(--career-muted); }
-        .career-report-score p { margin: 13px 0 0; color: var(--career-muted); font-size: 12px; line-height: 1.55; }
-        .career-report-evidence { padding: 27px 23px; }
-        .career-report-label { margin: 0 0 12px; color: var(--career-ink); font-size: 13px; font-weight: 800; }
-        .career-report-evidence > p:not(.career-report-label) { display: flex; align-items: flex-start; gap: 7px; margin: 0 0 10px; color: #3a5363; font-size: 13px; line-height: 1.5; }
-        .career-report-evidence .career-proof-check { color: #176b52; font-size: 15px; flex: none; }
-        .career-report-actions { padding: 22px 23px; border-top: 1px solid var(--career-line); background: #fafcfd; }
-        .career-report-actions ol { margin: 0; padding-left: 19px; color: #45596a; font-size: 13px; line-height: 1.85; }
-        .career-report-actions li::marker { color: var(--career-teal); font-weight: 800; }
-        .career-report-footnote { margin: 0; padding: 13px 23px; border-top: 1px solid var(--career-line); color: var(--career-muted); font-size: 11px; line-height: 1.5; }
+        .career-sample-source { margin-top: 24px !important; padding-top: 18px; border-top: 1px solid var(--career-line); font-size: 12px !important; }
+        .career-sample-source a { color: var(--career-teal-deep); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+        .career-sample-report { overflow: hidden; border: 1px solid #d7e5ef; border-radius: 20px; background: white; box-shadow: 0 20px 58px rgba(20,48,78,.11); }
+        .career-report-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 13px 20px; border-bottom: 1px solid var(--career-line); color: var(--career-muted); font-size: 11px; font-weight: 700; }
+        .career-sample-badge { padding: 6px 9px; border-radius: 6px; background: #eaf5ff; color: #16466f; font-weight: 800; }
+        .career-report-preview-hero { display: grid; grid-template-columns: minmax(0,1fr) minmax(170px,.42fr); gap: 22px; align-items: center; padding: 27px 28px; border-bottom: 1px solid #deebf6; background: #f7fbff; }
+        .career-report-preview-hero h3 { margin: 8px 0 12px; color: var(--career-ink); font-family: Manrope,Inter,sans-serif; font-size: clamp(22px,2.4vw,31px); line-height: 1.14; letter-spacing: -.05em; }
+        .career-report-preview-hero p { margin: 0; color: #50677b; font-size: 11px; line-height: 1.55; }
+        .career-report-preview-hero p + p { margin-top: 9px; }
+        .career-report-preview-score { padding-left: 23px; border-left: 1px solid #cedfeb; }
+        .career-report-preview-score small { color: #566b7e; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+        .career-report-preview-score strong { display: block; margin: 8px 0; color: var(--career-teal); font-family: Manrope,Inter,sans-serif; font-size: clamp(43px,5vw,68px); line-height: 1; letter-spacing: -.08em; }
+        .career-report-preview-score strong span:last-child { margin-left: 4px; color: #65788b; font-size: 15px; letter-spacing: 0; }
+        .career-report-preview-main { padding: 23px 28px 28px; }
+        .career-report-preview-quick { display: grid; grid-template-columns: .37fr .63fr; gap: 16px; }
+        .career-report-preview-quick h4 { margin: 5px 0 0; color: #172b3e; font-family: Manrope,Inter,sans-serif; font-size: 18px; letter-spacing: -.04em; }
+        .career-report-preview-quick .career-ui-action { padding: 7px 0; }
+        .career-report-preview-tabs { display: flex; gap: 15px; overflow-x: auto; margin-top: 22px; padding: 10px 0; border-top: 1px solid #dde7ef; border-bottom: 1px solid #dde7ef; color: #566b7e; font-size: 10px; font-weight: 800; white-space: nowrap; }
+        .career-report-preview-tabs span:first-child { color: var(--career-teal-deep); }
+        .career-report-preview-overview { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding-top: 22px; }
+        .career-report-preview-overview h5 { margin: 0 0 13px; color: #172b3e; font-size: 13px; font-weight: 800; }
+        .career-report-preview-overview .career-ui-metric { margin-top: 12px; }
+        .career-report-preview-overview .career-ui-chip-list { margin-top: 0; }
+        .career-report-footnote { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 9px; margin: 0; padding: 13px 20px; border-top: 1px solid var(--career-line); color: var(--career-muted); font-size: 11px; line-height: 1.5; }
+        .career-report-footnote a { color: var(--career-teal-deep); font-weight: 800; text-decoration: none; }
+        .career-report-footnote a:hover { text-decoration: underline; }
         .career-writing-section { background: white; }
         .career-writing-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: clamp(30px,6vw,100px); align-items: center; }
         .career-writing-intro { max-width: 420px; margin-top: 21px; color: var(--career-muted); font-size: 15px; line-height: 1.7; }
@@ -394,14 +445,27 @@
         .career-writing-example-after span { color: #176b52; }
         .career-writing-note { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0 0; color: #526477; font-size: 12px; line-height: 1.6; }
         .career-writing-mark { color: var(--career-teal); font-size: 18px; flex: none; line-height: 1; }
-        .career-footer { padding: 38px 0 20px; background: #172d3b; color: #fff; }
-        .career-footer-inner { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; }
-        .career-footer-brand { margin: 0 0 7px; font-family: Manrope,Inter,sans-serif; font-size: 17px; font-weight: 800; }
-        .career-footer-copy { max-width: 370px; margin: 0; color: #b7cbd4; font-size: 12px; line-height: 1.6; }
-        .career-footer-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 19px; }
-        .career-footer-links button { padding: 5px 0; color: #d9e6eb; font-size: 12px; font-weight: 700; }
-        .career-footer-links button:hover { color: white; text-decoration: underline; }
-        .career-footer-bottom { margin-top: 31px; padding-top: 17px; border-top: 1px solid rgba(255,255,255,.13); color: #abc0ca; font-size: 11px; }
+        .career-footer { background: #122b3b; color: #fff; }
+        .career-footer-cta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 32px; padding-block: clamp(42px, 6vw, 68px); border-bottom: 1px solid rgba(220,241,250,.18); }
+        .career-footer-kicker { margin: 0 0 12px; color: #9fe4eb; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+        .career-footer-cta h2 { max-width: 670px; margin: 0; font-family: Manrope,Inter,sans-serif; font-size: clamp(27px, 3.3vw, 43px); font-weight: 800; letter-spacing: -.045em; line-height: 1.15; }
+        .career-footer-cta p:not(.career-footer-kicker) { max-width: 610px; margin: 14px 0 0; color: #bcd0da; font-size: 14px; line-height: 1.65; }
+        .career-footer-cta-button { min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 18px; padding: 12px 20px; border-radius: 12px; background: #fff; color: #075f83; font-size: 13px; font-weight: 800; white-space: nowrap; box-shadow: 0 10px 26px rgba(0,0,0,.13); transition: background-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+        .career-footer-cta-button:hover { background: #e8f7fa; box-shadow: 0 14px 30px rgba(0,0,0,.18); transform: translateY(-2px); }
+        .career-footer-cta-button svg { width: 18px; height: 18px; }
+        .career-footer-inner { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(130px, .55fr) minmax(160px, .65fr); gap: clamp(26px, 5vw, 72px); padding-block: 43px 48px; }
+        .career-footer-identity { max-width: 410px; }
+        .career-footer-lockup { display: inline-flex; align-items: center; gap: 11px; color: #fff; text-decoration: none; }
+        .career-footer-mark { width: 38px; height: 38px; display: grid; place-items: center; flex: none; border: 1px solid rgba(179,234,242,.3); border-radius: 11px; background: #157ba0; }
+        .career-footer-mark svg { width: 25px; height: 25px; }
+        .career-footer-brand { display: grid; margin: 0; font-family: Manrope,Inter,sans-serif; font-size: 16px; font-weight: 800; line-height: 1.1; }
+        .career-footer-brand small { margin-bottom: 3px; color: #9fe4eb; font-family: Inter,sans-serif; font-size: 10px; font-weight: 800; letter-spacing: .15em; }
+        .career-footer-copy { max-width: 380px; margin: 18px 0 0; color: #b7cbd4; font-size: 13px; line-height: 1.7; }
+        .career-footer-group h3 { margin: 2px 0 17px; color: #fff; font-family: Manrope,Inter,sans-serif; font-size: 13px; font-weight: 800; }
+        .career-footer-links { display: grid; justify-items: start; gap: 12px; }
+        .career-footer-links a, .career-footer-links button { padding: 0; color: #b7cbd4; font-size: 12px; font-weight: 600; line-height: 1.5; text-align: left; text-decoration: none; transition: color .2s ease; }
+        .career-footer-links a:hover, .career-footer-links button:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+        .career-footer-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; padding-block: 18px 24px; border-top: 1px solid rgba(255,255,255,.13); color: #a8c0cc; font-size: 11px; line-height: 1.5; }
         #evaluationModal > div:last-child > div { border-radius: 18px; }
         #evaluationModal .career-evaluation-panel { max-width: 860px; }
         #evaluationModal h3, #authModal h3 { color: var(--career-ink); }
@@ -465,10 +529,10 @@
             .career-nav-links { display: none; }
             .career-hero-grid { grid-template-columns: 1fr; gap: 46px; padding-block: 58px 70px; }
             .career-visual { width: min(590px, 100%); margin-inline: auto; }
-            .career-intelligence-grid, .career-flow-grid, .career-sample-grid, .career-writing-grid { grid-template-columns: 1fr; }
+            .career-intelligence-grid, .career-sample-grid, .career-writing-grid { grid-template-columns: 1fr; }
             .career-intelligence-copy, .career-flow-intro { max-width: 650px; }
             .career-orbit-wrap { width: min(100%, 500px); }
-            .career-sample-copy { max-width: 650px; }
+            .career-sample-copy { position: static; max-width: 650px; }
         }
         @media (max-width: 700px) {
             .career-container { width: min(100% - 32px, 1200px); }
@@ -485,12 +549,20 @@
             .career-proof-list { gap: 7px 11px; }
             .career-visual { min-height: 525px; }
             .career-section { padding-block: 78px; }
-            .career-intelligence-grid, .career-flow-grid { gap: 44px; }
-            .career-flow-row { min-height: 0; }
-            .career-footer-inner { display: block; }
-            .career-footer-links { justify-content: flex-start; margin-top: 20px; }
+            .career-intelligence-grid { gap: 44px; }
+            .career-flow-row { grid-template-columns: 1fr; gap: 30px; padding: 55px 0; }
+            .career-flow-row.is-reversed .career-flow-copy, .career-flow-row.is-reversed .career-feature-visual { grid-column: auto; grid-row: auto; }
+            .career-feature-visual { width: min(100%, 650px); }
+            .career-report-preview-hero, .career-report-preview-quick, .career-report-preview-overview { grid-template-columns: 1fr; }
+            .career-report-preview-score { padding: 14px 0 0; border-left: 0; border-top: 1px solid #cedfeb; }
+            .career-footer-cta { grid-template-columns: 1fr; gap: 23px; }
+            .career-footer-cta-button { justify-self: start; }
+            .career-footer-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px 24px; }
+            .career-footer-identity { grid-column: 1 / -1; }
         }
         @media (max-width: 480px) {
+            .career-footer-inner { grid-template-columns: 1fr; }
+            .career-footer-identity { grid-column: auto; }
             .career-hero-actions { display: grid; }
             .career-button-text { justify-content: center; padding-left: 22px; }
             .career-visual { min-height: 480px; padding: 18px 13px; }
@@ -503,12 +575,16 @@
             .career-float-score strong { font-size: 21px; }
             .career-float-note { left: 5px; right: 5px; bottom: 37px; max-width: 222px; padding: 8px; }
             .career-visual-disclaimer { left: 8px; right: 8px; font-size: 9px; }
-            .career-report-main { grid-template-columns: 1fr; }
-            .career-report-score { border-right: 0; border-bottom: 1px solid var(--career-line); }
-            .career-report-evidence, .career-report-score { padding: 20px; }
-            .career-report-actions { padding: 20px; }
-            .career-flow-row { grid-template-columns: 1fr; gap: 12px; padding: 25px 0; }
-            .career-flow-row-lead { align-items: center; }
+            .career-flow-list { margin-top: 28px; }
+            .career-flow-row { padding: 42px 0; }
+            .career-feature-visual { padding: 11px; border-radius: 18px; }
+            .career-feature-visual::before { inset: 20px -5px -5px 20px; border-radius: 16px; }
+            .career-ui-body { padding: 17px; }
+            .career-ui-role-card { gap: 7px; padding: 12px; }
+            .career-ui-role-card strong { font-size: 11px; }
+            .career-report-preview-hero { gap: 17px; padding: 22px; }
+            .career-report-preview-main { padding: 20px 22px; }
+            .career-report-preview-score strong { font-size: 48px; }
             .career-orbit-point { gap: 4px; padding: 3px 5px; font-size: 11px; }
             .career-orbit-point span { width: 28px; height: 28px; font-size: 10px; }
             .career-orbit-point-1 { top: 4%; left: 42%; }
@@ -518,7 +594,9 @@
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
             .career-scan-guide, .career-orbit-ring-outer, .job-role-btn, .role-picker-panel, .analysis-button-dots span, #evaluationStatusText.is-analyzing::after { animation: none !important; }
-            .career-button, .career-orbit-point, .career-nav-actions button:not(.hidden) { transition: none; }
+            .career-button, .career-orbit-point, .career-nav-actions button:not(.hidden), .career-footer-cta-button, .career-footer-links a, .career-footer-links button { transition: none; }
+            .career-ui-meter span { transition: none; }
+            .career-footer-cta-button:hover { transform: none; }
             body.motion-ready [data-reveal] { opacity: 1; filter: none; transform: none; transition: none; }
         }    </style>
 </head>
@@ -527,7 +605,7 @@
 <nav class="career-nav" aria-label="Main navigation">
   <div class="career-container career-nav-inner">
     <a class="career-brand" href="home_page.html" aria-label="UTS CS Career Navigator home">
-      <span class="career-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M9 5.5h10l4 4V26H9a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M19 5.5v5h4M11.5 18l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="career-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 7v10c0 6 3.4 9 9 9s9-3 9-9V7" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11h8M12 15h8" stroke="#B7ECF2" stroke-width="2" stroke-linecap="round"/></svg></span>
       <span class="career-brand-name"><small>UTS CS</small><strong>Career Navigator</strong></span>
     </a>
     <div class="career-nav-links">
@@ -582,7 +660,7 @@
           </div>
         </div>
         <div class="career-float-note"><span class="career-note-mark" aria-hidden="true">✎</span><span><strong>Make impact visible</strong><small>Quantify the cloud project if you can.</small></span></div>
-        <div class="career-float-score"><small>Sample role match</small><strong>87<span>/100</span></strong></div>
+        <div class="career-float-score"><small>Sample role match</small><strong aria-label="Fictional sample score 87 out of 100"><span class="career-count-up" data-sample-score data-count-to="87" aria-hidden="true">87</span><span>/100</span></strong></div>
         <p class="career-visual-disclaimer">Sample preview with fictional information — not your result.</p>
       </div>
     </div>
@@ -617,24 +695,76 @@
   </section>
 
   <section class="career-section career-flow-section" id="feedback-overview" aria-labelledby="flow-heading">
-    <div class="career-container career-flow-grid">
+    <div class="career-container">
       <div class="career-flow-intro" data-reveal="left">
-        <p class="career-eyebrow"><span class="career-eyebrow-rule"></span> Made for your next draft</p>
+        <p class="career-eyebrow"><span class="career-eyebrow-rule"></span> Inside your report</p>
         <h2 id="flow-heading">Feedback with a <em>clear purpose.</em></h2>
-        <p>The report connects your resume to a role and gives you specific places to work on. Every recommendation still needs your own judgment.</p>
+        <p>Follow the same path you will see in the results page: a role comparison, evidence behind the score, and edits you can make next.</p>
       </div>
       <div class="career-flow-list">
-        <article class="career-flow-row" data-reveal="right">
-          <div class="career-flow-row-lead"><span class="career-flow-row-index">01</span><h3>Role direction</h3></div>
-          <p>Choose an available role, enter your own, or let the system suggest one from your resume.</p>
+        <article class="career-flow-row">
+          <div class="career-flow-copy" data-reveal="left">
+            <span class="career-flow-row-index career-count-up" data-count-to="1" data-count-pad="2" aria-hidden="true">01</span>
+            <h3>See where your role fits.</h3>
+            <p>Select a target role or let the system suggest one. The report shows the role you chose, its database mapping, and the strongest matching roles.</p>
+            <a class="career-feature-link" href="analysis_result.html?sample=1">Explore the sample report <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="career-feature-visual" data-reveal="right" aria-label="Fictional sample job match interface">
+            <div class="career-ui-window">
+              <div class="career-ui-topbar"><span class="career-ui-dots" aria-hidden="true"><i></i><i></i><i></i></span><strong>Job match</strong><span>Sample report</span></div>
+              <div class="career-ui-body">
+                <span class="career-ui-eyebrow">Role Fit Recommendation</span>
+                <h4>See the role behind the match</h4>
+                <div class="career-ui-role-card"><div><small>Selected role</small><strong data-sample-selected-role>Software Engineer</strong></div><span class="career-ui-role-arrow" aria-hidden="true">→</span><div><small>Database match</small><strong data-sample-mapped-role>Computer Programmer</strong></div></div>
+                <p class="career-ui-role-note">Evidence-match scores from resume text and database requirements.</p>
+                <div class="career-ui-match-list"><div><span data-sample-role-name="0">Computer Programmer</span><span><strong data-sample-role-score="0">87</strong><small>/100</small></span></div><div><span data-sample-role-name="1">Software Developer</span><span><strong data-sample-role-score="1">79</strong><small>/100</small></span></div><div><span data-sample-role-name="2">DevOps Engineer</span><span><strong data-sample-role-score="2">68</strong><small>/100</small></span></div></div>
+              </div>
+            </div>
+          </div>
         </article>
-        <article class="career-flow-row" data-reveal="right" style="--reveal-delay:90ms">
-          <div class="career-flow-row-lead"><span class="career-flow-row-index">02</span><h3>Match evidence</h3></div>
-          <p>See the skills and project details the analysis found, along with gaps for the chosen role.</p>
+        <article class="career-flow-row is-reversed">
+          <div class="career-flow-copy" data-reveal="right">
+            <span class="career-flow-row-index career-count-up" data-count-to="2" data-count-pad="2" aria-hidden="true">02</span>
+            <h3>Understand the evidence.</h3>
+            <p>Score components and matched resume signals make the result easier to read. You can see which keywords, skills, and experience support the match.</p>
+            <a class="career-feature-link" href="analysis_result.html?sample=1">Explore the sample report <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="career-feature-visual" data-reveal="left" aria-label="Fictional sample score components interface">
+            <div class="career-ui-window">
+              <div class="career-ui-topbar"><span class="career-ui-dots" aria-hidden="true"><i></i><i></i><i></i></span><strong>Overview</strong><span>Sample report</span></div>
+              <div class="career-ui-body">
+                <span class="career-ui-eyebrow">What the analysis found</span>
+                <h4>Score Components</h4>
+                <div class="career-ui-metric" data-sample-metric="keyword"><div class="career-ui-metric-label"><span>Keyword Match</span><strong>Strong</strong></div><div class="career-ui-meter"><span style="--metric-value:87%"></span></div></div>
+                <div class="career-ui-metric" data-sample-metric="experience"><div class="career-ui-metric-label"><span>Experience Alignment</span><strong>Strong</strong></div><div class="career-ui-meter"><span style="--metric-value:84%"></span></div></div>
+                <div class="career-ui-metric" data-sample-metric="academic"><div class="career-ui-metric-label"><span>Education &amp; skills</span><strong>Strong</strong></div><div class="career-ui-meter"><span style="--metric-value:80%"></span></div></div>
+                <div class="career-ui-chip-list" data-sample-signals><span>systems</span><span>design</span><span>kubernetes</span><span>docker</span></div>
+              </div>
+            </div>
+          </div>
         </article>
-        <article class="career-flow-row" data-reveal="right" style="--reveal-delay:180ms">
-          <div class="career-flow-row-lead"><span class="career-flow-row-index">03</span><h3>Next edits</h3></div>
-          <p>Use ATS format checks and practical writing tips to guide a more focused revision.</p>
+        <article class="career-flow-row">
+          <div class="career-flow-copy" data-reveal="left">
+            <span class="career-flow-row-index career-count-up" data-count-to="3" data-count-pad="2" aria-hidden="true">03</span>
+            <h3>Know what to edit next.</h3>
+            <p>The report turns gaps into priority actions, then checks resume readability and writing clarity. Use each suggestion only when it reflects your real work.</p>
+            <a class="career-feature-link" href="analysis_result.html?sample=1">Explore the sample report <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="career-feature-visual" data-reveal="right" aria-label="Fictional sample improvement plan interface">
+            <div class="career-ui-window">
+              <div class="career-ui-topbar"><span class="career-ui-dots" aria-hidden="true"><i></i><i></i><i></i></span><strong>Start here</strong><span>Sample report</span></div>
+              <div class="career-ui-body">
+                <span class="career-ui-eyebrow">Start here</span>
+                <h4>Your next three edits</h4>
+                <div class="career-ui-actions">
+                  <div class="career-ui-action"><span>01</span><div><strong data-sample-action="0">Show the result of the cloud project</strong><p data-sample-action-detail="0">The sample names Docker and Kubernetes but gives no measurable outcome.</p></div></div>
+                  <div class="career-ui-action"><span>02</span><div><strong data-sample-action="1">Make the API contribution specific</strong><p data-sample-action-detail="1">The sample mentions backend services without the student's own contribution.</p></div></div>
+                  <div class="career-ui-action"><span>03</span><div><strong data-sample-action="2">Connect evidence to the target role</strong><p data-sample-action-detail="2">Keep the most relevant project work near the top.</p></div></div>
+                </div>
+                <div class="career-ui-ats" aria-label="Sample ATS checks"><span class="is-pass" data-sample-ats-check="0">✓ Readable resume text detected</span><span class="is-warning" data-sample-ats-check="1">! Limited measurable impact</span></div>
+              </div>
+            </div>
+          </div>
         </article>
       </div>
     </div>
@@ -644,18 +774,24 @@
     <div class="career-container career-sample-grid">
       <div class="career-sample-copy" data-reveal="left">
         <p class="career-eyebrow"><span class="career-eyebrow-rule"></span> See the kind of feedback you will get</p>
-        <h2 id="sample-heading">Specific feedback, not a mystery score.</h2>
-        <p>A report connects the score to matched evidence and the next changes you can make. Your actual result uses your uploaded resume and the role you select or the role the system suggests.</p>
+        <h2 id="sample-heading">Preview the report interface.</h2>
+        <p>This preview uses the same fictional sample and section names as the results page. Your own report will use your uploaded resume and the role you choose or the one the system suggests.</p>
+        <a class="career-text-link" href="analysis_result.html?sample=1">Open the full sample report <span aria-hidden="true">↗</span></a>
         <p class="career-sample-caveat"><span class="career-info-mark" aria-hidden="true">i</span> Scores describe evidence in the resume. They do not predict hiring decisions.</p>
+        <p class="career-sample-source">Source: <a href="analysis_result.html?sample=1">the built-in fictional sample report</a>. The preview below reflects its score, role mapping, and next edits.</p>
       </div>
-      <div class="career-sample-report" aria-label="Fictional sample report" data-reveal="right">
-        <div class="career-report-bar"><span class="career-sample-badge">Sample result · fictional</span><span>Role: Software Engineer</span></div>
-        <div class="career-report-main">
-          <div class="career-report-score"><small>UTS CS readiness score</small><strong>87<span> / 100</span></strong><p>Illustrative role match from a fictional resume.</p></div>
-          <div class="career-report-evidence"><p class="career-report-label">Strongest evidence</p><p><span class="career-proof-check" aria-hidden="true">✓</span> Docker and Kubernetes project work</p><p><span class="career-proof-check" aria-hidden="true">✓</span> Backend service testing</p></div>
+      <div class="career-sample-report" role="group" aria-label="Preview of the built-in fictional sample report" data-reveal="right">
+        <div class="career-report-bar"><span class="career-sample-badge">Sample report · fictional data</span><span>Preview of sections in the results page</span></div>
+        <div class="career-report-preview-hero">
+          <div><span class="career-ui-eyebrow">Resume feedback</span><h3>A sample report, clearly explained.</h3><p>Selected role: <strong data-sample-selected-role>Software Engineer</strong> · Database match: <strong data-sample-mapped-role>Computer Programmer</strong></p><p><strong>Matched evidence:</strong> <span data-sample-evidence-text>systems, design, Kubernetes, and Docker.</span></p></div>
+          <div class="career-report-preview-score"><small>UTS CS Readiness Score</small><strong aria-label="Fictional sample score 87 out of 100"><span class="career-count-up" data-sample-score data-count-to="87" aria-hidden="true">87</span><span>/100</span></strong><p>Evidence match and ATS feedback. Not a hiring probability.</p></div>
         </div>
-        <div class="career-report-actions"><p class="career-report-label">What to improve next</p><ol><li>Quantify the cloud project's impact if a real measure is available.</li><li>Keep project outcomes specific and truthful.</li><li>Use a readable, text-based resume file.</li></ol></div>
-        <p class="career-report-footnote">This example is fictional. Your score and recommendations come from your own analysis.</p>
+        <div class="career-report-preview-main">
+          <div class="career-report-preview-quick"><div><span class="career-ui-eyebrow">Start here</span><h4>Your next three edits</h4></div><div class="career-ui-actions"><div class="career-ui-action"><span>01</span><div><strong data-sample-action="0">Show the result of the cloud project</strong></div></div><div class="career-ui-action"><span>02</span><div><strong data-sample-action="1">Make the API contribution specific</strong></div></div><div class="career-ui-action"><span>03</span><div><strong data-sample-action="2">Connect evidence to the target role</strong></div></div></div></div>
+          <div class="career-report-preview-tabs" aria-label="Report sections"><span>Overview</span><span>Job match</span><span>ATS checks</span><span>Improve</span><span>Resume draft</span></div>
+          <div class="career-report-preview-overview"><div><h5>Score Components</h5><div class="career-ui-metric" data-sample-metric="keyword"><div class="career-ui-metric-label"><span>Keyword Match</span><strong>Strong</strong></div><div class="career-ui-meter"><span style="--metric-value:87%"></span></div></div><div class="career-ui-metric" data-sample-metric="experience"><div class="career-ui-metric-label"><span>Experience Alignment</span><strong>Strong</strong></div><div class="career-ui-meter"><span style="--metric-value:84%"></span></div></div><div class="career-ui-metric" data-sample-metric="academic"><div class="career-ui-metric-label"><span>Education &amp; skills</span><strong>Strong</strong></div><div class="career-ui-meter"><span style="--metric-value:80%"></span></div></div></div><div><h5>Matched resume signals</h5><div class="career-ui-chip-list" data-sample-signals><span>systems</span><span>design</span><span>kubernetes</span><span>docker</span></div></div></div>
+        </div>
+        <p class="career-report-footnote"><span>This is fictional sample data, never an analysis of your resume.</span><a href="analysis_result.html?sample=1">View full report ↗</a></p>
       </div>
     </div>
   </section>
@@ -793,16 +929,40 @@
 </main>
 <!-- Footer -->
 <footer class="career-footer">
+  <div class="career-container career-footer-cta">
+    <div>
+      <p class="career-footer-kicker">Your next draft starts here</p>
+      <h2>Turn resume feedback into a clearer next step.</h2>
+      <p>Choose a role, upload your resume, and see the evidence and improvements in your report.</p>
+    </div>
+    <button class="career-footer-cta-button" id="footerEvaluateResumeBtn" type="button">Check my resume <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
+  </div>
   <div class="career-container career-footer-inner">
-    <div><p class="career-footer-brand">UTS CS Career Navigator</p><p class="career-footer-copy">A student resume feedback project at the University of Technology Sarawak, Malaysia.</p></div>
-    <div class="career-footer-links">
-      <button id="openPrivacyPolicyBtn" type="button">Privacy</button>
-      <button id="openTermsOfServiceBtn" type="button">Terms</button>
-      <button id="openResearchCreditsBtn" type="button">Research credits</button>
-      <button id="openUniversityPartnersBtn" type="button">About this project</button>
+    <div class="career-footer-identity">
+      <a class="career-footer-lockup" href="home_page.html" aria-label="UTS CS Career Navigator home">
+        <span class="career-footer-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 7v10c0 6 3.4 9 9 9s9-3 9-9V7" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11h8M12 15h8" stroke="#B7ECF2" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="career-footer-brand"><small>UTS CS</small>Career Navigator</span>
+      </a>
+      <p class="career-footer-copy">A student resume feedback project at the University of Technology Sarawak, Malaysia.</p>
+    </div>
+    <div class="career-footer-group">
+      <h3>Explore</h3>
+      <div class="career-footer-links">
+        <a href="#how-it-works">How it works</a>
+        <a href="analysis_result.html?sample=1">Sample report</a>
+      </div>
+    </div>
+    <div class="career-footer-group">
+      <h3>Project &amp; policies</h3>
+      <div class="career-footer-links">
+        <button id="openUniversityPartnersBtn" type="button">About this project</button>
+        <button id="openResearchCreditsBtn" type="button">Research credits</button>
+        <button id="openPrivacyPolicyBtn" type="button">Privacy policy</button>
+        <button id="openTermsOfServiceBtn" type="button">Terms of service</button>
+      </div>
     </div>
   </div>
-  <div class="career-container career-footer-bottom">© 2026 UTS CS Career Navigator. Educational project; no hiring outcome is guaranteed.</div>
+  <div class="career-container career-footer-bottom"><span>© 2026 UTS CS Career Navigator.</span><span>Educational project. No hiring outcome is guaranteed.</span></div>
 </footer>
 <!-- History Modal -->
 <div class="fixed inset-0 z-[90] hidden" id="historyModal" role="dialog" aria-modal="true" aria-label="Analysis history" aria-hidden="true">
@@ -1018,6 +1178,7 @@
 </div>
 <script>
   const evaluateResumeBtn = document.getElementById("evaluateResumeBtn");
+  const footerEvaluateResumeBtn = document.getElementById("footerEvaluateResumeBtn");
   const uploadHint = document.getElementById("uploadHint");
   const evaluationModal = document.getElementById("evaluationModal");
   const evaluationModalBackdrop = document.getElementById("evaluationModalBackdrop");
@@ -2243,6 +2404,9 @@
       openEvaluationModal();
     });
   }
+  if (footerEvaluateResumeBtn && evaluateResumeBtn) {
+    footerEvaluateResumeBtn.addEventListener("click", () => evaluateResumeBtn.click());
+  }
 
   if (openAuthModalBtn) {
     openAuthModalBtn.addEventListener("click", () => {
@@ -2795,6 +2959,113 @@
   orbitButtons.forEach((button) => {
     button.addEventListener("click", () => selectOrbitStep(Number(button.dataset.orbitStep)));
   });
+
+  // The home preview reads the same fictional record as analysis_result.html?sample=1.
+  const sampleAnalysis = window.CareerNavigatorCommon.createSampleAnalysis();
+  const sampleRecommendation = sampleAnalysis.role_recommendation || {};
+  const sampleActions = (sampleAnalysis.recommendation_module && sampleAnalysis.recommendation_module.priority_actions) || [];
+  const sampleRoles = sampleRecommendation.top_role_matches || [];
+  const sampleSignals = sampleRecommendation.matched_resume_signals || [];
+  function setSampleText(selector, value) {
+    if (value === undefined || value === null) return;
+    document.querySelectorAll(selector).forEach((element) => { element.textContent = String(value); });
+  }
+  function prepareCount(element, value) {
+    const target = Math.max(0, Math.round(Number(value) || 0));
+    element.dataset.countTo = String(target);
+    element.classList.add("career-count-up");
+    element.textContent = String(target).padStart(Number(element.dataset.countPad) || 0, "0");
+  }
+  document.querySelectorAll("[data-sample-score]").forEach((element) => {
+    prepareCount(element, sampleAnalysis.matching_percentage);
+    if (element.parentElement) element.parentElement.setAttribute("aria-label", "Fictional sample score " + sampleAnalysis.matching_percentage + " out of 100");
+  });
+  setSampleText("[data-sample-selected-role]", sampleRecommendation.selected_role || sampleAnalysis.selected_role);
+  setSampleText("[data-sample-mapped-role]", sampleRecommendation.selected_database_role || sampleAnalysis.target_role);
+  setSampleText("[data-sample-evidence-text]", sampleSignals.join(", ") + ".");
+  document.querySelectorAll("[data-sample-role-name]").forEach((element) => {
+    const role = sampleRoles[Number(element.dataset.sampleRoleName)];
+    if (role) element.textContent = role.role;
+  });
+  document.querySelectorAll("[data-sample-role-score]").forEach((element) => {
+    const role = sampleRoles[Number(element.dataset.sampleRoleScore)];
+    if (role) prepareCount(element, role.score);
+  });
+  document.querySelectorAll("[data-sample-action]").forEach((element) => {
+    const action = sampleActions[Number(element.dataset.sampleAction)];
+    if (action) element.textContent = action.title;
+  });
+  document.querySelectorAll("[data-sample-action-detail]").forEach((element) => {
+    const action = sampleActions[Number(element.dataset.sampleActionDetail)];
+    if (action) element.textContent = action.detail;
+  });
+  const sampleAtsChecks = (sampleAnalysis.resume_quality && sampleAnalysis.resume_quality.criteria) || [];
+  document.querySelectorAll("[data-sample-ats-check]").forEach((element) => {
+    const check = sampleAtsChecks[Number(element.dataset.sampleAtsCheck)];
+    if (check) element.textContent = (check.status === "pass" ? "✓ " : "! ") + check.title;
+  });
+  const sampleMetricValues = {
+    keyword: sampleAnalysis.compatibility && sampleAnalysis.compatibility.keyword_match,
+    experience: sampleAnalysis.compatibility && sampleAnalysis.compatibility.experience_alignment,
+    academic: sampleAnalysis.compatibility && sampleAnalysis.compatibility.academic_rigor
+  };
+  document.querySelectorAll("[data-sample-metric]").forEach((row) => {
+    const score = Math.max(0, Math.min(100, Math.round(Number(sampleMetricValues[row.dataset.sampleMetric]) || 0)));
+    const value = row.querySelector(".career-ui-metric-label strong");
+    const bar = row.querySelector(".career-ui-meter span");
+    if (value) value.textContent = score >= 75 ? "Strong" : score >= 55 ? "Fair" : "Needs work";
+    if (bar) {
+      bar.dataset.targetWidth = score + "%";
+      bar.style.setProperty("--metric-value", score + "%");
+    }
+  });
+  document.querySelectorAll("[data-sample-signals]").forEach((list) => {
+    list.replaceChildren();
+    sampleSignals.forEach((signal) => {
+      const chip = document.createElement("span");
+      chip.textContent = signal;
+      list.appendChild(chip);
+    });
+  });
+
+  const reduceCareerMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if ("IntersectionObserver" in window && !reduceCareerMotion) {
+    const countObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        observer.unobserve(entry.target);
+        const element = entry.target;
+        const target = Number(element.dataset.countTo) || 0;
+        const pad = Number(element.dataset.countPad) || 0;
+        const started = performance.now();
+        function tick(now) {
+          if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            element.textContent = String(target).padStart(pad, "0");
+            return;
+          }
+          const progress = Math.min((now - started) / 950, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          element.textContent = String(Math.round(target * eased)).padStart(pad, "0");
+          if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      });
+    }, { threshold: 0.4 });
+    document.querySelectorAll(".career-count-up[data-count-to]").forEach((element) => countObserver.observe(element));
+
+    const meterObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        observer.unobserve(entry.target);
+        const bar = entry.target.querySelector("span[data-target-width]");
+        if (bar) bar.style.setProperty("--metric-value", bar.dataset.targetWidth || "0%");
+      });
+    }, { threshold: 0.3 });
+    document.querySelectorAll(".career-ui-meter span[data-target-width]").forEach((bar) => {
+      bar.style.setProperty("--metric-value", "0%");
+      meterObserver.observe(bar.parentElement);
+    });
+  }
 
   // Reveal supporting content as it enters the viewport. Content stays visible
   // when scripts, IntersectionObserver, or animation support are unavailable.
