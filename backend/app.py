@@ -9336,6 +9336,11 @@ def tailwind_stylesheet():
     return serve_frontend_page("tailwind.css")
 
 
+@app.get("/account_workspace.css")
+def account_workspace_stylesheet():
+    return serve_frontend_page("account_workspace.css")
+
+
 @app.get("/api")
 def api_index():
     return jsonify(
