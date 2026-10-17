@@ -1,0 +1,9 @@
+{
+  "files.exclude": {
+    "**/.venv": true,
+    "**/node_modules": true,
+    "**/outputs": true,
+    "**/Resume_template": true,
+    "**/__pycache__": true
+  }
+}

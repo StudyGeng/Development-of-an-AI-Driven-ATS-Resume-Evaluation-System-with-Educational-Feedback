@@ -4,8 +4,11 @@ config/env
 .env.*
 !.env.example
 config/.env
-EXAMINER_EXPLANATION.md
-docs/
+docs/*
+!docs/deployment/
+docs/deployment/*
+!docs/deployment/DEPLOY_RENDER_FREE.md
+!docs/deployment/DEPLOY_SUPABASE.md
 Resume_template/
 .venv/
 __pycache__/
