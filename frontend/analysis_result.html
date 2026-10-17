@@ -165,7 +165,7 @@
         }
         [hidden] { display: none !important; }
         :where(.hidden) { display: none; }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; overflow-x: clip; }
         body { background: var(--studio-canvas); color: var(--studio-ink); }
         .report-nav { border-bottom: 1px solid var(--studio-border); background: rgba(255,255,255,.96); }
         .report-nav a, .report-nav button { letter-spacing: 0; }
@@ -220,7 +220,8 @@
         .report-tabs { display: flex; gap: .45rem; overflow-x: auto; margin: 1.3rem 0 2.5rem; padding: .35rem; border: 1px solid var(--studio-border); border-radius: 12px; background: white; scrollbar-width: thin; }
         .report-tabs a { flex: 0 0 auto; padding: .6rem .9rem; border-radius: 8px; color: var(--studio-muted); font-size: .86rem; font-weight: 700; white-space: nowrap; text-decoration: none; }
         .report-tabs a:hover, .report-tabs a:focus-visible { background: #eaf4f6; color: var(--studio-teal-dark); }
-        .report-section { scroll-margin-top: 5.5rem; }
+        .report-tabs a[aria-current="location"], .report-tabs a[aria-current="location"]:hover { background: #e5f2ff; color: #0065c5; box-shadow: inset 0 -2px 0 #0877de; }
+        .report-section { scroll-margin-top: 9.5rem; }
         .report-section-title { margin-bottom: 1rem; font-size: clamp(1.5rem,2.8vw,2rem); font-weight: 800; letter-spacing: -.035em; }
         .report-sample-banner { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid #d8e8ee; border-radius: 10px; background: #ecf6f9; color: #11546d; font-size: .88rem; line-height: 1.5; }
         .report-shell section > div:is(.bg-surface-container-lowest,.bg-surface-container-high) { border: 1px solid var(--studio-border); box-shadow: 0 12px 36px rgba(22,35,56,.04); }
@@ -278,8 +279,8 @@
         .report-score-note { max-width: 14rem; font-size: .82rem; }
         .report-quick {
             display: grid;
-            grid-template-columns: minmax(14rem,.4fr) minmax(0,.6fr);
-            gap: clamp(1.5rem,5vw,4.5rem);
+            grid-template-columns: minmax(14rem,.28fr) minmax(0,.72fr);
+            gap: clamp(1.5rem,3vw,3rem);
             margin: clamp(3rem,6vw,5rem) 0 2.5rem;
             padding: 0;
             border: 0;
@@ -374,12 +375,14 @@
         .report-reveal.is-visible { opacity: 1; filter: blur(0); transform: translate3d(0,0,0); }
         .report-reveal[data-reveal-side="left"] { --reveal-x: -24px; }
         .report-reveal[data-reveal-side="right"] { --reveal-x: 24px; }
+        @media (max-width: 980px) {
+            .report-quick { grid-template-columns: 1fr; gap: 1.3rem; }
+            .report-quick h2 { max-width: none; }
+        }
         @media (max-width: 850px) {
             .submission-meta { grid-template-columns: repeat(2,minmax(0,1fr)); }
             .submission-meta-item:nth-child(3) { border-left: 0; }
             .submission-meta-item:nth-child(n+3) { border-top: 1px solid var(--studio-border); }
-            .report-quick { grid-template-columns: 1fr; gap: 1.3rem; }
-            .report-quick h2 { max-width: none; }
         }
         @media (max-width: 700px) {
             .report-workspace-grid { grid-template-columns: 1fr; }
@@ -500,7 +503,7 @@
 <div class="report-quick-list" id="quickActionList" aria-live="polite"></div>
 </section>
 <nav class="report-tabs" aria-label="Report sections">
-<a href="#overview">Overview</a><a href="#job-match">Job match</a><a href="#ats-checks">ATS checks</a><a href="#improve">Improve</a><a href="#resume-draft">Resume draft</a>
+<a href="#overview">Overview</a><a href="#job-match">Job match</a><a href="#improve">Improve</a><a href="#ats-checks">ATS checks</a><a href="#resume-draft">Resume draft</a>
 </nav>
 <section class="report-section mb-12" id="overview">
 <p class="report-eyebrow mb-2">Understand your result</p><h2 class="report-section-title">What the analysis found</h2>
@@ -3631,6 +3634,61 @@ Download PDF
         requestAnimationFrame(() => targets.forEach((element) => observer.observe(element)));
     }
 
+    function initializeReportSectionTabs() {
+        const content = document.getElementById("reportContent");
+        const tabs = content && content.querySelector(".report-tabs");
+        if (!tabs || content.hidden || tabs.dataset.sectionTabsBound === "true") return;
+
+        const links = Array.from(tabs.querySelectorAll('a[href^="#"]'));
+        const linksBySection = new Map(links.map((link) => [link.getAttribute("href").slice(1), link]));
+        const sections = Array.from(content.querySelectorAll(".report-section")).filter((section) =>
+            linksBySection.has(section.id) || section.id === "score-notes"
+        );
+        const navigation = document.querySelector(".report-nav");
+        let activeLink = null;
+        let framePending = false;
+
+        const setActive = (link) => {
+            if (!link || link === activeLink) return;
+            activeLink = link;
+            links.forEach((item) => {
+                if (item === link) item.setAttribute("aria-current", "location");
+                else item.removeAttribute("aria-current");
+            });
+        };
+
+        const updateActiveSection = () => {
+            const navBottom = navigation ? navigation.getBoundingClientRect().bottom : 0;
+            const stickyTabs = getComputedStyle(tabs).position === "sticky";
+            const activationLine = navBottom + (stickyTabs ? tabs.getBoundingClientRect().height + 40 : 20);
+            let current = linksBySection.get("overview");
+            sections.forEach((section) => {
+                if (section.getBoundingClientRect().top <= activationLine) {
+                    current = linksBySection.get(section.id === "score-notes" ? "improve" : section.id) || current;
+                }
+            });
+            if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) {
+                current = linksBySection.get("resume-draft") || current;
+            }
+            setActive(current);
+        };
+
+        const scheduleUpdate = () => {
+            if (framePending) return;
+            framePending = true;
+            requestAnimationFrame(() => {
+                framePending = false;
+                updateActiveSection();
+            });
+        };
+
+        links.forEach((link) => link.addEventListener("click", () => setActive(link)));
+        window.addEventListener("scroll", scheduleUpdate, { passive: true });
+        window.addEventListener("resize", scheduleUpdate);
+        tabs.dataset.sectionTabsBound = "true";
+        scheduleUpdate();
+    }
+
     function loadAnalysisResult() {
         document.getElementById("reportLoadingState").hidden = true;
         const sampleRequested = new URLSearchParams(window.location.search).get("sample") === "1";
@@ -4044,6 +4102,7 @@ Download PDF
         }
 
         initializeReportMotion();
+        initializeReportSectionTabs();
 
     }
 
