@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>UTS CS Career Navigator - Admin Insights</title>
-<link href="/tailwind.css" rel="stylesheet">
+<link href="tailwind.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <script src="app_common.js"></script>
 <style>
@@ -16,6 +16,11 @@
   --admin-teal-deep: #11546d;
   --admin-line: #e0e7ef;
 }
+*, *::before, *::after { box-sizing: border-box; }
+:where(.hidden) { display: none; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+button, input { font: inherit; }
 .admin-icon { width: 1.25rem; height: 1.25rem; flex: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 html, body {
   max-width: 100%;
@@ -40,18 +45,21 @@ h1, h2, h3, .font-headline {
 .admin-nav {
   position: sticky;
   top: 0;
+  z-index: 50;
   background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid var(--admin-line);
   box-shadow: 0 4px 24px rgba(22, 35, 56, 0.035);
 }
-.admin-nav .nav-inner { min-height: 78px; height: auto; }
+.admin-nav .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 80rem; min-height: 78px; height: auto; margin: 0 auto; padding: 0 1rem; }
 .admin-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
 .admin-brand-mark { display: grid; width: 38px; height: 38px; flex: none; place-items: center; border-radius: 11px; background: var(--admin-teal); color: #fff; }
 .admin-brand-mark svg { width: 25px; height: 25px; }
 .admin-brand-name { display: grid; line-height: 1.12; letter-spacing: -.025em; }
 .admin-brand-name small { color: var(--admin-teal); font-size: 10px; font-weight: 800; letter-spacing: .17em; }
 .admin-brand-name strong { color: var(--admin-ink); font-size: 16px; }
-.admin-nav-links a { white-space: nowrap; }
+.admin-nav-links { display: none; align-items: center; gap: 2rem; }
+.admin-nav-links a { white-space: nowrap; text-decoration: none; }
+.admin-actions { display: flex; align-items: center; gap: .5rem; }
 .admin-brand,
 .admin-nav a:hover,
 .admin-nav a[aria-current="page"] { color: var(--admin-teal); }
@@ -59,10 +67,21 @@ h1, h2, h3, .font-headline {
 .admin-main { padding-top: 0; background: radial-gradient(circle at 95% 2%, rgba(223, 246, 238, .62), transparent 25%), var(--admin-canvas); }
 .admin-hero { position: relative; overflow: hidden; background: linear-gradient(122deg, #fff 0%, #f8fcfc 58%, #e8f4f3 100%); border-bottom: 1px solid var(--admin-line); }
 .admin-hero::after { position: absolute; right: max(2rem, calc((100vw - 80rem) / 2)); bottom: -4rem; width: 16rem; height: 16rem; border: 1px solid rgba(23, 107, 137, .12); border-radius: 50%; content: ""; pointer-events: none; }
-.admin-hero > div { position: relative; z-index: 1; padding-top: clamp(2.5rem, 5vw, 4.25rem); padding-bottom: clamp(2.5rem, 5vw, 4.25rem); }
+.admin-hero > div { position: relative; z-index: 1; max-width: 80rem; margin: 0 auto; padding: clamp(2.5rem, 5vw, 4.25rem) 1rem; }
 .admin-hero h1 { max-width: 46rem; letter-spacing: -.045em; line-height: 1.12; }
 .admin-eyebrow { display: inline-flex; align-items: center; gap: .65rem; letter-spacing: 0.14em; }
 .admin-eyebrow::before { display: inline-block; width: 1.5rem; height: 2px; background: currentColor; content: ""; }
+.admin-access { max-width: 80rem; margin: 0 auto; padding: clamp(2rem, 5vw, 4rem) 1rem 5rem; }
+.admin-access-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 1.25rem; max-width: 46rem; padding: clamp(1.5rem, 4vw, 2.5rem); border: 1px solid var(--admin-line); border-radius: 20px; background: #fff; box-shadow: 0 16px 40px rgba(22,35,56,.07); }
+.admin-access-icon { display: grid; width: 3.5rem; height: 3.5rem; place-items: center; border-radius: 15px; background: #e8f4f3; color: var(--admin-teal); }
+.admin-access-icon svg { width: 1.5rem; height: 1.5rem; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.admin-access-kicker { margin: 0 0 .5rem; color: var(--admin-teal); font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.admin-access h2 { margin: 0; color: var(--admin-ink); font-size: clamp(1.3rem, 3vw, 1.7rem); line-height: 1.3; }
+.admin-access p:not(.admin-access-kicker) { margin: .7rem 0 0; color: var(--admin-muted); line-height: 1.65; }
+.admin-access-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.admin-access-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: .65rem 1rem; border-radius: 10px; font-size: .875rem; font-weight: 800; }
+.admin-access-actions button { border: 1px solid var(--admin-line); background: #fff; color: var(--admin-teal-deep); cursor: pointer; }
+.admin-access-actions button:hover { background: #f2faf9; }
 .admin-page :is(a, button, input):focus-visible {
   outline: 3px solid #69bbd1;
   outline-offset: 3px;
@@ -87,8 +106,8 @@ h1, h2, h3, .font-headline {
 .metric-card:hover { transform: translateY(-3px); box-shadow: 0 18px 38px rgba(22, 35, 56, .09); }
 .metric-card > p:last-child { color: var(--admin-teal); letter-spacing: -.04em; }
 .data-card > div:first-child h2::before { display: inline-block; width: .25rem; height: .9em; margin-right: .65rem; border-radius: 99px; background: var(--admin-teal); content: ""; vertical-align: -.1em; }
-.admin-main > section:nth-of-type(6) { margin-top: 1.5rem; padding-top: 3rem; border-top: 1px solid var(--admin-line); }
-.admin-main > section:nth-of-type(6) h2 { letter-spacing: -.035em; }
+.admin-dashboard > section:nth-of-type(5) { margin-top: 1.5rem; padding-top: 3rem; border-top: 1px solid var(--admin-line); }
+.admin-dashboard > section:nth-of-type(5) h2 { letter-spacing: -.035em; }
 .admin-button { border-radius: 10px; font-weight: 800; transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
 .admin-button:hover:not(:disabled) { transform: translateY(-2px); }
 .admin-button-primary { box-shadow: 0 10px 22px rgba(23, 107, 137, .16); }
@@ -143,13 +162,17 @@ tbody tr:hover { background: #f1f8f8; }
 .modal-backdrop {
   background: rgba(15, 23, 42, 0.58);
 }
+.modal-backdrop[aria-hidden="true"] { display: none !important; }
 .modal-backdrop > section { border: 1px solid var(--admin-line); border-radius: 18px; }
-.admin-main > section.is-revealed { animation: adminRevealUp .7s cubic-bezier(.2, .8, .2, 1) both; }
-.admin-main > section:nth-of-type(odd).is-revealed:not(.admin-hero) { animation-name: adminRevealLeft; }
-.admin-main > section:nth-of-type(even).is-revealed:not(.admin-hero) { animation-name: adminRevealRight; }
+.admin-dashboard > section.is-revealed { animation: adminRevealUp .7s cubic-bezier(.2, .8, .2, 1) both; }
+.admin-dashboard > section:nth-of-type(odd).is-revealed { animation-name: adminRevealLeft; }
+.admin-dashboard > section:nth-of-type(even).is-revealed { animation-name: adminRevealRight; }
 @keyframes adminRevealUp { from { opacity: 0; filter: blur(7px); transform: translateY(22px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
 @keyframes adminRevealLeft { from { opacity: 0; filter: blur(7px); transform: translateX(-22px); } to { opacity: 1; filter: blur(0); transform: translateX(0); } }
 @keyframes adminRevealRight { from { opacity: 0; filter: blur(7px); transform: translateX(22px); } to { opacity: 1; filter: blur(0); transform: translateX(0); } }
+@media (min-width: 768px) {
+  .admin-nav-links { display: flex; }
+}
 @media (max-width: 640px) {
   .admin-nav .nav-inner {
     height: auto;
@@ -167,10 +190,11 @@ tbody tr:hover { background: #f1f8f8; }
   .admin-actions { width: 100%; justify-content: flex-end; }
   .admin-mobile-home { display: none; }
   .admin-main { padding-top: 0; }
+  .admin-access-card { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar-fill { transition: none; }
-  .admin-main > section.is-revealed { animation: none; }
+  .admin-dashboard > section.is-revealed { animation: none; }
   .admin-button, .icon-button, .metric-card, tbody tr { transition: none; }
   .admin-button:hover:not(:disabled), .icon-button:hover, .metric-card:hover { transform: none; }
 }
@@ -194,7 +218,7 @@ tbody tr:hover { background: #f1f8f8; }
       </button>
       <button class="admin-button admin-button-primary h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
       <button id="openHistoryBtn" class="admin-button admin-button-secondary h-10 inline-flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" type="button">History</button>
-      <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights">
+      <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights" hidden>
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.4 6"/><path d="M20 4v7h-7"/></svg>
       </button>
       <a class="admin-mobile-home admin-button admin-button-secondary md:hidden h-9 w-9 inline-flex items-center justify-center" href="home_page.html" aria-label="Back to home" title="Back to home">
@@ -213,6 +237,22 @@ tbody tr:hover { background: #f1f8f8; }
       <p id="pageMessage" class="mt-3 hidden text-sm font-semibold"></p>
     </div>
   </section>
+
+  <section id="adminAccessState" class="admin-access" role="status" aria-live="polite">
+    <div class="admin-access-card">
+      <span class="admin-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+      <div>
+        <p class="admin-access-kicker" id="adminAccessKicker">Checking access</p>
+        <h2 id="adminAccessTitle">Preparing admin insights</h2>
+        <p id="adminAccessDescription">This dashboard is available to signed-in administrators.</p>
+        <div class="admin-access-actions" id="adminAccessActions" hidden>
+          <button id="retryAdminBtn" type="button">Try again</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="adminDashboard" class="admin-dashboard" hidden>
 
   <section class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
     <div id="adminMetricGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
@@ -352,6 +392,7 @@ tbody tr:hover { background: #f1f8f8; }
       </div>
     </article>
   </section>
+  </div>
 </main>
 
 <div id="userEditModal" class="fixed inset-0 z-[70] hidden items-center justify-center modal-backdrop px-4 py-6" role="dialog" aria-modal="true" aria-label="Edit user account" aria-hidden="true">
@@ -403,6 +444,13 @@ const openAuthModalBtn = document.getElementById("openAuthModalBtn");
 const openHistoryBtn = document.getElementById("openHistoryBtn");
 const accountStatusBtn = document.getElementById("accountStatusBtn");
 const refreshBtn = document.getElementById("refreshBtn");
+const adminDashboard = document.getElementById("adminDashboard");
+const adminAccessState = document.getElementById("adminAccessState");
+const adminAccessKicker = document.getElementById("adminAccessKicker");
+const adminAccessTitle = document.getElementById("adminAccessTitle");
+const adminAccessDescription = document.getElementById("adminAccessDescription");
+const adminAccessActions = document.getElementById("adminAccessActions");
+const retryAdminBtn = document.getElementById("retryAdminBtn");
 const userEditModal = document.getElementById("userEditModal");
 const userEditForm = document.getElementById("userEditForm");
 const editUserIdInput = document.getElementById("editUserIdInput");
@@ -472,8 +520,24 @@ function showPageMessage(message, type = "info") {
     return;
   }
   element.textContent = message || "";
-  element.classList.toggle("hidden", !message);
-  element.className = "mt-3 text-sm font-semibold " + (type === "error" ? "text-error" : "text-on-surface-variant");
+  element.className = "mt-3 text-sm font-semibold " + (type === "error" ? "text-error" : "text-on-surface-variant") + (message ? "" : " hidden");
+}
+
+function showAdminAccessState(kicker, title, description, canRetry = false) {
+  adminDashboard.hidden = true;
+  adminAccessState.hidden = false;
+  adminAccessKicker.textContent = kicker;
+  adminAccessTitle.textContent = title;
+  adminAccessDescription.textContent = description;
+  adminAccessActions.hidden = !canRetry;
+  refreshBtn.hidden = true;
+}
+
+function showAdminDashboard() {
+  adminAccessState.hidden = true;
+  adminDashboard.hidden = false;
+  refreshBtn.hidden = false;
+  enableScrollReveals();
 }
 
 async function fetchAdminJson(path, options = {}) {
@@ -713,9 +777,22 @@ async function deleteUser(userId) {
 }
 
 async function loadInsights() {
+  if (window.location.protocol === "file:") {
+    openAuthModalBtn.hidden = true;
+    openHistoryBtn.hidden = true;
+    accountStatusBtn.hidden = true;
+    showAdminAccessState(
+      "Admin access",
+      "Open the running app to view insights",
+      "This saved HTML file cannot verify an admin session or load live account data. Open the website through its app server and sign in with an admin account."
+    );
+    return;
+  }
+
   refreshBtn.disabled = true;
   refreshBtn.classList.add("opacity-70");
   showPageMessage("");
+  showAdminAccessState("Checking access", "Preparing admin insights", "Checking your administrator session and loading live data.");
 
   try {
     const [adminData, datasetData] = await Promise.all([
@@ -739,8 +816,17 @@ async function loadInsights() {
     renderBars("skillBars", datasetData.top_skill_keywords || [], "skill", "role_count", " roles");
     renderBars("keywordBars", datasetData.top_text_keywords || [], "keyword", "count", "");
     renderRoleTable(datasetData.top_roles_by_requirements || []);
+    showAdminDashboard();
   } catch (error) {
-    showPageMessage(error.message || "Could not load admin data.", "error");
+    const detail = error && error.message && error.message !== "Failed to fetch"
+      ? ` ${error.message}`
+      : "";
+    showAdminAccessState(
+      "Insights unavailable",
+      "We couldn't load the admin dashboard",
+      `Check that the application server is running and try again.${detail}`,
+      true
+    );
   } finally {
     refreshBtn.disabled = false;
     refreshBtn.classList.remove("opacity-70");
@@ -784,11 +870,17 @@ userEditModal.addEventListener("click", (event) => {
 });
 userEditForm.addEventListener("submit", saveUserChanges);
 refreshBtn.addEventListener("click", loadInsights);
+retryAdminBtn.addEventListener("click", loadInsights);
 
+let scrollRevealsEnabled = false;
 function enableScrollReveals() {
+  if (scrollRevealsEnabled) {
+    return;
+  }
   if (!("IntersectionObserver" in window) || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
     return;
   }
+  scrollRevealsEnabled = true;
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -797,11 +889,10 @@ function enableScrollReveals() {
       }
     });
   }, { threshold: 0.08, rootMargin: "0px 0px -32px 0px" });
-  document.querySelectorAll(".admin-main > section").forEach((section) => observer.observe(section));
+  document.querySelectorAll(".admin-dashboard > section").forEach((section) => observer.observe(section));
 }
 
 updateHeaderAuthUi();
-enableScrollReveals();
 loadInsights();
 </script>
 </body>

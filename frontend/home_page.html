@@ -6,9 +6,12 @@
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/tailwind.css">
+<link rel="stylesheet" href="tailwind.css">
 <script src="app_common.js"></script>
 <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        [hidden] { display: none !important; }
+        :where(.hidden) { display: none; }
         html, body {
             max-width: 100%;
             overflow-x: hidden;
@@ -233,7 +236,7 @@
             --career-radius: 18px;
         }
         html { scroll-behavior: smooth; }
-        body { background: var(--career-canvas); color: var(--career-ink); }
+        body { margin: 0; background: var(--career-canvas); color: var(--career-ink); font-family: Inter, Arial, sans-serif; }
         button, a { -webkit-tap-highlight-color: transparent; }
         button:focus-visible, a:focus-visible, [role="button"]:focus-visible {
             outline: 3px solid #69bbd1;

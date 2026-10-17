@@ -3,10 +3,11 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>UTS CS Career Navigator - Analysis Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/tailwind.css">
+<link rel="stylesheet" href="tailwind.css">
 <script src="app_common.js"></script>
 <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #191c1d; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #191c1d; }
         h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
         .toast-stack {
             position: fixed;
@@ -167,6 +168,7 @@
             --studio-border: #e0e7ef;
         }
         [hidden] { display: none !important; }
+        :where(.hidden) { display: none; }
         html { scroll-behavior: smooth; }
         body { background: var(--studio-canvas); color: var(--studio-ink); }
         .report-nav { border-bottom: 1px solid var(--studio-border); background: rgba(255,255,255,.96); }
