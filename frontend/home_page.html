@@ -116,6 +116,16 @@
             left: 0.75rem;
             top: 50%;
             transform: translateY(-50%);
+            display: grid;
+            width: 20px;
+            height: 20px;
+            place-items: center;
+            color: var(--career-teal-deep);
+        }
+        .role-picker-search-icon svg, .role-picker-chevron {
+            display: block;
+            width: 20px;
+            height: 20px;
         }
         #customRoleInput {
             width: 100%;
@@ -137,6 +147,8 @@
         }
         #rolePickerToggleBtn {
             right: 0.5rem;
+            display: grid;
+            place-items: center;
         }
         .role-combobox-shell:focus-within {
             border-color: #0060ac;
@@ -401,6 +413,8 @@
         #evaluationModal .career-modal-guide p, #evaluationModal .career-modal-guide li { color: #486171; }
         #resumeDropZone { border-color: #a9cbd4; background: #fff; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease; }
         #resumeDropZone:hover, #resumeDropZone:focus-visible { border-color: var(--career-teal); background: #f4fafb; }
+        #resumeDropZone[aria-disabled="true"] { cursor: progress; opacity: .7; }
+        #resumeDropZone[aria-disabled="true"]:hover { border-color: #a9cbd4; background: #fff; }
         #resumeDropZone.border-secondary { border-color: var(--career-teal); background: #e8f6f4; box-shadow: 0 0 0 3px rgba(23,107,137,.12); }
         #resumeDropZone:focus-visible { outline: 3px solid #69bbd1; }
         #resumePreviewCard { border-color: var(--career-line); background: #fff; }
@@ -413,12 +427,25 @@
         .career-upload-mark { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: #e8f4f4; color: var(--career-teal); font-family: Arial, sans-serif; font-size: 26px; line-height: 1; font-weight: 700; }
         #evaluationStatusText { padding: 11px 14px; border-radius: 9px; background: #e8f4f4; color: var(--career-teal-deep); line-height: 1.5; }
         #evaluationStatusText.text-error { background: #fff0f1; color: #a12538; }
+        #evaluationStatusText.is-analyzing { position: relative; overflow: hidden; padding-bottom: 15px; }
+        #evaluationStatusText.is-analyzing::after { content: ""; position: absolute; left: 0; bottom: 0; width: 32%; height: 3px; border-radius: 999px; background: var(--career-teal); animation: analysisScan 1.7s ease-in-out infinite alternate; }
+        #startEvaluationBtn { display: inline-flex; align-items: center; justify-content: center; min-width: 156px; }
+        #startEvaluationBtn.is-analyzing:disabled { opacity: 1; cursor: progress; }
+        #analysisButtonBusy:not([hidden]) { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+        .analysis-button-dots { display: inline-flex; align-items: center; gap: 3px; margin-left: 5px; }
+        .analysis-button-dots span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: analysisDot 1.05s ease-in-out infinite; }
+        .analysis-button-dots span:nth-child(2) { animation-delay: .16s; }
+        .analysis-button-dots span:nth-child(3) { animation-delay: .32s; }
+        @keyframes analysisDot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-5px); opacity: 1; } }
+        @keyframes analysisScan { from { transform: translateX(-100%); } to { transform: translateX(320%); } }
         #rolePickerMeta { background: #dff6ee; color: #176b52; }
         .role-combobox-shell:focus-within { border-color: var(--career-teal); box-shadow: 0 0 0 3px rgba(23,107,137,.13); }
         .role-picker-option:hover, .role-picker-option[aria-selected="true"] { background: #e7f3f4; color: var(--career-teal-deep); }
         .role-picker-option[aria-selected="true"] { box-shadow: inset 3px 0 0 var(--career-teal); }
         .job-role-btn:hover { border-color: var(--career-teal); box-shadow: 0 5px 14px rgba(23,107,137,.12); }
         #jobRoleButtons .job-role-btn { min-height: 38px; border-radius: 999px; padding-inline: 14px; font-size: 12px; transition: border-color .2s ease, background-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease; }
+        #jobRoleButtons .job-role-btn:disabled { cursor: progress; opacity: .65; }
+        #jobRoleButtons .job-role-btn:disabled:hover { transform: none; }
         #jobRoleButtons .job-role-btn[aria-pressed="true"] { border-color: var(--career-teal-deep); background: var(--career-teal-deep); color: white; box-shadow: 0 5px 13px rgba(23,107,137,.16); }
         :is(#evaluationModal,#authModal,#profileModal,#historyModal) button:is(.bg-primary,.bg-secondary) { border-radius: 11px; background: var(--career-teal-deep); color: #fff; box-shadow: 0 7px 17px rgba(23,107,137,.13); transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease; }
         :is(#evaluationModal,#authModal,#profileModal,#historyModal) button:is(.bg-primary,.bg-secondary):hover:not(:disabled) { background: #0055aa; color: #fff; box-shadow: 0 10px 22px rgba(23,107,137,.19); transform: translateY(-1px); }
@@ -490,7 +517,7 @@
         }
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
-            .career-scan-guide, .career-orbit-ring-outer, .job-role-btn, .role-picker-panel { animation: none !important; }
+            .career-scan-guide, .career-orbit-ring-outer, .job-role-btn, .role-picker-panel, .analysis-button-dots span, #evaluationStatusText.is-analyzing::after { animation: none !important; }
             .career-button, .career-orbit-point, .career-nav-actions button:not(.hidden) { transition: none; }
             body.motion-ready [data-reveal] { opacity: 1; filter: none; transform: none; transition: none; }
         }    </style>
@@ -659,7 +686,7 @@
 </button>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-6">
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-6" id="evaluationInputGrid">
 <div class="xl:col-span-8 space-y-5">
 <section class="career-modal-step rounded-2xl border border-outline-variant/60 bg-surface-container-low p-4 md:p-5">
 <p class="text-xs uppercase tracking-[0.16em] font-bold text-secondary mb-3">Step 1</p>
@@ -671,13 +698,13 @@
 <span class="rounded-full bg-secondary-container/60 px-2.5 py-1 text-[11px] font-semibold text-on-secondary-container" id="rolePickerMeta" aria-live="polite">Loading role list...</span>
 </div>
 <div class="role-combobox-shell relative rounded-xl border border-outline-variant bg-surface-container-lowest">
-<span class="role-picker-search-icon career-picker-mark pointer-events-none" aria-hidden="true">⌕</span>
+<span class="role-picker-search-icon pointer-events-none" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg></span>
 <input class="w-full rounded-xl border-0 bg-transparent py-3 pl-11 pr-20 text-sm focus:ring-0" id="customRoleInput" type="text" placeholder="Search database roles or type your own" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="roleSuggestionList" aria-activedescendant="">
 <button class="absolute right-10 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface-container-high text-primary transition-colors hover:bg-primary hover:text-on-primary" id="clearRoleBtn" type="button" title="Clear selected role" aria-label="Clear selected role">
 <span class="career-picker-mark" aria-hidden="true">×</span>
 </button>
 <button class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container-high" id="rolePickerToggleBtn" type="button" aria-label="Browse database job roles" aria-expanded="false" aria-controls="roleSuggestionPanel">
-<span class="role-picker-chevron career-picker-mark" id="rolePickerChevron" aria-hidden="true">⌄</span>
+<svg class="role-picker-chevron" id="rolePickerChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
 </button>
 </div>
 <div class="role-picker-panel absolute left-0 right-0 z-40 mt-2 hidden rounded-2xl border border-outline-variant/70 bg-white" id="roleSuggestionPanel">
@@ -716,7 +743,7 @@
 <section class="career-modal-step rounded-2xl border border-outline-variant/60 bg-surface-container-low p-4 md:p-5">
 <p class="text-xs uppercase tracking-[0.16em] font-bold text-secondary mb-3">Step 2</p>
 <p class="text-sm font-semibold text-on-surface mb-3">Upload resume file</p>
-<div class="rounded-xl border-2 border-dashed border-outline-variant/70 bg-surface-container-lowest p-4 transition-colors cursor-pointer" id="resumeDropZone" role="group" aria-label="Upload resume file" aria-describedby="selectedPdfName">
+<div class="rounded-xl border-2 border-dashed border-outline-variant/70 bg-surface-container-lowest p-4 transition-colors cursor-pointer" id="resumeDropZone" role="group" aria-label="Upload resume file" aria-describedby="selectedPdfName" aria-disabled="false">
 <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
 <div class="flex gap-3 items-center">
 <span class="career-upload-mark" aria-hidden="true">↑</span>
@@ -758,7 +785,7 @@
 <p class="text-sm text-on-surface-variant mt-5 hidden" id="evaluationStatusText" role="status" aria-live="polite"></p>
 <div class="flex flex-col sm:flex-row sm:justify-end gap-3 mt-4 md:mt-6">
 <button class="px-5 py-3 rounded-xl bg-surface-container-low text-primary font-semibold" id="cancelEvaluationBtn" type="button">Cancel</button>
-<button class="px-5 py-3 rounded-xl bg-primary text-on-primary font-bold disabled:opacity-50 disabled:cursor-not-allowed" disabled id="startEvaluationBtn" type="button">Analyze resume</button>
+<button class="px-5 py-3 rounded-xl bg-primary text-on-primary font-bold disabled:opacity-50 disabled:cursor-not-allowed" disabled id="startEvaluationBtn" type="button"><span id="analysisButtonIdle">Analyze resume</span><span id="analysisButtonBusy" hidden>Analyzing resume<span class="analysis-button-dots" aria-hidden="true"><span></span><span></span><span></span></span></span></button>
 </div>
 </div>
 </div>
@@ -997,6 +1024,9 @@
   const closeEvaluationModalBtn = document.getElementById("closeEvaluationModalBtn");
   const cancelEvaluationBtn = document.getElementById("cancelEvaluationBtn");
   const startEvaluationBtn = document.getElementById("startEvaluationBtn");
+  const analysisButtonIdle = document.getElementById("analysisButtonIdle");
+  const analysisButtonBusy = document.getElementById("analysisButtonBusy");
+  const evaluationInputGrid = document.getElementById("evaluationInputGrid");
   const evaluationStatusText = document.getElementById("evaluationStatusText");
   const jobRoleButtons = document.querySelectorAll(".job-role-btn");
   const selectedRoleText = document.getElementById("selectedRoleText");
@@ -1077,6 +1107,9 @@
   let selectedRole = "";
   let selectedPdfFileName = "";
   let selectedPdfFile = null;
+  let isAnalyzing = false;
+  let analysisAbortController = null;
+  let analysisRunId = 0;
   const RESUME_VISUAL_PREVIEW_KEYS = [
     "resumeVisualPreviewDataUrl",
     "resumeVisualPreviewType",
@@ -1135,6 +1168,7 @@
       evaluationStatusText.textContent = message;
       evaluationStatusText.className = isError ? "text-sm mt-5 text-error" : "text-sm mt-5 text-secondary";
       evaluationStatusText.classList.toggle("hidden", !message);
+      evaluationStatusText.classList.toggle("is-analyzing", Boolean(message && isAnalyzing && !isError));
     }
     if (uploadHint && message) {
       uploadHint.textContent = message;
@@ -1738,7 +1772,7 @@
     if (!roleSuggestionPanel || !customRoleInput) {
       return;
     }
-    isRolePickerOpen = Boolean(shouldOpen);
+    isRolePickerOpen = Boolean(shouldOpen && !isAnalyzing);
     roleSuggestionPanel.classList.toggle("hidden", !isRolePickerOpen);
     customRoleInput.setAttribute("aria-expanded", isRolePickerOpen ? "true" : "false");
     if (rolePickerToggleBtn) {
@@ -1910,6 +1944,7 @@
   }
 
   function updateCustomRoleSelection() {
+    if (isAnalyzing) return;
     const typedRole = customRoleInput ? customRoleInput.value.trim() : "";
     roleRequirementRequestId += 1;
     selectedRole = typedRole;
@@ -1927,7 +1962,7 @@
 
   function selectDatabaseRole(role) {
     const roleName = getDatabaseRoleName(role);
-    if (!roleName || !customRoleInput) {
+    if (isAnalyzing || !roleName || !customRoleInput) {
       return;
     }
     if (customRoleLookupTimer) {
@@ -1988,7 +2023,7 @@
   }
 
   function selectResumeFile(file) {
-    if (!file) return false;
+    if (isAnalyzing || !file) return false;
     if (!isSupportedResumeFile(file)) {
       clearSelectedResumeFile("This file type is not supported. Please upload PDF, PNG, JPG, or JPEG.");
       return false;
@@ -2022,7 +2057,7 @@
     }
   }
 
-  function persistResumeVisualPreview(file) {
+  function persistResumeVisualPreview(file, shouldStore = () => true) {
     clearStoredResumeVisualPreview();
     if (!file) {
       return Promise.resolve(false);
@@ -2035,6 +2070,10 @@
       const reader = new FileReader();
       reader.onload = () => {
         try {
+          if (!shouldStore()) {
+            resolve(false);
+            return;
+          }
           const dataUrl = String(reader.result || "");
           if (!dataUrl) {
             resolve(false);
@@ -2062,6 +2101,7 @@
   }
 
   function closeEvaluationModal() {
+    if (isAnalyzing) stopAnalysis(true);
     setRolePickerOpen(false);
     evaluationModal.classList.add("hidden");
     evaluationModal.setAttribute("aria-hidden", "true");
@@ -2070,8 +2110,43 @@
   }
 
   function refreshStartButtonState() {
-    const hasResumeFile = selectedPdfFileName.trim().length > 0;
-    startEvaluationBtn.disabled = !hasResumeFile;
+    startEvaluationBtn.disabled = isAnalyzing || !selectedPdfFile;
+  }
+
+  function setAnalysisBusy(busy) {
+    isAnalyzing = busy;
+    if (busy) setRolePickerOpen(false);
+    evaluationModal.classList.toggle("is-analyzing", busy);
+    if (evaluationInputGrid) evaluationInputGrid.setAttribute("aria-busy", busy ? "true" : "false");
+    if (customRoleInput) customRoleInput.disabled = busy;
+    if (clearRoleBtn) clearRoleBtn.disabled = busy;
+    if (rolePickerToggleBtn) rolePickerToggleBtn.disabled = busy;
+    jobRoleButtons.forEach((button) => { button.disabled = busy; });
+    if (resumePdfInput) resumePdfInput.disabled = busy;
+    if (uploadPdfBtn) uploadPdfBtn.disabled = busy;
+    if (removeResumeBtn) removeResumeBtn.disabled = busy;
+    if (resumeDropZone) resumeDropZone.setAttribute("aria-disabled", busy ? "true" : "false");
+    if (analysisButtonIdle) analysisButtonIdle.hidden = busy;
+    if (analysisButtonBusy) analysisButtonBusy.hidden = !busy;
+    startEvaluationBtn.classList.toggle("is-analyzing", busy);
+    if (evaluationStatusText) evaluationStatusText.classList.toggle("is-analyzing", busy && !evaluationStatusText.classList.contains("hidden"));
+    if (cancelEvaluationBtn) cancelEvaluationBtn.textContent = busy ? "Stop waiting" : "Cancel";
+    refreshStartButtonState();
+  }
+
+  function stopAnalysis(silent = false) {
+    if (!isAnalyzing) return;
+    analysisRunId += 1;
+    if (analysisAbortController) analysisAbortController.abort();
+    analysisAbortController = null;
+    try {
+      localStorage.removeItem("pipelineStatus");
+      localStorage.removeItem("analysisStartedAt");
+    } catch (error) {
+      // Storage can be unavailable; the visible form must still recover.
+    }
+    setAnalysisBusy(false);
+    if (!silent) setEvaluationStatus("Stopped waiting. You can change the role or file and try again.");
   }
 
   function updateResumePreview(file) {
@@ -2266,7 +2341,10 @@
     closeEvaluationModalBtn.addEventListener("click", closeEvaluationModal);
   }
   if (cancelEvaluationBtn) {
-    cancelEvaluationBtn.addEventListener("click", closeEvaluationModal);
+    cancelEvaluationBtn.addEventListener("click", () => {
+      if (isAnalyzing) stopAnalysis();
+      else closeEvaluationModal();
+    });
   }
 
   document.addEventListener("keydown", (event) => {
@@ -2299,6 +2377,7 @@
 
   jobRoleButtons.forEach((button) => {
     button.addEventListener("click", () => {
+      if (isAnalyzing) return;
       const selectedButtonRole = button.dataset.role || "";
       setRolePickerOpen(false);
 
@@ -2405,6 +2484,7 @@
 
   if (clearRoleBtn) {
     clearRoleBtn.addEventListener("click", () => {
+      if (isAnalyzing) return;
       clearRoleSelection();
       clearAutoJobDescription();
       setEvaluationStatus("");
@@ -2424,6 +2504,7 @@
 
   if (resumeDropZone && resumePdfInput) {
     resumeDropZone.addEventListener("click", (event) => {
+      if (isAnalyzing) return;
       if (event.target && event.target.closest && event.target.closest("#uploadPdfBtn")) {
         return;
       }
@@ -2437,6 +2518,7 @@
       resumeDropZone.addEventListener(eventName, (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (isAnalyzing) return;
         if (event.dataTransfer) {
           event.dataTransfer.dropEffect = "copy";
         }
@@ -2456,6 +2538,7 @@
       event.preventDefault();
       event.stopPropagation();
       setResumeDropZoneActive(false);
+      if (isAnalyzing) return;
       if (!requireAuth("openEvaluation")) {
         return;
       }
@@ -2466,6 +2549,7 @@
 
   if (uploadPdfBtn && resumePdfInput) {
     uploadPdfBtn.addEventListener("click", () => {
+      if (isAnalyzing) return;
       if (!requireAuth("openEvaluation")) {
         return;
       }
@@ -2479,6 +2563,7 @@
   }
   if (removeResumeBtn) {
     removeResumeBtn.addEventListener("click", () => {
+      if (isAnalyzing) return;
       clearSelectedResumeFile();
       setEvaluationStatus("");
       if (uploadPdfBtn) uploadPdfBtn.focus({ preventScroll: true });
@@ -2490,32 +2575,44 @@
 
   if (startEvaluationBtn) {
     startEvaluationBtn.addEventListener("click", async () => {
+      if (isAnalyzing) return;
       const finalJobDescription = jobDescriptionInput ? (jobDescriptionInput.value || "").trim() : "";
       const finalTargetRole = selectedRole;
       const displayTargetRole = selectedRole || "auto-detect from resume";
-      if (!selectedPdfFile) {
+      const fileAtStart = selectedPdfFile;
+      const fileNameAtStart = selectedPdfFileName;
+      if (!fileAtStart) {
         setEvaluationStatus("Please upload a supported resume file before analysis.", true);
         return;
       }
 
-      startEvaluationBtn.disabled = true;
-      startEvaluationBtn.textContent = "Analyzing resume...";
+      if (customRoleLookupTimer) {
+        clearTimeout(customRoleLookupTimer);
+        customRoleLookupTimer = null;
+      }
+      roleRequirementRequestId += 1;
+      setRolePickerOpen(false);
+      const runId = ++analysisRunId;
+      analysisAbortController = new AbortController();
+      setResumeDropZoneActive(false);
+      setAnalysisBusy(true);
       setEvaluationStatus(
-        selectedRole
-          ? "Analyzing your resume against the selected role. This may take a little while."
-          : "Analyzing your resume and looking for a suitable role. This may take a little while."
+        finalTargetRole
+          ? "Analyzing your resume against the selected role. To change the role or file, choose Stop waiting."
+          : "Analyzing your resume and looking for a suitable role. To change the role or file, choose Stop waiting."
       );
 
-      localStorage.setItem("uploadedResumeName", selectedPdfFileName);
-      localStorage.setItem("selectedJobRole", displayTargetRole);
-      localStorage.setItem("selectedJobDescription", finalJobDescription);
-      localStorage.setItem("pipelineStatus", "ready_for_ats_nlp");
-      localStorage.setItem("analysisStartedAt", new Date().toISOString());
-      await persistResumeVisualPreview(selectedPdfFile);
-
       try {
+        localStorage.setItem("uploadedResumeName", fileNameAtStart);
+        localStorage.setItem("selectedJobRole", displayTargetRole);
+        localStorage.setItem("selectedJobDescription", finalJobDescription);
+        localStorage.setItem("pipelineStatus", "ready_for_ats_nlp");
+        localStorage.setItem("analysisStartedAt", new Date().toISOString());
+        await persistResumeVisualPreview(fileAtStart, () => runId === analysisRunId);
+        if (runId !== analysisRunId) return;
+
         const formData = new FormData();
-        formData.append("resume_file", selectedPdfFile, selectedPdfFileName);
+        formData.append("resume_file", fileAtStart, fileNameAtStart);
         formData.append("job_description", finalJobDescription);
         formData.append("target_role", finalTargetRole);
 
@@ -2523,10 +2620,13 @@
           method: "POST",
           credentials: "same-origin",
           body: formData,
+          signal: analysisAbortController.signal,
         });
+        if (runId !== analysisRunId) return;
 
         if (!response.ok) {
           const errorPayload = await response.json().catch(() => ({}));
+          if (runId !== analysisRunId) return;
           if (response.status === 401) {
             setAuthUser(null);
             pendingAuthAction = "openEvaluation";
@@ -2540,6 +2640,7 @@
         }
 
         const analysisResult = await response.json();
+        if (runId !== analysisRunId) return;
         if (analysisResult.target_role) {
           localStorage.setItem("selectedJobRole", analysisResult.target_role);
         }
@@ -2559,11 +2660,20 @@
         }
 
         saveAnalysisToHistory(analysisResult);
+        analysisAbortController = null;
+        setAnalysisBusy(false);
         setEvaluationStatus("Analysis complete. Opening results...");
 
         closeEvaluationModal();
         window.location.href = "analysis_result.html";
       } catch (error) {
+        if (runId !== analysisRunId) return;
+        try {
+          localStorage.removeItem("pipelineStatus");
+          localStorage.removeItem("analysisStartedAt");
+        } catch (storageError) {
+          // The user can still retry if browser storage is unavailable.
+        }
         const message = error && error.message
           ? error.message
           : "The analysis service could not be reached. Check your connection and try again.";
@@ -2573,8 +2683,10 @@
           true
         );
       } finally {
-        startEvaluationBtn.textContent = "Analyze resume";
-        refreshStartButtonState();
+        if (runId === analysisRunId) {
+          analysisAbortController = null;
+          setAnalysisBusy(false);
+        }
       }
     });
   }
