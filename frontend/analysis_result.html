@@ -175,6 +175,7 @@
         .report-brand-name { display: grid; min-width: 0; line-height: 1.1; }
         .report-brand-name small { color: var(--studio-teal-dark); font-size: .61rem; font-weight: 800; letter-spacing: .16em; }
         .report-brand-name strong { color: var(--studio-ink); font-family: Manrope,Inter,sans-serif; font-size: .98rem; font-weight: 800; white-space: nowrap; }
+        .report-auth-short { display: none; }
         .report-nav #openAuthModalBtn { border-radius: 10px; background: var(--studio-teal-dark); color: white; }
         .report-nav #openAuthModalBtn:hover { background: #0055aa; }
         .report-nav #openHistoryBtn { border-radius: 10px; background: #edf5f7; color: var(--studio-teal-dark); }
@@ -228,17 +229,6 @@
         .report-shell .evidence-ring .soft-count { font-size: .72rem; }
         .report-shell .priority-action-grid article { min-height: auto; }
         .site-footer { background: #162338; }
-        @media (max-width: 700px) {
-            .report-hero { grid-template-columns: 1fr; }
-            .report-score-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-            .report-score-number { margin: 0; }
-            .report-score-note { max-width: 12rem; }
-            .report-quick-list { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 420px) { .report-score-card { display: block; } }
-        @media (max-width: 600px) { .report-nav .mobile-home-link { display: none; } }
-        @media (max-width: 430px) { .report-brand-name strong { display: none; } .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .55rem; padding-right: .55rem; } }
-        @media (max-width: 370px) { .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .4rem; padding-right: .4rem; font-size: .67rem; } }
         /* Report surface and controls */
         .report-nav { box-shadow: none; }
         .report-main { max-width: 1240px; }
@@ -401,7 +391,39 @@
             .report-score-number #overallScore { font-size: clamp(4.5rem, 18vw, 6rem); }
             .report-quick-list article { grid-template-columns: 4.5rem minmax(0,1fr); }
         }
+        @media (max-width: 600px) {
+            .report-nav .mobile-home-link { display: none; }
+            .report-brand-mark { width: 2.15rem; height: 2.15rem; }
+            .report-brand-name strong { font-size: .8rem; }
+            .report-brand-name small { font-size: .54rem; }
+            .report-auth-long { display: none; }
+            .report-auth-short { display: inline; }
+            .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { min-height: 2.5rem; padding: .55rem .7rem; font-size: .75rem; }
+            .report-tabs { position: static; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: .25rem; overflow: visible; margin: 1.4rem 0 2rem; padding: .3rem; }
+            .report-tabs a { display: flex; min-width: 0; min-height: 2.75rem; align-items: center; justify-content: center; padding: .45rem .2rem; font-size: .78rem; line-height: 1.2; text-align: center; white-space: normal; }
+            .report-tabs a:nth-child(-n+3) { grid-column: span 2; }
+            .report-tabs a:nth-child(n+4) { grid-column: span 3; }
+            .report-section { scroll-margin-top: 5.25rem; margin-bottom: 2.75rem; }
+            .report-section-title { margin-bottom: 1.1rem; font-size: clamp(1.55rem,5vw,2rem); }
+        }
         @media (max-width: 480px) {
+            .report-main { padding-left: .875rem; padding-right: .875rem; }
+            .report-hero { gap: 1.1rem; padding: 1.4rem 1.25rem; border-radius: 18px; }
+            .report-hero h1 { max-width: none; margin-top: .75rem; font-size: clamp(2rem,9vw,2.45rem); line-height: 1.12; letter-spacing: -.045em; }
+            .report-hero-copy { margin-top: .9rem; font-size: .9rem; line-height: 1.6; }
+            .report-hero-copy + .report-hero-copy { margin-top: .9rem; padding-top: .8rem; }
+            .report-score-card { gap: 0; padding-top: 1rem; }
+            .report-score-number { margin: .55rem 0; }
+            .report-score-number #overallScore { font-size: clamp(4rem,17vw,4.7rem); }
+            .report-score-note { max-width: none; }
+            .report-quick { gap: .75rem; margin: 2rem 0 1.2rem; }
+            .report-quick h2 { margin: .4rem 0 .55rem; font-size: 1.55rem; }
+            .report-quick a { padding: .25rem 0; }
+            .report-quick-list article { grid-template-columns: minmax(0,1fr); gap: .3rem; padding: 1rem 0; }
+            .report-quick-list span { grid-row: auto; padding-top: 0; }
+            .report-quick-list h3 { font-size: .96rem; }
+            .report-quick-list p { margin-top: 0; }
+            .report-shell :is(h1,h2,h3,h4,p) { overflow-wrap: anywhere; }
             .submission-meta { grid-template-columns: 1fr; }
             .submission-meta-item + .submission-meta-item { border-left: 0; border-top: 1px solid var(--studio-border); }
             .report-export-actions { grid-template-columns: 1fr; }
@@ -409,7 +431,14 @@
             .generated-resume-actions { width: 100%; }
             .generated-resume-actions .report-action { flex: 1 1 100%; }
             .report-score-card { display: block; }
-            .report-quick-list article { grid-template-columns: 3.5rem minmax(0,1fr); gap: .8rem; }
+        }
+        @media (max-width: 360px) {
+            .report-nav > div:first-child { gap: .35rem; padding-left: .65rem; padding-right: .65rem; }
+            .report-brand { gap: .35rem; }
+            .report-brand-mark { width: 2rem; height: 2rem; }
+            .report-brand-name strong { font-size: .72rem; }
+            .report-nav > div:first-child > div:last-child { gap: .3rem; }
+            .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .55rem; padding-right: .55rem; font-size: .7rem; }
         }
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
@@ -430,7 +459,7 @@
 <a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
 </div>
 <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-<button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
+<button class="h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account"><span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span></button>
 <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
 <a class="mobile-home-link md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
 <span aria-hidden="true">←</span>
@@ -1146,7 +1175,10 @@ Download PDF
     function updateAuthUi() {
         const currentUser = getAuthUser();
         if (openAuthModalBtn) {
-            openAuthModalBtn.textContent = currentUser ? "My Profile" : "Log In / Sign Up";
+            openAuthModalBtn.innerHTML = currentUser
+                ? '<span class="report-auth-long">My Profile</span><span class="report-auth-short">Profile</span>'
+                : '<span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span>';
+            openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open my profile" : "Sign in or create account");
             openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Sign in or create account";
         }
         document.querySelectorAll("[data-admin-link]").forEach((link) => {
