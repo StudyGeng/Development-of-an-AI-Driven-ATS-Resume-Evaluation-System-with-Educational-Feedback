@@ -541,9 +541,90 @@
   function createAccountWorkspace(options) {
     const modal = options.modal;
     const buttons = modal ? Array.from(modal.querySelectorAll("[data-account-view]")) : [];
+    const goButtons = modal ? Array.from(modal.querySelectorAll("[data-account-go]")) : [];
     const panels = modal ? Array.from(modal.querySelectorAll("[data-account-panel]")) : [];
+    const apiBaseUrl = options.apiBaseUrl || (window.location.protocol.startsWith("http") ? window.location.origin : "http://127.0.0.1:5000");
+    const nameForm = modal && modal.querySelector("#profileNameForm");
+    const nameInput = modal && modal.querySelector("#profileNameInput");
+    const nameMessage = modal && modal.querySelector("#profileNameMessage");
+    const avatarInput = modal && modal.querySelector("#profileAvatarInput");
+    const chooseAvatarButton = modal && modal.querySelector("#chooseProfileAvatarBtn");
+    const avatarMessage = modal && modal.querySelector("#profileAvatarMessage");
+    const removeAvatarButton = modal && modal.querySelector("#removeProfileAvatarBtn");
+    const emailForm = modal && modal.querySelector("#profileEmailChangeForm");
+    const newEmailInput = modal && modal.querySelector("#profileNewEmailInput");
+    const emailPasswordInput = modal && modal.querySelector("#profileEmailPasswordInput");
+    const emailPinInput = modal && modal.querySelector("#profileEmailPinInput");
+    const sendEmailPinButton = modal && modal.querySelector("#sendProfileEmailPinBtn");
+    const emailMessage = modal && modal.querySelector("#profileEmailMessage");
+    const emailChangeCard = modal && modal.querySelector("#profileEmailChangeCard");
+    const adminEmailNote = modal && modal.querySelector("#profileAdminEmailNote");
+    const emailInfoNote = modal && modal.querySelector("#profileEmailInfoNote");
     let hasAccount = false;
     let currentView = "info";
+    let currentUser = null;
+    let avatarEmail = "";
+    let avatarRequestId = 0;
+    let avatarObjectUrl = null;
+
+    function showMessage(element, message, isError = false) {
+      if (!element) return;
+      element.textContent = message;
+      element.hidden = !message;
+      element.classList.toggle("is-error", isError);
+    }
+
+    function responseError(payload, fallback) {
+      if (typeof payload.detail === "string") return payload.detail;
+      if (Array.isArray(payload.detail)) return payload.detail.map((item) => item.msg || String(item)).join(" ");
+      return fallback;
+    }
+
+    function renderAvatarInitials() {
+      const name = currentUser ? String(currentUser.full_name || "Your account") : "Guest history";
+      const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "U";
+      modal.querySelectorAll("[data-account-avatar]").forEach((element) => { element.textContent = initials; });
+    }
+
+    async function refreshAvatar() {
+      avatarRequestId += 1;
+      const requestId = avatarRequestId;
+      if (avatarObjectUrl) {
+        URL.revokeObjectURL(avatarObjectUrl);
+        avatarObjectUrl = null;
+      }
+      renderAvatarInitials();
+      if (removeAvatarButton) removeAvatarButton.hidden = true;
+      if (!currentUser) return;
+      try {
+        const response = await fetch(apiBaseUrl + "/users/me/avatar?v=" + requestId, {
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+        if (!response.ok || requestId !== avatarRequestId) return;
+        const blob = await response.blob();
+        if (requestId !== avatarRequestId) return;
+        avatarObjectUrl = URL.createObjectURL(blob);
+        modal.querySelectorAll("[data-account-avatar]").forEach((element) => {
+          const image = document.createElement("img");
+          image.alt = "";
+          image.src = avatarObjectUrl;
+          element.replaceChildren(image);
+        });
+        if (removeAvatarButton) removeAvatarButton.hidden = false;
+      } catch (error) {
+        // Initials remain visible when there is no photo or the connection fails.
+      }
+    }
+
+    function clearSensitiveFields() {
+      if (newEmailInput) newEmailInput.value = "";
+      if (emailPasswordInput) emailPasswordInput.value = "";
+      if (emailPinInput) emailPinInput.value = "";
+      showMessage(emailMessage, "");
+      showMessage(nameMessage, "");
+      showMessage(avatarMessage, "");
+    }
 
     function show(view) {
       currentView = hasAccount && (view === "info" || view === "settings") ? view : "history";
@@ -559,20 +640,174 @@
 
     function setUser(user) {
       hasAccount = Boolean(user);
+      currentUser = user || null;
       const name = user ? String(user.full_name || "Your account") : "Guest history";
       const email = user ? String(user.email || "") : "Saved on this browser";
-      const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "U";
       if (modal) {
         modal.querySelectorAll("[data-account-name]").forEach((element) => { element.textContent = name; });
         modal.querySelectorAll("[data-account-email]").forEach((element) => { element.textContent = email; });
-        modal.querySelectorAll("[data-account-avatar]").forEach((element) => { element.textContent = initials; });
         modal.querySelectorAll("[data-account-auth-only]").forEach((element) => { element.hidden = !hasAccount; });
+        const isAdmin = Boolean(user && user.is_admin);
+        if (emailChangeCard) emailChangeCard.hidden = isAdmin;
+        if (adminEmailNote) adminEmailNote.hidden = !isAdmin;
+        if (emailInfoNote) emailInfoNote.textContent = isAdmin ? "Administrator email is managed separately." : "Email changes need verification.";
+        goButtons.forEach((button) => { if (button.dataset.accountGo === "settings") button.hidden = isAdmin; });
+        if (isAdmin) clearSensitiveFields();
+        if (email !== avatarEmail) {
+          avatarEmail = email;
+          refreshAvatar();
+        } else if (!avatarObjectUrl) {
+          renderAvatarInitials();
+        }
       }
       if (!hasAccount) show("history");
     }
 
+    if (nameForm) nameForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!currentUser) return;
+      const fullName = nameInput.value.trim();
+      if (fullName.length < 2 || fullName.length > 100) return showMessage(nameMessage, "Use a name between 2 and 100 characters.", true);
+      const saveButton = nameForm.querySelector('button[type="submit"]');
+      saveButton.disabled = true;
+      showMessage(nameMessage, "Saving name...");
+      try {
+        const response = await fetch(apiBaseUrl + "/users/me", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ full_name: fullName })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(responseError(payload, "Could not save your name."));
+        if (payload.user) {
+          setAuthUser(payload.user);
+          nameInput.value = payload.user.full_name || fullName;
+        }
+        showMessage(nameMessage, "Name updated.");
+      } catch (error) {
+        showMessage(nameMessage, error.message || "Could not save your name.", true);
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+
+    if (chooseAvatarButton && avatarInput) chooseAvatarButton.addEventListener("click", () => avatarInput.click());
+    if (avatarInput) avatarInput.addEventListener("change", async () => {
+      const file = avatarInput.files && avatarInput.files[0];
+      if (!file || !currentUser) return;
+      avatarInput.value = "";
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return showMessage(avatarMessage, "Choose a JPG, PNG, or WebP image.", true);
+      if (file.size > 2 * 1024 * 1024) return showMessage(avatarMessage, "Choose an image 2 MB or smaller.", true);
+      if (chooseAvatarButton) chooseAvatarButton.disabled = true;
+      showMessage(avatarMessage, "Uploading photo...");
+      try {
+        const formData = new FormData();
+        formData.append("avatar", file);
+        const response = await fetch(apiBaseUrl + "/users/me/avatar", {
+          method: "PUT",
+          credentials: "same-origin",
+          body: formData
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(responseError(payload, "Could not upload your photo."));
+        await refreshAvatar();
+        showMessage(avatarMessage, "Photo updated.");
+      } catch (error) {
+        showMessage(avatarMessage, error.message || "Could not upload your photo.", true);
+      } finally {
+        if (chooseAvatarButton) chooseAvatarButton.disabled = false;
+      }
+    });
+
+    if (removeAvatarButton) removeAvatarButton.addEventListener("click", async () => {
+      if (!currentUser) return;
+      removeAvatarButton.disabled = true;
+      showMessage(avatarMessage, "Removing photo...");
+      try {
+        const response = await fetch(apiBaseUrl + "/users/me/avatar", { method: "DELETE", credentials: "same-origin" });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(responseError(payload, "Could not remove your photo."));
+        await refreshAvatar();
+        showMessage(avatarMessage, "Photo removed.");
+      } catch (error) {
+        showMessage(avatarMessage, error.message || "Could not remove your photo.", true);
+      } finally {
+        removeAvatarButton.disabled = false;
+      }
+    });
+
+    if (emailPinInput) emailPinInput.addEventListener("input", () => sanitizePinInput(emailPinInput, true));
+    if (newEmailInput) newEmailInput.addEventListener("input", () => { if (emailPinInput) emailPinInput.value = ""; });
+    if (sendEmailPinButton) sendEmailPinButton.addEventListener("click", async () => {
+      if (!currentUser) return;
+      const newEmail = newEmailInput.value.trim().toLowerCase();
+      const currentPassword = emailPasswordInput.value;
+      if (!newEmailInput.checkValidity()) return showMessage(emailMessage, "Enter a valid new email address.", true);
+      if (newEmail === String(currentUser.email || "").toLowerCase()) return showMessage(emailMessage, "Enter a different email address.", true);
+      if (!currentPassword) return showMessage(emailMessage, "Enter your current password first.", true);
+      sendEmailPinButton.disabled = true;
+      showMessage(emailMessage, "Sending a PIN to the new email...");
+      try {
+        const response = await fetch(apiBaseUrl + "/users/me/email-change/pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ new_email: newEmail, current_password: currentPassword })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(responseError(payload, "Could not send the verification PIN."));
+        const devPin = payload.dev_pin ? " Dev PIN: " + payload.dev_pin : "";
+        showMessage(emailMessage, "PIN sent to " + newEmail + ". Enter it below to confirm the change." + devPin);
+      } catch (error) {
+        showMessage(emailMessage, error.message || "Could not send the verification PIN.", true);
+      } finally {
+        sendEmailPinButton.disabled = false;
+      }
+    });
+
+    if (emailForm) emailForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!currentUser) return;
+      const newEmail = newEmailInput.value.trim().toLowerCase();
+      const currentPassword = emailPasswordInput.value;
+      const verificationPin = emailPinInput.value.trim();
+      if (!newEmailInput.checkValidity()) return showMessage(emailMessage, "Enter a valid new email address.", true);
+      if (newEmail === String(currentUser.email || "").toLowerCase()) return showMessage(emailMessage, "Enter a different email address.", true);
+      if (!currentPassword) return showMessage(emailMessage, "Enter your current password first.", true);
+      if (!/^[0-9]{6}$/.test(verificationPin)) return showMessage(emailMessage, "Enter the 6-digit PIN sent to your new email.", true);
+      const saveButton = emailForm.querySelector('button[type="submit"]');
+      saveButton.disabled = true;
+      showMessage(emailMessage, "Verifying your new email...");
+      try {
+        const response = await fetch(apiBaseUrl + "/users/me/email", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ new_email: newEmail, current_password: currentPassword, verification_pin: verificationPin })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(responseError(payload, "Could not change your email."));
+        if (payload.user) setAuthUser(payload.user);
+        const emailDisplay = modal.querySelector("#profileEmailInput");
+        if (emailDisplay) emailDisplay.value = payload.user && payload.user.email ? payload.user.email : newEmail;
+        newEmailInput.value = "";
+        emailPasswordInput.value = "";
+        emailPinInput.value = "";
+        showMessage(emailMessage, "Email updated and verified.");
+      } catch (error) {
+        showMessage(emailMessage, error.message || "Could not change your email.", true);
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+
     buttons.forEach((button) => button.addEventListener("click", () => show(button.dataset.accountView)));
-    return { show, setUser, getCurrentView: () => currentView };
+    goButtons.forEach((button) => button.addEventListener("click", () => {
+      show(button.dataset.accountGo);
+      if (button.dataset.accountGo === "settings" && newEmailInput) newEmailInput.focus({ preventScroll: true });
+    }));
+    return { show, setUser, clearSensitiveFields, refreshAvatar, getCurrentView: () => currentView };
   }
 
   function createHistoryModal(options) {

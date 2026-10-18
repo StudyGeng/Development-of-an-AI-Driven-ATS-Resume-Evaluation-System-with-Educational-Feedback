@@ -37,7 +37,7 @@ class PostgresSupportTests(unittest.TestCase):
             self.assertFalse(database.is_postgres_backend())
             self.assertEqual(database.utc_now_sql(), "UTC_TIMESTAMP()")
 
-    def test_postgres_migration_uses_private_schema_for_seven_tables(self):
+    def test_postgres_migration_uses_private_schema_for_eight_tables(self):
         connection = MagicMock()
         cursor = connection.cursor.return_value
         with patch.dict(os.environ, {"DATABASE_URL": POSTGRES_URL}), patch.object(
@@ -51,7 +51,7 @@ class PostgresSupportTests(unittest.TestCase):
             "SET search_path TO ats_private",
         ])
         tables = (
-            "users", "email_verification_pins", "auth_rate_limit_events",
+            "users", "user_avatars", "email_verification_pins", "auth_rate_limit_events",
             "resume_analyses", "download_history", "job_roles", "job_requirements",
         )
         table_creates = [statement for statement in statements if "CREATE TABLE IF NOT EXISTS" in statement]

@@ -966,25 +966,53 @@ Download PDF
         <div class="account-topbar"><span>My account</span><button class="account-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button></div>
         <section class="account-panel" data-account-panel="info">
           <span class="account-eyebrow">User info</span><h2 class="account-panel-title">Your profile</h2>
-          <p class="account-panel-intro">Your account details in one place. You can update your password in Settings.</p>
-          <div class="account-profile-hero"><span class="account-avatar" data-account-avatar>U</span><div><strong data-account-name>Your account</strong><small>UTS CS Career Navigator account</small></div></div>
-          <div class="account-info-grid">
-            <div class="account-info-card"><label class="account-field-label" for="profileNameInput">Full name</label><input class="account-field-value" id="profileNameInput" type="text" readonly aria-readonly="true"></div>
-            <div class="account-info-card"><label class="account-field-label" for="profileEmailInput">Email</label><input class="account-field-value" id="profileEmailInput" type="email" readonly aria-readonly="true"></div>
+          <p class="account-panel-intro">Add a photo and keep the name on your account up to date.</p>
+          <div class="account-profile-hero">
+            <span class="account-avatar" data-account-avatar>U</span>
+            <div class="account-profile-summary"><strong data-account-name>Your account</strong><small>UTS CS Career Navigator account</small>
+              <div class="account-photo-actions"><button class="account-secondary account-photo-button" id="chooseProfileAvatarBtn" type="button">Upload photo</button><button class="account-secondary account-photo-remove" id="removeProfileAvatarBtn" type="button" hidden>Remove</button></div>
+            </div>
           </div>
-          <p class="account-info-note">Your name and email are linked to your verified account.</p>
+          <input class="account-file-input" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="profileAvatarHint">
+          <p class="account-field-hint" id="profileAvatarHint">JPG, PNG, or WebP · up to 2 MB.</p>
+          <p class="account-inline-message" id="profileAvatarMessage" role="status" aria-live="polite" hidden></p>
+          <form id="profileNameForm" class="account-form">
+            <div class="account-info-grid">
+              <div class="account-info-card"><label class="account-field-label" for="profileNameInput">Full name</label><input class="account-field-value account-editable-value" id="profileNameInput" type="text" autocomplete="name" minlength="2" maxlength="100" required></div>
+              <div class="account-info-card"><label class="account-field-label" for="profileEmailInput">Verified email</label><input class="account-field-value" id="profileEmailInput" type="email" readonly aria-readonly="true"></div>
+            </div>
+            <div class="account-form-actions"><button class="account-primary" type="submit">Save name</button><p class="account-inline-message" id="profileNameMessage" role="status" aria-live="polite" hidden></p></div>
+          </form>
+          <p class="account-info-note" id="profileEmailInfoNote">Email changes need verification.</p>
+          <button class="account-text-action" data-account-go="settings" type="button">Change email in Settings <span aria-hidden="true">→</span></button>
         </section>
         <section class="account-panel" data-account-panel="settings" hidden>
           <span class="account-eyebrow">Settings</span><h2 class="account-panel-title">Account security</h2>
-          <p class="account-panel-intro">Change your password using a PIN sent to your account email.</p>
-          <p class="text-sm mb-4 hidden" id="profileMessage" role="status" aria-live="polite"></p>
-          <form class="account-form" id="profileForm">
-            <div class="account-form-grid">
-              <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="8+ characters, letter, number, special character"></div>
-              <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button">Send PIN</button></div><p>Required only when changing your password.</p></div>
-            </div>
-            <div class="account-form-actions"><button class="account-primary" type="submit">Update password</button></div>
-          </form>
+          <p class="account-panel-intro">Manage your verified email and password.</p>
+          <div class="account-settings-card" id="profileEmailChangeCard">
+            <h3>Change email</h3>
+            <p>We will send a PIN to your new address before switching your account email.</p>
+            <form class="account-form" id="profileEmailChangeForm">
+              <div class="account-form-field"><label for="profileNewEmailInput">New email</label><input id="profileNewEmailInput" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+              <div class="account-form-field"><label for="profileEmailPasswordInput">Current password</label><input id="profileEmailPasswordInput" type="password" autocomplete="current-password" required></div>
+              <div class="account-form-field"><label for="profileEmailPinInput">Verification PIN</label><div class="account-pin-row"><input id="profileEmailPinInput" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6-digit PIN"><button class="account-secondary" id="sendProfileEmailPinBtn" type="button">Send PIN</button></div></div>
+              <div class="account-form-actions"><button class="account-primary" type="submit">Confirm new email</button></div>
+              <p class="account-inline-message" id="profileEmailMessage" role="status" aria-live="polite" hidden></p>
+            </form>
+          </div>
+          <p class="account-admin-email-note" id="profileAdminEmailNote" hidden>Administrator email is managed separately. Contact the system owner if it needs to change.</p>
+          <div class="account-settings-card">
+            <h3>Change password</h3>
+            <p>A PIN will be sent to your current verified email.</p>
+            <p class="text-sm mb-4 hidden" id="profileMessage" role="status" aria-live="polite"></p>
+            <form class="account-form" id="profileForm">
+              <div class="account-form-grid">
+                <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="Enter a new password"><p>Use 8+ characters with a letter, number, and symbol.</p></div>
+                <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button">Send PIN</button></div><p>Required only when changing your password.</p></div>
+              </div>
+              <div class="account-form-actions"><button class="account-primary" type="submit">Update password</button></div>
+            </form>
+          </div>
         </section>
         <section class="account-panel" data-account-panel="history" hidden>
           <span class="account-eyebrow">History</span><h2 class="account-panel-title">Your evaluations</h2>
@@ -1292,6 +1320,7 @@ Download PDF
             return;
         }
         clearProfileSensitiveFields();
+        accountWorkspace.clearSensitiveFields();
         window.CareerNavigatorCommon.setModalOpen(profileModal, false);
         if (profileModal._focusBeforeOpen && document.contains(profileModal._focusBeforeOpen)) {
             profileModal._focusBeforeOpen.focus({ preventScroll: true });

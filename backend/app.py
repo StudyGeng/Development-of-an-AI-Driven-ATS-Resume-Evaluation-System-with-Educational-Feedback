@@ -123,9 +123,10 @@ from security import (
 )
 
 try:
-    from PIL import Image, UnidentifiedImageError  # type: ignore
+    from PIL import Image, ImageOps, UnidentifiedImageError  # type: ignore
 except ImportError:  # pragma: no cover - optional OCR dependency
     Image = None  # type: ignore
+    ImageOps = None  # type: ignore
     UnidentifiedImageError = OSError  # type: ignore
 
 try:
@@ -874,6 +875,10 @@ if TRUSTED_PROXY_COUNT:
 
 CSRF_SESSION_KEY = "csrf_token"
 SAFE_HTTP_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+MAX_AVATAR_UPLOAD_BYTES = 2 * 1024 * 1024
+MAX_AVATAR_PIXELS = 12_000_000
+MAX_AVATAR_EDGE = 4096
+AVATAR_OUTPUT_EDGE = 512
 CONTENT_SECURITY_POLICY = "; ".join(
     (
         "default-src 'self'",
@@ -1082,11 +1087,18 @@ def authenticate_json_request() -> tuple[dict[str, Any] | None, Any | None]:
 def email_pin_subject(purpose: str) -> str:
     if purpose == "password_reset":
         return "Your UTS CS Career Navigator password reset PIN"
+    if purpose.startswith("email_change_"):
+        return "Confirm your new UTS CS Career Navigator email"
     return "Your UTS CS Career Navigator email verification PIN"
 
 
 def email_pin_body(pin: str, purpose: str) -> str:
-    action = "reset your password" if purpose == "password_reset" else "verify your email address"
+    if purpose == "password_reset":
+        action = "reset your password"
+    elif purpose.startswith("email_change_"):
+        action = "confirm your new email address"
+    else:
+        action = "verify your email address"
     return (
         f"Your UTS CS Career Navigator PIN is {pin}.\n\n"
         f"Use this PIN to {action}. It expires in {EMAIL_PIN_TTL_MINUTES} minutes.\n\n"
@@ -8548,6 +8560,365 @@ def get_current_auth_session():
     )
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+def verify_current_user_password(user_id: int, password: str) -> bool:
+    """Check the current password against the live account, not the browser session."""
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT password_hash FROM users WHERE id = %s", (user_id,))
+        row = cursor.fetchone()
+        return bool(row and check_password_hash(row["password_hash"], password))
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+
+def email_change_target_error(current_user: dict[str, Any], new_email: str) -> str:
+    """Keep self-service email changes away from configured administrator identities."""
+    current_email = normalize_email(str(current_user.get("email") or ""))
+    if is_user_admin(current_user) or is_configured_admin_email(current_email):
+        return "Administrator email changes must be handled by an administrator."
+    if not is_valid_email(new_email) or len(new_email) > 255:
+        return "Please provide a valid email address."
+    if new_email == current_email:
+        return "Enter a different email address."
+    if is_configured_admin_email(new_email):
+        return "This email address cannot be used for a self-service change."
+    return ""
+
+
+@app.patch("/users/me")
+def update_own_profile():
+    current_user, auth_error = authenticate_json_request()
+    if auth_error:
+        return auth_error
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or "full_name" not in payload or not isinstance(payload["full_name"], str):
+        return jsonify({"detail": "Full name is required."}), 400
+    full_name = normalize_text(payload["full_name"])
+    if not 2 <= len(full_name) <= 100 or re.search(r"[\x00-\x1f\x7f]", full_name):
+        return jsonify({"detail": "Full name must contain 2 to 100 valid characters."}), 400
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("UPDATE users SET full_name = %s WHERE id = %s", (full_name, current_user["id"]))
+        cursor.execute(
+            "SELECT id, full_name, email, email_verified_at, is_admin, created_at FROM users WHERE id = %s",
+            (current_user["id"],),
+        )
+        updated_user = cursor.fetchone()
+        if not updated_user:
+            connection.rollback()
+            return jsonify({"detail": "Account not found."}), 404
+        connection.commit()
+    except DatabaseErrors:
+        if connection is not None:
+            connection.rollback()
+        return jsonify({"detail": "Database error while updating profile."}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    return jsonify({"message": "Name updated.", "user": serialize_user(updated_user)})
+
+
+@app.post("/users/me/email-change/pin")
+def send_own_email_change_pin():
+    current_user, auth_error = authenticate_json_request()
+    if auth_error:
+        return auth_error
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"detail": "New email and current password are required."}), 400
+    new_email = normalize_email(str(payload.get("new_email") or ""))
+    current_password = payload.get("current_password")
+    target_error = email_change_target_error(current_user, new_email)
+    if target_error:
+        return jsonify({"detail": target_error}), 403 if is_user_admin(current_user) or is_configured_admin_email(str(current_user.get("email") or "")) else 400
+    if not isinstance(current_password, str) or not current_password or len(current_password) > 1024:
+        return jsonify({"detail": "Current password is required."}), 400
+
+    try:
+        get_email_pin_delivery_mode()
+        enforce_login_rate_limits(str(current_user["email"]), get_request_client_ip())
+        if not verify_current_user_password(int(current_user["id"]), current_password):
+            return jsonify({"detail": "Current password is incorrect."}), 401
+        if email_exists(new_email):
+            return jsonify({"detail": "This email is already registered."}), 409
+
+        purpose = f"email_change_{int(current_user['id'])}"
+        enforce_email_pin_rate_limits("request", new_email, get_request_client_ip(), purpose)
+        pin, _expires_at, pin_id = create_email_pin(new_email, purpose)
+        try:
+            delivery = send_email_pin(new_email, pin, purpose)
+        except (EmailPinConfigurationError, OSError, smtplib.SMTPException):
+            invalidate_email_pin(pin_id)
+            raise
+        except Exception as error:
+            invalidate_email_pin(pin_id)
+            raise OSError("Email provider failed while sending a verification PIN") from error
+    except (EmailPinRateLimitError, RequestRateLimitError) as error:
+        return build_rate_limit_response(error)
+    except EmailPinConfigurationError:
+        return jsonify({"detail": "Email verification is temporarily unavailable."}), 503
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while preparing email change."}), 500
+    except (OSError, smtplib.SMTPException) as error:
+        return jsonify({"detail": get_email_delivery_error_message(error)}), 502
+
+    response: dict[str, Any] = {
+        "message": "Verification PIN sent to your new email address.",
+        "expires_in_minutes": EMAIL_PIN_TTL_MINUTES,
+    }
+    if should_return_dev_pin(delivery):
+        response["dev_pin"] = pin
+    return jsonify(response)
+
+
+@app.put("/users/me/email")
+def update_own_email():
+    current_user, auth_error = authenticate_json_request()
+    if auth_error:
+        return auth_error
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"detail": "New email, current password, and PIN are required."}), 400
+    new_email = normalize_email(str(payload.get("new_email") or ""))
+    current_password = payload.get("current_password")
+    verification_pin = str(payload.get("verification_pin") or "")
+    target_error = email_change_target_error(current_user, new_email)
+    if target_error:
+        return jsonify({"detail": target_error}), 403 if is_user_admin(current_user) or is_configured_admin_email(str(current_user.get("email") or "")) else 400
+    if not isinstance(current_password, str) or not current_password or len(current_password) > 1024:
+        return jsonify({"detail": "Current password is required."}), 400
+    if not re.fullmatch(r"[0-9]{6}", verification_pin):
+        return jsonify({"detail": "Enter the 6-digit verification PIN."}), 400
+
+    try:
+        enforce_login_rate_limits(str(current_user["email"]), get_request_client_ip())
+        if not verify_current_user_password(int(current_user["id"]), current_password):
+            return jsonify({"detail": "Current password is incorrect."}), 401
+        if email_exists(new_email):
+            return jsonify({"detail": "This email is already registered."}), 409
+        enforce_email_pin_rate_limits("attempt", new_email, get_request_client_ip(), "email_change")
+        purpose = f"email_change_{int(current_user['id'])}"
+        pin_ok, pin_detail = consume_email_pin(new_email, purpose, verification_pin)
+        if not pin_ok:
+            return jsonify({"detail": pin_detail}), 400
+    except (EmailPinRateLimitError, RequestRateLimitError) as error:
+        return build_rate_limit_response(error)
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while verifying email change."}), 500
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            f"UPDATE users SET email = %s, email_verified_at = {utc_now_sql()} WHERE id = %s",
+            (new_email, current_user["id"]),
+        )
+        cursor.execute(
+            "SELECT id, full_name, email, email_verified_at, is_admin, created_at FROM users WHERE id = %s",
+            (current_user["id"],),
+        )
+        updated_user = cursor.fetchone()
+        if not updated_user:
+            connection.rollback()
+            return jsonify({"detail": "Account not found."}), 404
+        connection.commit()
+    except DatabaseErrors as error:
+        if connection is not None:
+            connection.rollback()
+        if is_duplicate_entry_error(error):
+            return jsonify({"detail": "This email is already registered."}), 409
+        return jsonify({"detail": "Database error while updating email."}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    # Preserve the current CSRF token while updating the email held in the session.
+    session["email"] = new_email
+    return jsonify({"message": "Email updated and verified.", "user": serialize_user(updated_user)})
+
+
+def normalize_avatar_image(raw_image: bytes) -> bytes:
+    """Decode and re-encode an avatar, removing metadata and active file content."""
+    if Image is None or ImageOps is None:
+        raise RuntimeError("Image processing is unavailable.")
+    try:
+        with Image.open(BytesIO(raw_image)) as source:
+            if source.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValueError("Choose a JPG, PNG, or WebP image.")
+            if (
+                source.width > MAX_AVATAR_EDGE
+                or source.height > MAX_AVATAR_EDGE
+                or source.width * source.height > MAX_AVATAR_PIXELS
+            ):
+                raise ValueError("Image dimensions are too large.")
+            source.load()
+            image = ImageOps.exif_transpose(source)
+            image.thumbnail((AVATAR_OUTPUT_EDGE, AVATAR_OUTPUT_EDGE), Image.Resampling.LANCZOS)
+            rgba = image.convert("RGBA")
+            normalized = Image.new("RGB", rgba.size, (255, 255, 255))
+            normalized.paste(rgba, mask=rgba.getchannel("A"))
+            output = BytesIO()
+            normalized.save(output, format="JPEG", quality=84, optimize=True)
+            return output.getvalue()
+    except (OSError, ValueError, Image.DecompressionBombError) as error:
+        if isinstance(error, ValueError) and str(error) in {
+            "Choose a JPG, PNG, or WebP image.",
+            "Image dimensions are too large.",
+        }:
+            raise
+        raise ValueError("Choose a readable JPG, PNG, or WebP image.") from error
+
+
+@app.get("/users/me/avatar")
+def get_own_avatar():
+    current_user, auth_error = authenticate_json_request()
+    if auth_error:
+        return auth_error
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT mime_type, image_base64 FROM user_avatars WHERE user_id = %s",
+            (current_user["id"],),
+        )
+        avatar = cursor.fetchone()
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while loading avatar."}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    if not avatar:
+        response = jsonify({"detail": "No profile photo uploaded."})
+        response.status_code = 404
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    try:
+        image_bytes = base64.b64decode(avatar["image_base64"], validate=True)
+    except (ValueError, base64.binascii.Error):
+        return jsonify({"detail": "Profile photo could not be loaded."}), 500
+    response = send_file(BytesIO(image_bytes), mimetype="image/jpeg", download_name="profile-photo.jpg")
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.put("/users/me/avatar")
+def upload_own_avatar():
+    current_user, auth_error = authenticate_json_request()
+    if auth_error:
+        return auth_error
+    if request.content_length is not None and request.content_length > MAX_AVATAR_UPLOAD_BYTES + 65536:
+        return jsonify({"detail": "Profile photo must be 2 MB or smaller."}), 413
+    upload = request.files.get("avatar")
+    if upload is None:
+        return jsonify({"detail": "Choose a profile photo to upload."}), 400
+    raw_image = upload.stream.read(MAX_AVATAR_UPLOAD_BYTES + 1)
+    if not raw_image:
+        return jsonify({"detail": "Choose a profile photo to upload."}), 400
+    if len(raw_image) > MAX_AVATAR_UPLOAD_BYTES:
+        return jsonify({"detail": "Profile photo must be 2 MB or smaller."}), 413
+    try:
+        image_bytes = normalize_avatar_image(raw_image)
+    except RuntimeError:
+        return jsonify({"detail": "Image processing is unavailable."}), 503
+    except ValueError as error:
+        return jsonify({"detail": str(error)}), 400
+
+    encoded = base64.b64encode(image_bytes).decode("ascii")
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        if is_postgres_backend():
+            cursor.execute(
+                f"""
+                INSERT INTO user_avatars (user_id, mime_type, image_base64, updated_at)
+                VALUES (%s, %s, %s, {utc_now_sql()})
+                ON CONFLICT (user_id) DO UPDATE SET
+                    mime_type = EXCLUDED.mime_type,
+                    image_base64 = EXCLUDED.image_base64,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (current_user["id"], "image/jpeg", encoded),
+            )
+        else:
+            cursor.execute(
+                f"""
+                INSERT INTO user_avatars (user_id, mime_type, image_base64, updated_at)
+                VALUES (%s, %s, %s, {utc_now_sql()})
+                ON DUPLICATE KEY UPDATE
+                    mime_type = VALUES(mime_type),
+                    image_base64 = VALUES(image_base64),
+                    updated_at = VALUES(updated_at)
+                """,
+                (current_user["id"], "image/jpeg", encoded),
+            )
+        connection.commit()
+    except DatabaseErrors:
+        if connection is not None:
+            connection.rollback()
+        return jsonify({"detail": "Database error while saving avatar."}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    return jsonify({"message": "Profile photo updated."})
+
+
+@app.delete("/users/me/avatar")
+def delete_own_avatar():
+    current_user, auth_error = authenticate_json_request()
+    if auth_error:
+        return auth_error
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM user_avatars WHERE user_id = %s", (current_user["id"],))
+        connection.commit()
+    except DatabaseErrors:
+        if connection is not None:
+            connection.rollback()
+        return jsonify({"detail": "Database error while removing avatar."}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    return jsonify({"message": "Profile photo removed."})
 
 
 def build_admin_dashboard_payload() -> dict[str, Any]:

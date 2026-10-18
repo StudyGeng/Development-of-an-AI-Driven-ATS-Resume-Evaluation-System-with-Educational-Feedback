@@ -46,6 +46,7 @@
 
 .account-identity { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 0 8px; }
 .account-avatar {
+  position: relative;
   display: grid;
   flex: 0 0 44px;
   width: 44px;
@@ -53,11 +54,13 @@
   place-items: center;
   border: 2px solid #fff;
   border-radius: 14px;
+  overflow: hidden;
   background: #0067c8;
   box-shadow: 0 6px 16px rgba(0,103,200,.18);
   color: #fff;
   font: 800 16px/1 Manrope, Inter, sans-serif;
 }
+.account-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .account-identity > div { min-width: 0; }
 .account-identity-name, .account-identity-email { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-identity-name { font: 800 14px/1.35 Manrope, Inter, sans-serif; }
@@ -127,11 +130,29 @@
 .account-profile-hero .account-avatar { width: 58px; height: 58px; flex-basis: 58px; border-radius: 18px; font-size: 22px; }
 .account-profile-hero strong { display: block; font: 800 17px/1.4 Manrope, Inter, sans-serif; }
 .account-profile-hero small { display: block; margin-top: 3px; color: #59728c; font-size: 12px; }
+.account-profile-summary { min-width: 0; }
+.account-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.account-photo-actions .account-secondary { min-height: 34px; padding: 7px 11px; font-size: 11px; box-shadow: none; }
+.account-photo-remove[hidden] { display: none !important; }
+.account-file-input { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.account-field-hint { margin: -12px 0 16px; color: #61748c; font-size: 12px; }
+.account-inline-message { margin: 0; align-self: center; color: #217050; font-size: 12px; font-weight: 700; line-height: 1.45; }
+.account-inline-message.is-error { color: #ad3543; }
+.account-inline-message[hidden] { display: none !important; }
 .account-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
 .account-info-card { min-width: 0; padding: 17px; border: 1px solid #dce7f1; border-radius: 15px; background: #fff; }
 .account-field-label { display: block; margin-bottom: 8px; color: #64758a; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .account-field-value { display: block; width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; color: #182d45; font-size: 14px; font-weight: 700; text-overflow: ellipsis; }
+.account-editable-value { min-height: 39px; padding: 8px 10px; border: 1px solid #ccd9e7; border-radius: 9px; background: #fff; }
+.account-editable-value:focus-visible { outline: 3px solid #a5d4ff; outline-offset: 1px; }
 .account-info-note { margin-top: 17px; color: #61748c; font-size: 12px; line-height: 1.55; }
+.account-text-action { margin-top: 5px; padding: 3px 0; border: 0; background: transparent; color: #0062bc; font: 800 12px/1.5 Inter, sans-serif; text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.account-text-action:hover { color: #004d94; }
+.account-text-action[hidden], .account-settings-card[hidden], .account-admin-email-note[hidden] { display: none !important; }
+.account-settings-card { margin-top: 18px; padding: 20px; border: 1px solid #dce7f1; border-radius: 17px; background: #fbfdff; }
+.account-settings-card h3 { margin: 0 0 6px; color: #182d45; font: 800 17px/1.35 Manrope, Inter, sans-serif; }
+.account-settings-card > p:not(.account-inline-message) { margin: 0 0 17px; color: #62748b; font-size: 12px; line-height: 1.55; }
+.account-admin-email-note { margin: 18px 0 0; padding: 16px 18px; border: 1px solid #dce7f1; border-radius: 13px; background: #f3f8fc; color: #526a83; font-size: 13px; line-height: 1.5; }
 
 .account-form { display: grid; gap: 18px; }
 .account-form-grid { display: grid; gap: 17px; }
@@ -206,6 +227,7 @@
   .account-panel-intro { margin-bottom: 17px; font-size: 13px; }
   .account-info-grid { grid-template-columns: minmax(0,1fr); gap: 9px; }
   .account-profile-hero { padding: 14px; }
+  .account-settings-card { padding: 16px; }
   .account-history-list > div { align-items: flex-start; flex-direction: column; }
   .account-history-list > div > div:last-child { flex-wrap: wrap; }
 }

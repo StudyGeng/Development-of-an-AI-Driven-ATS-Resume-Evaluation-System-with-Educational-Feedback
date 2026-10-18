@@ -25,7 +25,7 @@ Add the completed URI as `DATABASE_URL=...` in the ignored `config/env` file (co
 
 Start Flask locally with `.\.venv\Scripts\python.exe backend\app.py`, then open `http://127.0.0.1:5000/` and confirm the job-role list loads. If you use a different virtual environment, replace the Python path above with its interpreter.
 
-The migration creates seven app tables in the private `ats_private` schema. The seed loads the public role catalogue into the fresh database. To check the result in **Supabase → SQL Editor**, run `select count(*) from ats_private.job_roles;` (expect `96`) and `select count(*) from ats_private.job_requirements;` (expect `2847`). The default `public` schema in Table Editor can still appear empty; choose `ats_private` or use the SQL Editor.
+The migration creates eight app tables in the private `ats_private` schema, including `user_avatars` for profile photos. The seed loads the public role catalogue into the fresh database. To check the result in **Supabase → SQL Editor**, run `select count(*) from ats_private.job_roles;` (expect `96`) and `select count(*) from ats_private.job_requirements;` (expect `2847`). The default `public` schema in Table Editor can still appear empty; choose `ats_private` or use the SQL Editor.
 
 ## 2. Create the Railway web service
 
