@@ -154,8 +154,12 @@
         .report-brand-name small { color: #0064c8; font-size: 10px; font-weight: 800; letter-spacing: .17em; }
         .report-brand-name strong { color: var(--studio-ink); font-family: Manrope,Inter,sans-serif; font-size: 16px; font-weight: 800; white-space: nowrap; }
         .report-nav-links { display: flex; align-items: center; gap: 22px; }
-        .report-nav-links a { color: #526276; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
-        .report-nav-links a:hover, .report-nav-links a:focus-visible { color: #0064c8; }
+        .report-nav-links a { display: inline-flex; align-items: center; min-height: 38px; padding: 7px 10px; border-radius: 9px; color: #526276; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; transition: color .2s ease, background-color .2s ease; }
+        .report-nav-links a.hidden { display: none; }
+        .report-nav-links a:hover, .report-nav-links a:focus-visible { background: #eff7ff; color: #0064c8; }
+        .report-nav-links .report-nav-return { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #cfe5fa; border-radius: 9px; background: #f3f9ff; color: #0064c8; font-size: 12px; font-weight: 800; }
+        .report-nav-links .report-nav-return:hover, .report-nav-links .report-nav-return:focus-visible { border-color: #9bc9f2; background: #e4f2ff; }
+        .report-nav-return svg { width: 15px; height: 15px; }
         .report-nav-actions { display: flex; justify-content: flex-end; align-items: center; }
         .report-nav #openAuthModalBtn { border-radius: 12px; background: #0064c8; color: #fff; cursor: pointer; }
         .report-nav #openAuthModalBtn:hover { background: #0055aa; }
@@ -422,8 +426,9 @@
             .report-brand-mark { width: 32px; height: 32px; }
             .report-brand-mark svg { width: 21px; height: 21px; }
             .report-brand-name strong { font-size: 14px; }
-            .report-nav-links { grid-column: 1 / -1; grid-row: 2; justify-content: center; gap: clamp(14px, 5vw, 28px); padding-top: 4px; }
-            .report-nav-links a { font-size: 11px; }
+            .report-nav-links { grid-column: 1 / -1; grid-row: 2; justify-content: center; flex-wrap: wrap; gap: 6px clamp(12px, 4vw, 24px); padding-top: 4px; }
+            .report-nav-links a { min-height: 32px; padding: 5px 9px; font-size: 11px; }
+            .report-nav-links .report-nav-return { padding: 5px 7px; font-size: 11px; }
             .report-nav-actions { grid-column: 2; grid-row: 1; }
             .report-workspace-grid { grid-template-columns: 1fr; }
             .report-tabs { top: 6rem; }
@@ -482,7 +487,7 @@
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
             .report-hero::before, .report-hero::after { animation: none; }
-            .studio-button, .report-action, .report-reveal { transition: none; }
+            .studio-button, .report-action, .report-reveal, .report-nav-links a { transition: none; }
             .report-reveal { opacity: 1; filter: none; transform: none; }
         }
         @media print {
@@ -499,6 +504,7 @@
 <div class="report-nav-links">
 <a href="home_page.html#how-it-works">How it works</a>
 <a href="home_page.html#sample-results">Sample results</a>
+<a class="report-nav-return hidden" id="returnToRealReportLink" href="analysis_result.html" aria-label="Return to your latest resume report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/><path d="M14 3.5v4h4M9 12h6M9 15.5h6"/></svg><span>Your report</span></a>
 <a class="hidden" href="job_data_insights.html" data-admin-link>Admin insights</a>
 </div>
 <div class="report-nav-actions">
@@ -4196,8 +4202,24 @@ Download PDF
 
     }
 
-    if (new URLSearchParams(window.location.search).get("sample") === "1") {
+    const viewingSampleReport = new URLSearchParams(window.location.search).get("sample") === "1";
+    const returnToRealReportLink = document.getElementById("returnToRealReportLink");
+    function updateRealReportReturnLink() {
+        if (!returnToRealReportLink) return;
+        returnToRealReportLink.classList.toggle("hidden", !viewingSampleReport || !window.CareerNavigatorCommon.hasCurrentUserReport());
+    }
+    window.addEventListener("career-navigator-auth-changed", updateRealReportReturnLink);
+    window.addEventListener("storage", (event) => {
+        if (["analysisResult", "analysisOwner", "authUser"].includes(event.key)) updateRealReportReturnLink();
+    });
+    window.addEventListener("pageshow", (event) => {
+        if (!event.persisted) return;
+        returnToRealReportLink?.classList.add("hidden");
+        window.CareerNavigatorCommon.syncAuthUserFromServer().then(updateRealReportReturnLink, updateRealReportReturnLink);
+    });
+    if (viewingSampleReport) {
         loadAnalysisResult();
+        window.CareerNavigatorCommon.syncAuthUserFromServer().then(updateRealReportReturnLink, updateRealReportReturnLink);
     } else {
         window.CareerNavigatorCommon.syncAuthUserFromServer().then(loadAnalysisResult, loadAnalysisResult);
     }

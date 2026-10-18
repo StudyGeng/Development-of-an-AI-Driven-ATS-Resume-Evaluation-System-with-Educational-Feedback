@@ -263,8 +263,13 @@
         .career-brand-name small { color: var(--career-teal-deep); font-size: 10px; font-weight: 800; letter-spacing: .17em; }
         .career-brand-name strong { font-family: Manrope, Inter, sans-serif; font-size: 16px; }
         .career-nav-links, .career-nav-actions { display: flex; align-items: center; gap: 22px; }
-        .career-nav-links a { color: var(--career-muted); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
-        .career-nav-links a:hover, .career-nav-links a:focus-visible { color: var(--career-teal-deep); }
+        .career-nav-links a { display: inline-flex; align-items: center; min-height: 38px; padding: 7px 10px; border-radius: 9px; color: var(--career-muted); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; transition: color .2s ease, background-color .2s ease, box-shadow .2s ease; }
+        .career-nav-links a.hidden { display: none; }
+        .career-nav-links a:hover, .career-nav-links a:focus-visible { background: #eff7ff; color: var(--career-teal-deep); }
+        .career-nav-links a[aria-current="location"] { background: #e8f3ff; color: var(--career-teal-deep); box-shadow: inset 0 -2px 0 var(--career-teal); }
+        .career-nav-links a.career-resume-report-link { gap: 6px; min-height: 34px; padding: 6px 9px; border: 1px solid #cfe5fa; background: #f3f9ff; color: var(--career-teal-deep); font-size: 12px; font-weight: 800; }
+        .career-nav-links a.career-resume-report-link:hover, .career-nav-links a.career-resume-report-link:focus-visible { border-color: #9bc9f2; background: #e4f2ff; }
+        .career-resume-report-link svg { width: 15px; height: 15px; }
         .career-nav-actions { justify-content: flex-end; gap: 9px; }
         .career-nav-actions button:not(.hidden) { min-height: 42px; padding: 8px 15px; border-radius: 12px; font-size: 12px; font-weight: 750; white-space: nowrap; transition: background-color .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
         .career-nav-login { background: var(--career-teal-deep); color: #fff; }
@@ -533,8 +538,9 @@
             .career-brand-mark { width: 32px; height: 32px; }
             .career-brand-mark svg { width: 21px; height: 21px; }
             .career-brand-name strong { font-size: 14px; }
-            .career-nav-links { display: flex; grid-column: 1 / -1; grid-row: 2; justify-content: center; gap: clamp(14px, 5vw, 28px); padding-top: 4px; }
-            .career-nav-links a { font-size: 11px; }
+            .career-nav-links { display: flex; grid-column: 1 / -1; grid-row: 2; justify-content: center; flex-wrap: wrap; gap: 6px clamp(10px, 3vw, 24px); padding-top: 4px; }
+            .career-nav-links a { min-height: 32px; padding: 5px 9px; font-size: 11px; }
+            .career-nav-links a.career-resume-report-link { min-height: 30px; padding: 4px 7px; font-size: 11px; }
             .career-nav-actions { grid-column: 2; grid-row: 1; justify-content: flex-end; }
             .career-hero-grid { padding-block: 47px 60px; gap: 37px; }
             .career-hero h1 { font-size: clamp(2.65rem, 12vw, 4rem); }
@@ -584,7 +590,7 @@
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
             .career-orbit-ring-outer, .job-role-btn, .role-picker-panel, .analysis-button-dots span, #evaluationStatusText.is-analyzing::after { animation: none !important; }
-            .career-button, .career-orbit-point, .career-nav-actions button:not(.hidden), .career-footer-cta-button, .career-footer-links a, .career-footer-links button { transition: none; }
+            .career-button, .career-orbit-point, .career-nav-links a, .career-nav-actions button:not(.hidden), .career-footer-cta-button, .career-footer-links a, .career-footer-links button { transition: none; }
             .career-ui-meter span { transition: none; }
             .career-footer-cta-button:hover { transform: none; }
             body.motion-ready [data-reveal] { opacity: 1; filter: none; transform: none; transition: none; }
@@ -601,6 +607,7 @@
     <div class="career-nav-links">
       <a href="#how-it-works">How it works</a>
       <a href="#sample-results">Sample results</a>
+      <a class="career-resume-report-link hidden" id="headerResumeReportLink" href="analysis_result.html" aria-label="Return to your latest resume report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/><path d="M14 3.5v4h4M9 12h6M9 15.5h6"/></svg><span>Your report</span></a>
       <a class="hidden" href="job_data_insights.html" data-admin-link>Admin insights</a>
     </div>
     <div class="career-nav-actions">
@@ -1237,6 +1244,7 @@
   const closeUniversityPartnersBtn = document.getElementById("closeUniversityPartnersBtn");
   const openAuthModalBtn = document.getElementById("openAuthModalBtn");
   const latestReportReturn = document.getElementById("latestReportReturn");
+  const headerResumeReportLink = document.getElementById("headerResumeReportLink");
   const authModal = document.getElementById("authModal");
   const authModalBackdrop = document.getElementById("authModalBackdrop");
   const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
@@ -1321,31 +1329,9 @@
   }
 
   function updateLatestReportReturn() {
-    if (!latestReportReturn) return;
-    let hasReport = false;
-    try {
-      const currentUser = getAuthUser();
-      const owner = (localStorage.getItem("analysisOwner") || "").toLowerCase();
-      const raw = localStorage.getItem("analysisResult");
-      if (window.CareerNavigatorCommon.isAuthSessionVerified() && currentUser && currentUser.email
-          && owner && owner === currentUser.email.toLowerCase() && raw) {
-        const result = JSON.parse(raw);
-        const rawScore = result && result.matching_percentage;
-        const validScore = (typeof rawScore === "number" || typeof rawScore === "string")
-          && String(rawScore).trim() !== "" && Number.isFinite(Number(rawScore))
-          && Number(rawScore) >= 0 && Number(rawScore) <= 100;
-        const hasEvidence = result && typeof result === "object" && (
-          result.resume_summary || result.compatibility || result.role_recommendation
-          || result.feedback || result.analysis_id
-        );
-        const isFictionalSample = result && result.summary === "Sample analysis for demo"
-          && result.uploaded_resume_name === "sample_resume.pdf";
-        hasReport = Boolean(validScore && hasEvidence && !isFictionalSample);
-      }
-    } catch (error) {
-      hasReport = false;
-    }
-    latestReportReturn.hidden = !hasReport;
+    const hasReport = window.CareerNavigatorCommon.hasCurrentUserReport();
+    if (latestReportReturn) latestReportReturn.hidden = !hasReport;
+    if (headerResumeReportLink) headerResumeReportLink.classList.toggle("hidden", !hasReport);
   }
 
   function updateAuthUi() {
@@ -1377,6 +1363,7 @@
   window.addEventListener("pageshow", (event) => {
     if (!event.persisted) return;
     latestReportReturn.hidden = true;
+    if (headerResumeReportLink) headerResumeReportLink.classList.add("hidden");
     window.CareerNavigatorCommon.syncAuthUserFromServer().then(updateAuthUi, updateAuthUi);
   });
 
@@ -3227,5 +3214,47 @@
       });
     }
   }
+
+  const sectionNav = document.querySelector(".career-nav");
+  const sectionNavLinks = Array.from(document.querySelectorAll('.career-nav-links a[href^="#"]'));
+  const howSection = document.getElementById("how-it-works");
+  const sampleSection = document.getElementById("sample-results");
+  const writingSection = document.querySelector(".career-writing-section");
+  function setActiveSectionLink(id) {
+    sectionNavLinks.forEach((link) => {
+      if (link.getAttribute("href") === "#" + id) {
+        link.setAttribute("aria-current", "location");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  }
+  function updateSectionNav() {
+    if (!sectionNav || !howSection || !sampleSection) return;
+    const marker = sectionNav.getBoundingClientRect().height + Math.min(96, window.innerHeight * 0.18);
+    const howTop = howSection.getBoundingClientRect().top;
+    const sampleTop = sampleSection.getBoundingClientRect().top;
+    const writingTop = writingSection ? writingSection.getBoundingClientRect().top : Infinity;
+    const activeId = sampleTop <= marker && writingTop > marker
+      ? "sample-results"
+      : howTop <= marker && sampleTop > marker ? "how-it-works" : "";
+    setActiveSectionLink(activeId);
+  }
+  let sectionNavFrame = 0;
+  function scheduleSectionNavUpdate() {
+    if (sectionNavFrame) return;
+    sectionNavFrame = window.requestAnimationFrame(() => {
+      sectionNavFrame = 0;
+      updateSectionNav();
+    });
+  }
+  sectionNavLinks.forEach((link) => {
+    link.addEventListener("click", () => setActiveSectionLink(link.getAttribute("href").slice(1)));
+  });
+  window.addEventListener("scroll", scheduleSectionNavUpdate, { passive: true });
+  window.addEventListener("resize", scheduleSectionNavUpdate);
+  window.addEventListener("hashchange", scheduleSectionNavUpdate);
+  window.addEventListener("pageshow", scheduleSectionNavUpdate);
+  scheduleSectionNavUpdate();
 </script>
 </body></html>

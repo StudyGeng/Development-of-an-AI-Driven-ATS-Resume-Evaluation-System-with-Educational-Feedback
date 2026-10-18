@@ -100,6 +100,30 @@
     }
   }
 
+  function hasCurrentUserReport() {
+    if (!authSessionVerified) return false;
+    try {
+      const user = getAuthUser();
+      const owner = (localStorage.getItem("analysisOwner") || "").toLowerCase();
+      const raw = localStorage.getItem("analysisResult");
+      if (!user?.email || !owner || owner !== user.email.toLowerCase() || !raw) return false;
+      const result = JSON.parse(raw);
+      const rawScore = result?.matching_percentage;
+      const validScore = (typeof rawScore === "number" || typeof rawScore === "string")
+        && String(rawScore).trim() !== "" && Number.isFinite(Number(rawScore))
+        && Number(rawScore) >= 0 && Number(rawScore) <= 100;
+      const hasEvidence = result && typeof result === "object" && (
+        result.resume_summary || result.compatibility || result.role_recommendation
+        || result.feedback || result.analysis_id
+      );
+      const isFictionalSample = result?.summary === "Sample analysis for demo"
+        && result.uploaded_resume_name === "sample_resume.pdf";
+      return Boolean(validScore && hasEvidence && !isFictionalSample);
+    } catch (error) {
+      return false;
+    }
+  }
+
   function setAuthUser(user, onChange) {
     authStateVersion += 1;
     if (user) {
@@ -965,6 +989,7 @@
 
   window.CareerNavigatorCommon = {
     getAuthUser,
+    hasCurrentUserReport,
     setAuthUser,
     syncAuthUserFromServer,
     isAuthSessionVerified: () => authSessionVerified,
