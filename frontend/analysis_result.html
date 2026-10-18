@@ -385,6 +385,15 @@
         .report-action-outline:hover:not(:disabled) { border-color: var(--studio-teal); background: #f1f8fa; }
         .report-export-card .report-action-outline { border-color: rgba(255,255,255,.36); background: transparent; color: #fff; }
         .report-export-card .report-action-outline:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+        .report-preview-dialog { width: min(64rem, calc(100vw - 2rem)); max-width: none; height: min(88vh, 54rem); max-height: none; margin: auto; padding: 0; overflow: hidden; border: 1px solid #cbdce5; border-radius: 20px; background: #fff; color: #172b38; box-shadow: 0 28px 90px rgba(9,32,47,.32); }
+        .report-preview-dialog::backdrop { background: rgba(9,27,42,.7); backdrop-filter: blur(5px); }
+        .report-preview-shell { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
+        .report-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.3rem; border-bottom: 1px solid #dce6eb; background: #fff; }
+        .report-preview-title { margin: 0; color: #172b38; font: 800 clamp(1rem,2.8vw,1.3rem)/1.25 Manrope,Inter,sans-serif; }
+        .report-preview-description { margin: .2rem 0 0; color: #536877; font-size: .78rem; line-height: 1.4; }
+        .report-preview-close { display: grid; place-items: center; flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border: 1px solid #dce6eb; border-radius: 10px; background: #f5f9fb; color: #173d55; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+        .report-preview-close:hover, .report-preview-close:focus-visible { border-color: #176b89; background: #e6f2f7; }
+        .report-preview-frame { display: block; flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: #eef3f6; }
         .report-back-link { grid-column: 1 / -1; display: inline-flex; justify-content: center; gap: .4rem; padding: .45rem; color: #d8eaf0; font-size: .82rem; font-weight: 700; text-decoration: underline; text-underline-offset: .2rem; }
         .report-back-link:hover { color: #fff; }
         .generated-resume-panel { margin-top: 1.25rem; padding: clamp(1.25rem,3vw,1.8rem); }
@@ -431,6 +440,8 @@
             .report-section-title { margin-bottom: 1.1rem; font-size: clamp(1.55rem,5vw,2rem); }
         }
         @media (max-width: 480px) {
+            .report-preview-dialog { width: calc(100vw - .75rem); height: calc(100dvh - .75rem); border-radius: 14px; }
+            .report-preview-header { padding: .8rem .9rem; }
             .report-main { padding-left: .875rem; padding-right: .875rem; }
             .report-hero { gap: 1.1rem; padding: 1.4rem 1.25rem; border-radius: 18px; }
             .report-hero h1 { max-width: none; margin-top: .75rem; font-size: clamp(2rem,9vw,2.45rem); line-height: 1.12; letter-spacing: -.045em; }
@@ -487,7 +498,7 @@
 <a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
 </div>
 <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-<button class="account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account"><span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span></button>
+<button class="account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account" aria-haspopup="dialog" aria-controls="authModal" title="Sign in or create account"><span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span></button>
 <button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
 <a class="mobile-home-link md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
 <span aria-hidden="true">←</span>
@@ -815,15 +826,15 @@ Generate Optimized Resume
 <div class="report-work-card report-export-card">
 <div>
 <p class="report-eyebrow">Keep a copy</p>
-<h3>Download your feedback</h3>
-<p class="text-sm leading-relaxed">Save the complete report with ATS checks, matched evidence, and the improvement plan.</p>
+<h3>Review or save your feedback</h3>
+<p class="text-sm leading-relaxed">Preview the complete report here, or save a PDF with your ATS checks, matched evidence, and improvement plan.</p>
 </div>
 <div class="report-export-actions">
 <button class="report-action report-action-light" id="exportResumeBtn" type="button">
 Download PDF report
 </button>
 <button class="report-action report-action-outline" id="exportHtmlReportBtn" type="button">
-Download HTML report
+Preview report
 </button>
 <a class="report-back-link" href="home_page.html">Back to home <span aria-hidden="true">&rarr;</span></a>
 </div>
@@ -873,6 +884,18 @@ Download PDF
 </div>
 </div>
 </footer>
+<dialog class="report-preview-dialog" id="feedbackReportPreviewDialog" aria-modal="true" aria-labelledby="feedbackReportPreviewTitle" aria-describedby="feedbackReportPreviewDescription">
+<div class="report-preview-shell">
+<div class="report-preview-header">
+<div>
+<h2 class="report-preview-title" id="feedbackReportPreviewTitle">Full feedback report</h2>
+<p class="report-preview-description" id="feedbackReportPreviewDescription">Scroll here to review your report. Close this window to return to your results.</p>
+</div>
+<button class="report-preview-close" id="closeFeedbackReportPreviewBtn" type="button" aria-label="Close report preview"><span aria-hidden="true">&times;</span></button>
+</div>
+<iframe class="report-preview-frame" id="feedbackReportPreviewFrame" title="Full feedback report preview" sandbox="" referrerpolicy="no-referrer"></iframe>
+</div>
+</dialog>
 <div class="fixed inset-0 z-[85] hidden" id="authModal" role="dialog" aria-modal="true" aria-label="Account access" aria-hidden="true">
 <div class="absolute inset-0 bg-slate-900/60" id="authModalBackdrop"></div>
 <div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
@@ -1127,6 +1150,9 @@ Download PDF
     const openHistoryBtn = document.getElementById("openHistoryBtn");
     const authModal = document.getElementById("authModal");
     const authModalBackdrop = document.getElementById("authModalBackdrop");
+    const feedbackReportPreviewDialog = document.getElementById("feedbackReportPreviewDialog");
+    const feedbackReportPreviewFrame = document.getElementById("feedbackReportPreviewFrame");
+    const closeFeedbackReportPreviewBtn = document.getElementById("closeFeedbackReportPreviewBtn");
     const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
     const authLoginTabBtn = document.getElementById("authLoginTabBtn");
     const authRegisterTabBtn = document.getElementById("authRegisterTabBtn");
@@ -1226,9 +1252,11 @@ Download PDF
         const currentUser = getAuthUser();
         if (openAuthModalBtn) {
             openAuthModalBtn.innerHTML = currentUser
-                ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg></span><span>Account</span>'
+                ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span>'
                 : '<span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span>';
-            openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account settings" : "Sign in or create account");
+            openAuthModalBtn.classList.toggle("is-signed-in", Boolean(currentUser));
+            openAuthModalBtn.setAttribute("aria-controls", currentUser ? "profileModal" : "authModal");
+            openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Sign in or create account");
             openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Sign in or create account";
         }
         if (openHistoryBtn) openHistoryBtn.hidden = Boolean(currentUser);
@@ -3042,7 +3070,7 @@ Download PDF
                 .score { width: fit-content; min-width: 130px; text-align: left; }
                 section { padding: 25px 24px; }
                 th, td { padding: 9px 5px; }
-                th { width: 39%; }
+                th { width: 44%; overflow-wrap: normal; word-break: normal; }
                 .visual-report-head { flex-wrap: wrap; }
                 .visual-report-head span { max-width: 100%; width: 100%; padding-left: 28px; text-align: left; }
                 .visual-frame { margin: 0 12px; padding: 12px; max-height: 460px; }
@@ -3069,6 +3097,7 @@ Download PDF
 
         return "<!doctype html>" +
             "<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+            "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'\">" +
             "<title>UTS CS Career Navigator Feedback Report<\/title>" +
             "<style>" + reportCss + "<\/style><\/head><body><div class=\"page\">" +
             "<header class=\"report-header\"><div><p class=\"report-kicker\">UTS CS / Career Navigator<\/p><h1>Resume feedback report<\/h1><p>" + (report.sampleOnly ? "Fictional sample report. These findings are not based on your resume." : "Structured ATS and role-fit feedback for resume improvement.") + "<\/p><\/div><div class=\"score\"><span>Readiness score<\/span><strong>" + escapeHtml(String(report.scoreOutOf100 || 0)) + "<small>/100<\/small><\/strong><\/div><\/header>" +
@@ -3082,8 +3111,8 @@ Download PDF
             "<section><h2 class=\"section-title\">Resume review<\/h2><h3>Issues to fix<\/h3><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview) + "<\/section>" +
             "<section><h2 class=\"section-title\">Resume evidence<\/h2><h3>Matched signals<\/h3><div class=\"chips\">" + reportList(report.matchedSignals, "No matched signals").split(", ").map((item) => "<span class=\"chip\">" + item + "<\/span>").join("") + "<\/div><h3 style=\"margin-top:22px\">Missing keywords<\/h3><div class=\"chips\">" + reportList(report.missingKeywords, "No missing keywords").split(", ").map((item) => "<span class=\"chip missing\">" + item + "<\/span>").join("") + "<\/div><\/section>" +
             "<section><h2 class=\"section-title\">Next actions<\/h2><ul>" + buildFeedbackRows(report.structuredFeedback, report.feedback || "No feedback available.") + "<\/ul><\/section>" +
-            "<footer>Generated locally by UTS CS Career Navigator. Open this file in a browser to print or save as PDF.<\/footer>" +
-            "<\/div><script>(function(){var preview=document.querySelector('.visual-report');if(!preview)return;var wasOpen=false;window.addEventListener('beforeprint',function(){wasOpen=preview.open;preview.open=true;});window.addEventListener('afterprint',function(){preview.open=wasOpen;});})();<\/script><\/body><\/html>";
+            "<footer>Preview generated locally by UTS CS Career Navigator. Use Download PDF report on the results page to save a copy.<\/footer>" +
+            "<\/div><\/body><\/html>";
     }
 
     function slugifyFileName(value, fallback) {
@@ -3531,17 +3560,43 @@ Download PDF
         }
     }
 
-    async function downloadFeedbackReportHtml(report, analysisId) {
-        const fileName = report.sampleOnly ? "uts-sample-feedback-report.html" : "uts-cs-career-navigator-feedback-report.html";
-        try {
-            const reportHtml = buildFeedbackReportHtml(report);
-            downloadGeneratedFile(reportHtml, "text/html;charset=utf-8", fileName);
-            await saveGeneratedResumeDownloadHistory(fileName, analysisId);
-            showToast("HTML feedback report downloaded.", "success");
-        } catch (error) {
-            const message = error && error.message ? error.message : "Could not export HTML feedback report.";
-            showToast(message, "error");
+    function previewFeedbackReport(report) {
+        if (!feedbackReportPreviewDialog || !feedbackReportPreviewFrame || !closeFeedbackReportPreviewBtn ||
+            typeof feedbackReportPreviewDialog.showModal !== "function") {
+            showToast("Report preview is unavailable in this browser.", "error");
+            return;
         }
+
+        try {
+            // srcdoc keeps this report inside a sandboxed, separate document.
+            feedbackReportPreviewFrame.srcdoc = buildFeedbackReportHtml(report);
+            feedbackReportPreviewDialog._focusBeforeOpen = document.activeElement;
+            feedbackReportPreviewDialog.showModal();
+            closeFeedbackReportPreviewBtn.focus({ preventScroll: true });
+        } catch (error) {
+            showToast("Could not open the report preview.", "error");
+        }
+    }
+
+    if (closeFeedbackReportPreviewBtn) {
+        closeFeedbackReportPreviewBtn.addEventListener("click", () => feedbackReportPreviewDialog.close());
+    }
+    if (feedbackReportPreviewDialog) {
+        feedbackReportPreviewDialog.addEventListener("click", (event) => {
+            if (event.target !== feedbackReportPreviewDialog) return;
+            const bounds = feedbackReportPreviewDialog.getBoundingClientRect();
+            if (event.clientX < bounds.left || event.clientX > bounds.right ||
+                event.clientY < bounds.top || event.clientY > bounds.bottom) {
+                feedbackReportPreviewDialog.close();
+            }
+        });
+        feedbackReportPreviewDialog.addEventListener("close", () => {
+            feedbackReportPreviewFrame.srcdoc = "";
+            const previousFocus = feedbackReportPreviewDialog._focusBeforeOpen;
+            if (previousFocus && document.contains(previousFocus)) {
+                previousFocus.focus({ preventScroll: true });
+            }
+        });
     }
 
     function getReportResumeVisualPreview(preview) {
@@ -4136,22 +4191,8 @@ Download PDF
 
         if (exportHtmlReportBtn && exportHtmlReportBtn.dataset.bound !== "true") {
             exportHtmlReportBtn.dataset.bound = "true";
-            exportHtmlReportBtn.addEventListener("click", async () => {
-                if (!requireAuth()) {
-                    return;
-                }
-                const originalButtonHtml = exportHtmlReportBtn.innerHTML;
-                exportHtmlReportBtn.disabled = true;
-                exportHtmlReportBtn.classList.add("opacity-70", "cursor-wait");
-                exportHtmlReportBtn.textContent = 'Preparing HTML...';
-
-                try {
-                    await downloadFeedbackReportHtml(buildCurrentReportPayload(), result.analysis_id || null);
-                } finally {
-                    exportHtmlReportBtn.disabled = false;
-                    exportHtmlReportBtn.classList.remove("opacity-70", "cursor-wait");
-                    exportHtmlReportBtn.innerHTML = originalButtonHtml;
-                }
+            exportHtmlReportBtn.addEventListener("click", () => {
+                previewFeedbackReport(buildCurrentReportPayload());
             });
         }
 

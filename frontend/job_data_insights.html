@@ -231,7 +231,7 @@ tbody tr:hover { background: #f1f8f8; }
       <a class="font-headline text-sm font-semibold tracking-tight border-b-2 pb-1 transition-colors" href="job_data_insights.html" aria-current="page" data-admin-link>Admin Insights</a>
     </div>
     <div class="admin-actions flex items-center gap-2 sm:gap-4 shrink-0">
-      <button class="admin-button admin-button-primary account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button">Log In / Sign Up</button>
+      <button class="admin-button admin-button-primary account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account" aria-haspopup="dialog" aria-controls="profileModal" title="Sign in or create account">Log In / Sign Up</button>
       <button id="openHistoryBtn" class="admin-button admin-button-secondary h-10 inline-flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" type="button">History</button>
       <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights" hidden>
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.4 6"/><path d="M20 4v7h-7"/></svg>
@@ -615,9 +615,10 @@ function updateHeaderAuthUi() {
   const currentUser = getStoredUser();
   if (openAuthModalBtn) {
     openAuthModalBtn.innerHTML = currentUser
-      ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg></span><span>Account</span>'
+      ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span>'
       : "Log In / Sign Up";
-    openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account settings" : "Sign in or create account");
+    openAuthModalBtn.classList.toggle("is-signed-in", Boolean(currentUser));
+    openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Sign in or create account");
     openAuthModalBtn.title = currentUser
       ? "Open profile for " + (currentUser.full_name || "current user")
       : "Sign in or create account";

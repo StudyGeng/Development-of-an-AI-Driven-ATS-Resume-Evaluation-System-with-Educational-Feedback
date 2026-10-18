@@ -202,9 +202,17 @@
 .account-history-list > div button:not(.viewHistoryBtn):not(.deleteHistoryBtn) { border-radius: 9px; background: #0068ca; color: #fff; }
 .account-history-list button { min-height: 34px; white-space: nowrap; }
 
-.account-header-trigger { display: inline-flex; align-items: center; gap: 7px; }
-.account-header-trigger-icon { display: inline-grid; width: 19px; height: 19px; place-items: center; }
-.account-header-trigger-icon svg { width: 18px; height: 18px; }
+.account-header-trigger { display: inline-flex; align-items: center; justify-content: center; }
+#openAuthModalBtn.account-header-trigger.is-signed-in {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 12px;
+}
+.account-header-trigger-icon { display: grid; width: 21px; height: 21px; place-items: center; }
+.account-header-trigger-icon svg { display: block; width: 21px; height: 21px; }
 #profileModal :is(button,input):focus-visible, .account-header-trigger:focus-visible { outline: 3px solid #83bfff; outline-offset: 2px; }
 
 @keyframes account-workspace-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
