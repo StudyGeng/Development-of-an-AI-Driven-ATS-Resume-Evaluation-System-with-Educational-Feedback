@@ -1,6 +1,8 @@
 /* Shared account window on the dashboard and report pages. */
 .auth-password-wrap { position: relative; }
 .auth-password-wrap input { padding-right: 5.25rem; }
+.auth-password-wrap input::-ms-reveal,
+.auth-password-wrap input::-ms-clear { display: none; }
 .auth-password-toggle {
   position: absolute;
   top: 50%;

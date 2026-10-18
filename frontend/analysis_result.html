@@ -849,19 +849,13 @@ Preview report
 <h3 class="text-2xl font-extrabold text-primary tracking-tight" id="generatedResumeTitle">ATS Resume Preview</h3>
 </div>
 <div class="generated-resume-actions">
-<button class="report-action report-action-outline" id="copyGeneratedResumeBtn" type="button">
-Copy Content
-</button>
-<button class="report-action report-action-outline" id="downloadGeneratedHtmlBtn" type="button">
-Download HTML
-</button>
 <button class="report-action report-action-primary" id="downloadGeneratedPdfBtn" type="button">
 Download PDF
 </button>
 </div>
 </div>
 <iframe class="generated-resume-frame" id="generatedResumePreview" title="Generated ATS resume preview"></iframe>
-<p class="mt-5 text-xs uppercase tracking-[0.16em] font-bold text-secondary">Improvement advice shown here only, not included in HTML/PDF downloads</p>
+<p class="mt-5 text-xs uppercase tracking-[0.16em] font-bold text-secondary">Improvement advice shown here only, not included in the PDF download</p>
 <ul class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-on-surface-variant" id="generatedResumeNotesList"></ul>
 </div>
 </section>
@@ -3147,11 +3141,6 @@ Download PDF
         return slug || fallback || "ats-resume";
     }
 
-    function downloadGeneratedFile(content, type, fileName) {
-        const blob = new Blob([content || ""], { type });
-        downloadGeneratedBlob(blob, fileName);
-    }
-
     function downloadGeneratedBlob(blob, fileName) {
         const downloadUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -3322,52 +3311,6 @@ Download PDF
             : 'Generate Optimized Resume';
     }
 
-    function isGeneratedResumeAdviceLine(value) {
-        const normalized = String(value || "")
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, " ")
-            .trim();
-        const adviceStarts = [
-            "add evidence if you have it",
-            "add a projects section only if",
-            "add certifications only if",
-            "add awards or achievements only if",
-            "add those details only if",
-            "draft uses extracted resume evidence",
-            "if available add more measurable",
-            "limited source information",
-            "only keep a missing keyword",
-            "target keywords to add with evidence"
-        ];
-        return normalized.startsWith("add ") && normalized.includes(" truthfully demonstrates ")
-            || normalized.startsWith("add ")
-            || normalized.startsWith("limited source information")
-            || adviceStarts.some((prefix) => normalized.startsWith(prefix));
-    }
-
-    function getGeneratedResumeDownloadHtml() {
-        const fallback = latestGeneratedResume && latestGeneratedResume.html ? latestGeneratedResume.html : "";
-        if (!fallback || typeof DOMParser === "undefined") {
-            return fallback;
-        }
-        const doc = new DOMParser().parseFromString(fallback, "text/html");
-        doc.querySelectorAll("#generatedResumeNotesList,.ats-notes,.resume-notes,.download-notes,.placeholder").forEach((element) => element.remove());
-        doc.querySelectorAll("li").forEach((item) => {
-            if (isGeneratedResumeAdviceLine(item.textContent || "")) {
-                const list = item.parentElement;
-                item.remove();
-                if (list && list.tagName && list.tagName.toLowerCase() === "ul" && !list.children.length) {
-                    const previous = list.previousElementSibling;
-                    list.remove();
-                    if (previous && /^h[1-6]$/i.test(previous.tagName || "")) {
-                        previous.remove();
-                    }
-                }
-            }
-        });
-        return "<!doctype html>\n" + doc.documentElement.outerHTML;
-    }
-
     function renderGeneratedResume(draft) {
         const panel = document.getElementById("generatedResumePanel");
         const preview = document.getElementById("generatedResumePreview");
@@ -3375,8 +3318,6 @@ Download PDF
         const sampleNotice = document.getElementById("generatedResumeSampleNotice");
         const eyebrow = document.getElementById("generatedResumeEyebrow");
         const title = document.getElementById("generatedResumeTitle");
-        const copyButton = document.getElementById("copyGeneratedResumeBtn");
-        const htmlButton = document.getElementById("downloadGeneratedHtmlBtn");
         const pdfButton = document.getElementById("downloadGeneratedPdfBtn");
         if (!panel || !preview) {
             return;
@@ -3395,12 +3336,6 @@ Download PDF
                 ? (draft.target_role || "Target Role") + " Example Resume"
                 : "ATS Resume Preview";
         }
-        if (copyButton) {
-            copyButton.textContent = isExample ? "Copy Example Text" : "Copy Resume Text";
-        }
-        if (htmlButton) {
-            htmlButton.textContent = isExample ? "Download Example HTML" : "Download HTML";
-        }
         if (pdfButton) {
             pdfButton.textContent = isExample ? "Download Example PDF" : "Download PDF";
         }
@@ -3415,32 +3350,6 @@ Download PDF
                     '<li class="flex gap-3"><span class="text-secondary text-base mt-0.5" aria-hidden="true">✓</span><span>' + escapeHtml(note) + '</span></li>'
                 )).join("")
                 : '<li class="text-on-surface-variant">No extra ATS notes returned.</li>';
-        }
-    }
-
-    async function copyGeneratedResumeText() {
-        if (!latestGeneratedResume || !latestGeneratedResume.plain_text) {
-            setGeneratedResumeStatus("Generate a resume draft first.", true);
-            return;
-        }
-        try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(latestGeneratedResume.plain_text);
-            } else {
-                const textarea = document.createElement("textarea");
-                textarea.value = latestGeneratedResume.plain_text;
-                textarea.setAttribute("readonly", "readonly");
-                textarea.style.position = "fixed";
-                textarea.style.left = "-9999px";
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand("copy");
-                textarea.remove();
-            }
-            setGeneratedResumeStatus("Generated resume text copied.");
-            showToast("Generated resume copied.", "success");
-        } catch (error) {
-            setGeneratedResumeStatus("Could not copy the generated resume.", true);
         }
     }
 
@@ -3920,8 +3829,6 @@ Download PDF
         if (generateResumeBtn) {
             generateResumeBtn.innerHTML = getResumeGeneratorButtonHtml(result);
         }
-        const copyGeneratedResumeBtn = document.getElementById("copyGeneratedResumeBtn");
-        const downloadGeneratedHtmlBtn = document.getElementById("downloadGeneratedHtmlBtn");
         const downloadGeneratedPdfBtn = document.getElementById("downloadGeneratedPdfBtn");
         const parsedSkillsCount = document.getElementById("parsedSkillsCount");
         const parsedEducationCount = document.getElementById("parsedEducationCount");
@@ -4135,24 +4042,6 @@ Download PDF
             generateResumeBtn.dataset.bound = "true";
             generateResumeBtn.addEventListener("click", () => {
                 generateOptimizedResume({ result, recommendedRole });
-            });
-        }
-
-        if (copyGeneratedResumeBtn && copyGeneratedResumeBtn.dataset.bound !== "true") {
-            copyGeneratedResumeBtn.dataset.bound = "true";
-            copyGeneratedResumeBtn.addEventListener("click", copyGeneratedResumeText);
-        }
-
-        if (downloadGeneratedHtmlBtn && downloadGeneratedHtmlBtn.dataset.bound !== "true") {
-            downloadGeneratedHtmlBtn.dataset.bound = "true";
-            downloadGeneratedHtmlBtn.addEventListener("click", async () => {
-                if (!latestGeneratedResume || !latestGeneratedResume.html) {
-                    setGeneratedResumeStatus("Generate a resume draft first.", true);
-                    return;
-                }
-                const fileName = getGeneratedResumeBaseName() + ".html";
-                downloadGeneratedFile(getGeneratedResumeDownloadHtml(), "text/html;charset=utf-8", fileName);
-                await saveGeneratedResumeDownloadHistory(fileName, result.analysis_id || null);
             });
         }
 

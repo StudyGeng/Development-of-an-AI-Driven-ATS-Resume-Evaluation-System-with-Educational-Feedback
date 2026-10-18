@@ -269,6 +269,16 @@
         .career-nav-actions button:not(.hidden) { min-height: 42px; padding: 8px 15px; border-radius: 12px; font-size: 12px; font-weight: 750; white-space: nowrap; transition: background-color .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
         .career-nav-login { background: var(--career-teal-deep); color: #fff; }
         .career-nav-login:hover { background: #0055aa; box-shadow: 0 9px 20px rgba(23,107,137,.18); transform: translateY(-1px); }
+        .career-report-return { border-bottom: 1px solid #cfe5fa; background: #edf7ff; }
+        .career-report-return[hidden] { display: none; }
+        .career-report-return-inner { display: flex; align-items: center; gap: 14px; padding-block: 13px; }
+        .career-report-return-icon { display: grid; flex: 0 0 38px; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #d8edff; color: var(--career-teal-deep); }
+        .career-report-return-icon svg { width: 20px; height: 20px; }
+        .career-report-return-copy { display: grid; min-width: 0; gap: 2px; }
+        .career-report-return-copy strong { color: var(--career-ink); font-size: 13px; line-height: 1.3; }
+        .career-report-return-copy span { color: var(--career-muted); font-size: 12px; line-height: 1.4; }
+        .career-report-return-link { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; margin-left: auto; padding: 7px 13px; border: 1px solid #b8d8f3; border-radius: 10px; background: #fff; color: var(--career-teal-deep); font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+        .career-report-return-link:hover { border-color: var(--career-teal-deep); background: #f7fcff; }
         .career-hero { background: radial-gradient(circle at 88% 12%, #f2f9ff 0%, transparent 33%), var(--career-canvas); }
         .career-hero-grid { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr); align-items: center; gap: clamp(24px, 5vw, 72px); min-height: 690px; padding-block: 74px 90px; }
         .career-hero-content { min-width: 0; }
@@ -544,6 +554,8 @@
             .career-footer-identity { grid-column: 1 / -1; }
         }
         @media (max-width: 480px) {
+            .career-report-return-inner { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 9px 12px; }
+            .career-report-return-link { grid-column: 1 / -1; width: 100%; margin-left: 0; }
             .career-footer-inner { grid-template-columns: 1fr; }
             .career-footer-identity { grid-column: auto; }
             .career-hero-actions { display: grid; }
@@ -597,6 +609,13 @@
   </div>
 </nav>
 <main id="main-content">
+  <section class="career-report-return" id="latestReportReturn" aria-label="Return to your latest report" hidden>
+    <div class="career-container career-report-return-inner">
+      <span class="career-report-return-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8l4 4V20.5H6z"/><path d="M14 3.5v4h4M9 12h6M9 16h6"/></svg></span>
+      <div class="career-report-return-copy"><strong>Your latest report is ready</strong><span>Return directly to the results you were viewing.</span></div>
+      <a class="career-report-return-link" href="analysis_result.html">Continue report <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
   <section class="career-hero">
     <div class="career-container career-hero-grid">
       <div class="career-hero-content">
@@ -1217,6 +1236,7 @@
   const universityPartnersModalBackdrop = document.getElementById("universityPartnersModalBackdrop");
   const closeUniversityPartnersBtn = document.getElementById("closeUniversityPartnersBtn");
   const openAuthModalBtn = document.getElementById("openAuthModalBtn");
+  const latestReportReturn = document.getElementById("latestReportReturn");
   const authModal = document.getElementById("authModal");
   const authModalBackdrop = document.getElementById("authModalBackdrop");
   const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
@@ -1298,6 +1318,34 @@
     window.CareerNavigatorCommon.showToast(message, type);
   }
 
+  function updateLatestReportReturn() {
+    if (!latestReportReturn) return;
+    let hasReport = false;
+    try {
+      const currentUser = getAuthUser();
+      const owner = (localStorage.getItem("analysisOwner") || "").toLowerCase();
+      const raw = localStorage.getItem("analysisResult");
+      if (window.CareerNavigatorCommon.isAuthSessionVerified() && currentUser && currentUser.email
+          && owner && owner === currentUser.email.toLowerCase() && raw) {
+        const result = JSON.parse(raw);
+        const rawScore = result && result.matching_percentage;
+        const validScore = (typeof rawScore === "number" || typeof rawScore === "string")
+          && String(rawScore).trim() !== "" && Number.isFinite(Number(rawScore))
+          && Number(rawScore) >= 0 && Number(rawScore) <= 100;
+        const hasEvidence = result && typeof result === "object" && (
+          result.resume_summary || result.compatibility || result.role_recommendation
+          || result.feedback || result.analysis_id
+        );
+        const isFictionalSample = result && result.summary === "Sample analysis for demo"
+          && result.uploaded_resume_name === "sample_resume.pdf";
+        hasReport = Boolean(validScore && hasEvidence && !isFictionalSample);
+      }
+    } catch (error) {
+      hasReport = false;
+    }
+    latestReportReturn.hidden = !hasReport;
+  }
+
   function updateAuthUi() {
     const currentUser = getAuthUser();
     if (openAuthModalBtn) {
@@ -1316,9 +1364,18 @@
       uploadHint.textContent = "Sign in to securely analyze and save your resume. PDF, PNG, JPG, and JPEG are supported.";
       uploadHint.className = "career-upload-hint";
     }
+    updateLatestReportReturn();
   }
 
   window.addEventListener("career-navigator-auth-changed", updateAuthUi);
+  window.addEventListener("storage", (event) => {
+    if (["analysisResult", "analysisOwner", "authUser"].includes(event.key)) updateLatestReportReturn();
+  });
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    latestReportReturn.hidden = true;
+    window.CareerNavigatorCommon.syncAuthUserFromServer().then(updateAuthUi, updateAuthUi);
+  });
 
   function setEvaluationStatus(message, isError = false) {
     if (evaluationStatusText) {
@@ -2738,6 +2795,7 @@
   }
 
   updateAuthUi();
+  window.CareerNavigatorCommon.syncAuthUserFromServer().then(updateAuthUi, updateAuthUi);
   loadDatabaseJobRoles();
 
   if (startEvaluationBtn) {
