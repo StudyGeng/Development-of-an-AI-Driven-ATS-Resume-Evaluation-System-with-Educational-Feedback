@@ -991,17 +991,18 @@ Download PDF
 </div>
 </div>
 </div>
-<div class="fixed inset-0 z-[85] hidden" id="profileModal" role="dialog" aria-modal="true" aria-label="Account and evaluation history" aria-hidden="true">
+<div class="fixed inset-0 z-[85] hidden" id="profileModal" role="dialog" aria-modal="true" aria-label="Account" aria-hidden="true">
   <div class="account-backdrop" id="profileModalBackdrop"></div>
   <div class="account-overlay">
     <div class="account-workspace">
       <aside class="account-sidebar">
         <div class="account-identity"><span class="account-avatar" data-account-avatar>U</span><div><strong class="account-identity-name" data-account-name>Your account</strong><small class="account-identity-email" data-account-email>UTS CS Career Navigator</small></div></div>
         <nav class="account-menu" aria-label="Account sections">
-          <button class="account-menu-button" data-account-view="access" data-account-guest-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>Sign in</button>
+          <button class="account-menu-button" data-account-auth-action="login" data-account-guest-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>Sign in</button>
+          <button class="account-menu-button" data-account-auth-action="register" data-account-guest-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.3"/><path d="M2.8 19v-1a6.2 6.2 0 0 1 9.7-5.1M18 12v8M14 16h8"/></svg>Sign up</button>
           <button class="account-menu-button" data-account-view="info" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>User info</button>
           <button class="account-menu-button" data-account-view="settings" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg>Settings</button>
-          <button class="account-menu-button" data-account-view="history" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>History</button>
+          <button class="account-menu-button" data-account-view="history" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>History</button>
           <button class="account-logout" id="logoutBtn" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9.5 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4.5M13 7l5 5-5 5M18 12H8"/></svg>Log out</button>
         </nav>
       </aside>
@@ -1009,9 +1010,8 @@ Download PDF
         <div class="account-topbar"><span>My account</span><button class="account-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button></div>
         <section class="account-panel" data-account-panel="access" hidden>
           <span class="account-eyebrow">Account access</span><h2 class="account-panel-title">Welcome to your career workspace.</h2>
-          <p class="account-panel-intro">Sign in to analyze a resume and keep your feedback together. You can also review history saved in this browser.</p>
-          <div class="account-guest-card"><strong>Ready to make your next move?</strong><p>Continue with your account, or create one to get started.</p><div class="account-guest-actions"><button class="account-primary" data-account-auth-action="login" type="button">Log in</button><button class="account-secondary" data-account-auth-action="register" type="button">Sign up</button></div></div>
-          <button class="account-text-action" data-account-go="history" type="button">View evaluation history <span aria-hidden="true">&rarr;</span></button>
+          <p class="account-panel-intro">Sign in to analyze your resume and keep your feedback together, or create a new account to get started.</p>
+          <div class="account-guest-card"><strong>Ready to make your next move?</strong><p>Choose Sign in or Sign up from the account menu.</p></div>
         </section>
         <section class="account-panel" data-account-panel="info">
           <span class="account-eyebrow">User info</span><h2 class="account-panel-title">Your profile</h2>
@@ -1056,7 +1056,7 @@ Download PDF
             <p class="text-sm mb-4 hidden" id="profileMessage" role="status" aria-live="polite"></p>
             <form class="account-form" id="profileForm">
               <div class="account-form-grid">
-                <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="Enter a new password"><p>Use 8+ characters with a letter, number, and symbol.</p></div>
+                <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="Enter a new password" aria-describedby="profilePasswordStrengthLabel profilePasswordRequirements"><div class="account-password-feedback" id="profilePasswordFeedback" data-level="empty"><div class="account-password-feedback-head"><span>Password strength</span><strong id="profilePasswordStrengthLabel" role="status" aria-live="polite">Start typing</strong></div><div class="account-password-meter" id="profilePasswordMeter" role="meter" aria-label="Password strength" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="Start typing"><span></span></div><ul class="account-password-requirements" id="profilePasswordRequirements"><li data-password-rule="length">8 or more characters</li><li data-password-rule="letter">A letter</li><li data-password-rule="number">A number</li><li data-password-rule="symbol">A symbol</li></ul><p class="account-password-note">Strength is an estimate. Avoid names and common passwords.</p></div></div>
                 <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button">Send PIN</button></div><p>Required only when changing your password.</p></div>
               </div>
               <div class="account-form-actions"><button class="account-primary" type="submit">Update password</button></div>

@@ -266,7 +266,10 @@
   }
 
   function clearProfileSensitiveFields(elements) {
-    if (elements.passwordInput) elements.passwordInput.value = "";
+    if (elements.passwordInput) {
+      elements.passwordInput.value = "";
+      elements.passwordInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
     if (elements.pinInput) elements.pinInput.value = "";
     if (elements.message) {
       elements.message.classList.add("hidden");
@@ -627,7 +630,7 @@
     }
 
     function show(view) {
-      const allowedViews = hasAccount ? ["info", "settings", "history"] : ["access", "history"];
+      const allowedViews = hasAccount ? ["info", "settings", "history"] : ["access"];
       currentView = allowedViews.includes(view) ? view : (hasAccount ? "info" : "access");
       buttons.forEach((button) => {
         const active = button.dataset.accountView === currentView;
@@ -643,7 +646,7 @@
       hasAccount = Boolean(user);
       currentUser = user || null;
       const name = user ? String(user.full_name || "Your account") : "Guest";
-      const email = user ? String(user.email || "") : "Account access and history";
+      const email = user ? String(user.email || "") : "Sign in or create an account";
       if (modal) {
         const workspace = modal.querySelector(".account-workspace");
         if (workspace) workspace.classList.toggle("is-guest", !hasAccount);
@@ -664,7 +667,7 @@
           renderAvatarInitials();
         }
       }
-      if (!hasAccount && currentView !== "history") show("access");
+      if (!hasAccount) show("access");
       else if (hasAccount && currentView === "access") show("info");
     }
 
@@ -990,6 +993,47 @@
         if (authModal.classList.contains("hidden")) setPasswordVisible(false);
       }).observe(authModal, { attributes: true, attributeFilter: ["class"] });
     }
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("profilePasswordInput");
+    const feedback = document.getElementById("profilePasswordFeedback");
+    const label = document.getElementById("profilePasswordStrengthLabel");
+    const meter = document.getElementById("profilePasswordMeter");
+    if (!input || !feedback || !label || !meter) return;
+
+    const rules = {
+      length: (value) => value.length >= 8,
+      letter: (value) => /[A-Za-z]/.test(value),
+      number: (value) => /\d/.test(value),
+      symbol: (value) => /[^A-Za-z0-9]/.test(value)
+    };
+    const updateStrength = () => {
+      const value = input.value;
+      let metCount = 0;
+      feedback.querySelectorAll("[data-password-rule]").forEach((item) => {
+        if (item.dataset.passwordRule === "length") {
+          item.textContent = value && value.length < 8 ? `${value.length} of 8 characters` : "8 or more characters";
+        }
+        const met = Boolean(rules[item.dataset.passwordRule]?.(value));
+        if (met) metCount++;
+        item.classList.toggle("is-met", met);
+        item.setAttribute("aria-label", `${met ? "Met" : "Needed"}: ${item.textContent.trim()}`);
+      });
+      const valid = !getPasswordValidationMessage(value);
+      const score = metCount + (valid && value.length >= 12 ? 1 : 0);
+      const level = !value ? "empty" : score <= 2 ? "weak" : score === 3 ? "developing" : score === 4 ? "good" : "strong";
+      const strengthText = { empty: "Start typing", weak: "Weak", developing: "Developing", good: "Good", strong: "Strong" }[level];
+      feedback.dataset.level = level;
+      label.textContent = strengthText;
+      meter.setAttribute("aria-valuenow", String(score));
+      meter.setAttribute("aria-valuetext", value ? `${strengthText}. ${metCount} of 4 requirements met.` : "Start typing");
+      meter.querySelector("span").style.width = `${score * 20}%`;
+      if (value) input.setAttribute("aria-invalid", String(!valid));
+      else input.removeAttribute("aria-invalid");
+    };
+    input.addEventListener("input", updateStrength);
+    updateStrength();
   });
 
   // Keep keyboard focus inside the dialog currently shown on any app page.
