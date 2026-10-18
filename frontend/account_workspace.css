@@ -1,24 +1,30 @@
 /* Shared account window on the dashboard and report pages. */
 .auth-password-wrap { position: relative; }
-.auth-password-wrap input { padding-right: 5.25rem; }
-.auth-password-wrap input::-ms-reveal,
-.auth-password-wrap input::-ms-clear { display: none; }
+#authModal .auth-password-wrap input,
+#profileModal .auth-password-wrap input { padding-right: 3.5rem; }
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear { display: none !important; }
 .auth-password-toggle {
   position: absolute;
   top: 50%;
-  right: .45rem;
+  right: .4rem;
   transform: translateY(-50%);
-  min-width: 3.75rem;
-  min-height: 2rem;
-  padding: .25rem .55rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
   border: 0;
-  border-radius: .5rem;
-  background: #eaf4ff;
+  border-radius: .65rem;
+  background: transparent;
   color: #0064c8;
-  font: 700 .75rem/1 Inter, sans-serif;
   cursor: pointer;
 }
-.auth-password-toggle:hover { background: #d9ebff; }
+.auth-password-toggle svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.auth-password-toggle .auth-eye-off { display: none; }
+.auth-password-toggle[aria-pressed="true"] .auth-eye-on { display: none; }
+.auth-password-toggle[aria-pressed="true"] .auth-eye-off { display: block; }
+.auth-password-toggle:hover { background: #eaf4ff; }
 .auth-password-toggle:focus-visible { outline: 2px solid #087fec; outline-offset: 2px; }
 #authModal h3 { color: #17202e; }
 #authModal .text-secondary { color: #0064c8; }
@@ -26,6 +32,8 @@
 #authModal button.bg-primary:hover:not(:disabled) { background: #0055aa; }
 #authModal button.bg-surface-container-low { border: 1px solid #d6e4e9; background: #f5f9fa; color: #0064c8; }
 #authModal button.bg-surface-container-low:hover:not(:disabled) { background: #eaf3f5; }
+#authModal button:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; transform: none; }
+#authModal input[aria-invalid="true"] { border-color: #c9515d; }
 #authModal button[aria-label^="Close"] { display: inline-grid; flex: 0 0 36px; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #f0f5f7; color: #0064c8; }
 #authModal button[aria-label^="Close"]:hover { background: #e1edf1; }
 
@@ -230,6 +238,9 @@
 .account-password-feedback[data-level="good"] .account-password-feedback-head strong { color: #0064c8; }
 .account-password-feedback[data-level="strong"] .account-password-feedback-head strong { color: #187451; }
 .account-form-field .account-password-note { margin-top: 11px; font-size: 11px; line-height: 1.45; }
+.auth-password-feedback { padding: 11px 12px 10px; border: 1px solid #dce7f1; border-radius: 11px; background: #f8fbfe; }
+.auth-password-feedback .account-password-note { margin: 10px 0 0; color: #718094; font-size: 11px; line-height: 1.45; }
+.auth-password-feedback .account-password-requirements li { font-size: 11px; }
 .account-pin-row { display: flex; gap: 8px; }
 .account-pin-row input { flex: 1 1 auto; }
 .account-pin-row .account-secondary { flex: 0 0 auto; white-space: nowrap; }
@@ -250,7 +261,7 @@
 .account-primary:hover:not(:disabled) { background: #0059af; transform: translateY(-1px); }
 .account-secondary { border-color: #d1e1ee; background: #f4f9fd; color: #0062bc; }
 .account-secondary:hover:not(:disabled) { background: #e7f3ff; transform: translateY(-1px); }
-.account-primary:disabled, .account-secondary:disabled { opacity: .6; cursor: wait; }
+.account-primary:disabled, .account-secondary:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .account-history-list { display: grid; gap: 10px; margin-top: 18px; }
 .account-history-list > div { gap: 12px; border: 1px solid #dbe6f1; border-radius: 13px; background: #fbfdff; }

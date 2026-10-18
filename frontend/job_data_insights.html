@@ -503,7 +503,7 @@ tbody tr:hover { background: #f1f8f8; }
             <form class="account-form" id="profileEmailChangeForm">
               <div class="account-form-field"><label for="profileNewEmailInput">New email</label><input id="profileNewEmailInput" type="email" autocomplete="email" placeholder="you@example.com" required></div>
               <div class="account-form-field"><label for="profileEmailPasswordInput">Current password</label><input id="profileEmailPasswordInput" type="password" autocomplete="current-password" required></div>
-              <div class="account-form-field"><label for="profileEmailPinInput">Verification PIN</label><div class="account-pin-row"><input id="profileEmailPinInput" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6-digit PIN"><button class="account-secondary" id="sendProfileEmailPinBtn" type="button">Send PIN</button></div></div>
+              <div class="account-form-field"><label for="profileEmailPinInput">Verification PIN</label><div class="account-pin-row"><input id="profileEmailPinInput" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6-digit PIN"><button class="account-secondary" id="sendProfileEmailPinBtn" type="button" disabled>Send PIN</button></div><p>Enter a new email and your current password to request a PIN.</p></div>
               <div class="account-form-actions"><button class="account-primary" type="submit">Confirm new email</button></div>
               <p class="account-inline-message" id="profileEmailMessage" role="status" aria-live="polite" hidden></p>
             </form>
@@ -516,7 +516,7 @@ tbody tr:hover { background: #f1f8f8; }
             <form class="account-form" id="profileForm">
               <div class="account-form-grid">
                 <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="Enter a new password" aria-describedby="profilePasswordStrengthLabel profilePasswordRequirements"><div class="account-password-feedback" id="profilePasswordFeedback" data-level="empty"><div class="account-password-feedback-head"><span>Password strength</span><strong id="profilePasswordStrengthLabel" role="status" aria-live="polite">Start typing</strong></div><div class="account-password-meter" id="profilePasswordMeter" role="meter" aria-label="Password strength" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="Start typing"><span></span></div><ul class="account-password-requirements" id="profilePasswordRequirements"><li data-password-rule="length">8 or more characters</li><li data-password-rule="letter">A letter</li><li data-password-rule="number">A number</li><li data-password-rule="symbol">A symbol</li></ul><p class="account-password-note">Strength is an estimate. Avoid names and common passwords.</p></div></div>
-                <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button">Send PIN</button></div><p>Required only when changing your password.</p></div>
+                <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button" disabled>Send PIN</button></div><p>Complete the new password requirements before requesting a PIN.</p></div>
               </div>
               <div class="account-form-actions"><button class="account-primary" type="submit">Update password</button></div>
             </form>
@@ -624,6 +624,7 @@ function updateHeaderAuthUi() {
       : "Account options";
   }
   accountWorkspace.setUser(currentUser);
+  refreshProfilePinButtonState();
 }
 
 window.addEventListener("career-navigator-auth-changed", updateHeaderAuthUi);
@@ -957,6 +958,17 @@ function setProfileMessage(message, isError = false) {
   profileMessage.classList.remove("hidden");
 }
 
+function isProfilePinReady() {
+  const user = getStoredUser();
+  return Boolean(user && user.email)
+    && !window.CareerNavigatorCommon.getPasswordValidationMessage(profilePasswordInput ? profilePasswordInput.value : "");
+}
+
+function refreshProfilePinButtonState() {
+  if (!sendProfilePinBtn) return;
+  sendProfilePinBtn.disabled = sendProfilePinBtn.dataset.pinBusy === "true" || !isProfilePinReady();
+}
+
 function openAccountWorkspace(view = "info") {
   const currentUser = getStoredUser();
   if (currentUser) {
@@ -970,6 +982,7 @@ function openAccountWorkspace(view = "info") {
   }
   accountWorkspace.setUser(currentUser);
   accountWorkspace.show(view);
+  refreshProfilePinButtonState();
   profileModal._focusBeforeOpen = document.activeElement;
   window.CareerNavigatorCommon.setModalOpen(profileModal, true);
   closeProfileModalBtn.focus({ preventScroll: true });
@@ -1024,14 +1037,31 @@ if (doneHistoryBtn) doneHistoryBtn.addEventListener("click", closeAccountWorkspa
 if (profilePasswordPinInput) profilePasswordPinInput.addEventListener("input", () => {
   window.CareerNavigatorCommon.sanitizePinInput(profilePasswordPinInput, true);
 });
+if (profilePasswordInput) {
+  profilePasswordInput.addEventListener("input", refreshProfilePinButtonState);
+  profilePasswordInput.addEventListener("change", refreshProfilePinButtonState);
+}
+window.addEventListener("pageshow", refreshProfilePinButtonState);
 if (sendProfilePinBtn) sendProfilePinBtn.addEventListener("click", async () => {
+  if (sendProfilePinBtn.dataset.pinBusy === "true") return;
+  if (!isProfilePinReady()) {
+    const user = getStoredUser();
+    const issue = window.CareerNavigatorCommon.getPasswordValidationMessage(profilePasswordInput ? profilePasswordInput.value : "");
+    setProfileMessage(!user || !user.email ? "Please sign in first." : issue || "Complete the new password requirements first.", true);
+    refreshProfilePinButtonState();
+    return;
+  }
+  sendProfilePinBtn.dataset.pinBusy = "true";
+  refreshProfilePinButtonState();
   try {
     const user = getStoredUser();
-    if (!user || !user.email) throw new Error("Please sign in first.");
     setProfileMessage("Sending password-change PIN...");
     await window.CareerNavigatorCommon.requestAuthPin(user.email, "password_reset", sendProfilePinBtn, setProfileMessage, API_BASE_URL);
   } catch (error) {
     setProfileMessage(error.message || "Could not send PIN", true);
+  } finally {
+    delete sendProfilePinBtn.dataset.pinBusy;
+    refreshProfilePinButtonState();
   }
 });
 if (profileForm) profileForm.addEventListener("submit", async (event) => {

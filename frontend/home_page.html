@@ -973,7 +973,7 @@
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="loginPasswordInput">Password</label>
-<div class="auth-password-wrap"><input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="Your password" required><button class="auth-password-toggle" id="toggleLoginPasswordBtn" type="button" aria-label="Show password" aria-pressed="false">Show</button></div>
+<div class="auth-password-wrap"><input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="Your password" required><button class="auth-password-toggle" id="toggleLoginPasswordBtn" type="button" aria-controls="loginPasswordInput" aria-label="Show password" aria-pressed="false"></button></div>
 </div>
 <div class="flex justify-end">
 <button class="text-sm font-semibold text-secondary hover:text-primary" id="forgotPasswordBtn" type="button">Forgot password?</button>
@@ -997,9 +997,9 @@
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="registerPinInput">Email verification PIN</label>
 <div class="flex flex-col sm:flex-row gap-2">
 <input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="registerPinInput" name="manual_register_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN" required>
-<button class="px-4 py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold hover:bg-surface-container-high transition-colors whitespace-nowrap" id="sendRegisterPinBtn" type="button">Send PIN</button>
+<button class="px-4 py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold hover:bg-surface-container-high transition-colors whitespace-nowrap" id="sendRegisterPinBtn" type="button" disabled>Send PIN</button>
 </div>
-<p class="text-xs text-on-surface-variant mt-2">Send the PIN to verify this email before creating the account.</p>
+<p class="text-xs text-on-surface-variant mt-2">Complete your name, email, and password before requesting a PIN.</p>
 </div>
 <button class="w-full px-5 py-3 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors" type="submit">Create Account</button>
 </form>
@@ -1009,15 +1009,16 @@
 <input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="resetEmailInput" type="email" placeholder="you@uts.edu.my" required>
 </div>
 <div>
+<label class="text-sm font-semibold text-on-surface mb-2 block" for="resetPasswordInput">New password</label>
+<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="resetPasswordInput" type="password" autocomplete="new-password" placeholder="8+ chars, 1 letter, 1 number, 1 special character" required>
+</div>
+<div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="resetPinInput">Reset PIN</label>
 <div class="flex flex-col sm:flex-row gap-2">
 <input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="resetPinInput" name="manual_reset_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN" required>
-<button class="px-4 py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold hover:bg-surface-container-high transition-colors whitespace-nowrap" id="sendResetPinBtn" type="button">Send PIN</button>
+<button class="px-4 py-3 rounded-xl bg-surface-container-low text-primary text-sm font-bold hover:bg-surface-container-high transition-colors whitespace-nowrap" id="sendResetPinBtn" type="button" disabled>Send PIN</button>
 </div>
-</div>
-<div>
-<label class="text-sm font-semibold text-on-surface mb-2 block" for="resetPasswordInput">New password</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="resetPasswordInput" type="password" placeholder="8+ chars, 1 letter, 1 number, 1 special character" required>
+<p class="text-xs text-on-surface-variant mt-2">Complete your email and new password before requesting a PIN.</p>
 </div>
 <button class="w-full px-5 py-3 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors" type="submit">Reset Password</button>
 <button class="w-full px-5 py-3 rounded-xl bg-surface-container-low text-primary font-bold hover:bg-surface-container-high transition-colors" id="backToLoginBtn" type="button">Back to Log In</button>
@@ -1078,7 +1079,7 @@
             <form class="account-form" id="profileEmailChangeForm">
               <div class="account-form-field"><label for="profileNewEmailInput">New email</label><input id="profileNewEmailInput" type="email" autocomplete="email" placeholder="you@example.com" required></div>
               <div class="account-form-field"><label for="profileEmailPasswordInput">Current password</label><input id="profileEmailPasswordInput" type="password" autocomplete="current-password" required></div>
-              <div class="account-form-field"><label for="profileEmailPinInput">Verification PIN</label><div class="account-pin-row"><input id="profileEmailPinInput" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6-digit PIN"><button class="account-secondary" id="sendProfileEmailPinBtn" type="button">Send PIN</button></div></div>
+              <div class="account-form-field"><label for="profileEmailPinInput">Verification PIN</label><div class="account-pin-row"><input id="profileEmailPinInput" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6-digit PIN"><button class="account-secondary" id="sendProfileEmailPinBtn" type="button" disabled>Send PIN</button></div><p>Enter a new email and your current password to request a PIN.</p></div>
               <div class="account-form-actions"><button class="account-primary" type="submit">Confirm new email</button></div>
               <p class="account-inline-message" id="profileEmailMessage" role="status" aria-live="polite" hidden></p>
             </form>
@@ -1091,7 +1092,7 @@
             <form class="account-form" id="profileForm">
               <div class="account-form-grid">
                 <div class="account-form-field"><label for="profilePasswordInput">New password</label><input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="Enter a new password" aria-describedby="profilePasswordStrengthLabel profilePasswordRequirements"><div class="account-password-feedback" id="profilePasswordFeedback" data-level="empty"><div class="account-password-feedback-head"><span>Password strength</span><strong id="profilePasswordStrengthLabel" role="status" aria-live="polite">Start typing</strong></div><div class="account-password-meter" id="profilePasswordMeter" role="meter" aria-label="Password strength" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="Start typing"><span></span></div><ul class="account-password-requirements" id="profilePasswordRequirements"><li data-password-rule="length">8 or more characters</li><li data-password-rule="letter">A letter</li><li data-password-rule="number">A number</li><li data-password-rule="symbol">A symbol</li></ul><p class="account-password-note">Strength is an estimate. Avoid names and common passwords.</p></div></div>
-                <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button">Send PIN</button></div><p>Required only when changing your password.</p></div>
+                <div class="account-form-field"><label for="profilePasswordPinInput">Password change PIN</label><div class="account-pin-row"><input id="profilePasswordPinInput" name="manual_profile_password_pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" autocapitalize="off" spellcheck="false" data-pin-input placeholder="6-digit PIN"><button class="account-secondary" id="sendProfilePinBtn" type="button" disabled>Send PIN</button></div><p>Complete the new password requirements before requesting a PIN.</p></div>
               </div>
               <div class="account-form-actions"><button class="account-primary" type="submit">Update password</button></div>
             </form>
@@ -1365,6 +1366,7 @@
       uploadHint.className = "career-upload-hint";
     }
     updateLatestReportReturn();
+    refreshPinButtonStates();
   }
 
   window.addEventListener("career-navigator-auth-changed", updateAuthUi);
@@ -1404,6 +1406,45 @@
 
   const getPasswordValidationMessage = window.CareerNavigatorCommon.getPasswordValidationMessage;
 
+  function isRegisterPinReady() {
+    const name = registerNameInput ? registerNameInput.value.trim() : "";
+    return name.length >= 2 && name.length <= 100
+      && Boolean(registerEmailInput && window.CareerNavigatorCommon.isValidEmail(registerEmailInput.value) && registerEmailInput.checkValidity())
+      && !getPasswordValidationMessage(registerPasswordInput ? registerPasswordInput.value : "");
+  }
+
+  function isResetPinReady() {
+    return Boolean(resetEmailInput && window.CareerNavigatorCommon.isValidEmail(resetEmailInput.value) && resetEmailInput.checkValidity())
+      && !getPasswordValidationMessage(resetPasswordInput ? resetPasswordInput.value : "");
+  }
+
+  function isProfilePinReady() {
+    const user = getAuthUser();
+    return Boolean(user && user.email)
+      && !getPasswordValidationMessage(profilePasswordInput ? profilePasswordInput.value : "");
+  }
+
+  function refreshPinButtonStates() {
+    if (sendRegisterPinBtn) sendRegisterPinBtn.disabled = sendRegisterPinBtn.dataset.pinBusy === "true" || !isRegisterPinReady();
+    if (sendResetPinBtn) sendResetPinBtn.disabled = sendResetPinBtn.dataset.pinBusy === "true" || !isResetPinReady();
+    if (sendProfilePinBtn) sendProfilePinBtn.disabled = sendProfilePinBtn.dataset.pinBusy === "true" || !isProfilePinReady();
+  }
+
+  [registerNameInput, registerEmailInput, registerPasswordInput, resetEmailInput, resetPasswordInput, profilePasswordInput]
+    .filter(Boolean).forEach((input) => {
+      input.addEventListener("input", refreshPinButtonStates);
+      input.addEventListener("change", refreshPinButtonStates);
+    });
+  if (registerEmailInput && registerPinInput) {
+    registerEmailInput.addEventListener("input", () => { registerPinInput.value = ""; });
+  }
+  if (resetEmailInput && resetPinInput) {
+    resetEmailInput.addEventListener("input", () => { resetPinInput.value = ""; });
+  }
+  window.addEventListener("pageshow", refreshPinButtonStates);
+  window.setTimeout(refreshPinButtonStates, 300);
+  refreshPinButtonStates();
+
   function clearAuthForms(options = {}) {
     const keepLoginEmail = options.keepLoginEmail || "";
     [
@@ -1428,6 +1469,10 @@
       authMessage.classList.add("hidden");
       authMessage.textContent = "";
     }
+    [registerPasswordInput, resetPasswordInput].filter(Boolean).forEach((input) => {
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    refreshPinButtonStates();
   }
 
   function clearProfileSensitiveFields() {
@@ -1605,7 +1650,10 @@
     }
     if (!isReset) {
       if (resetPinInput) resetPinInput.value = "";
-      if (resetPasswordInput) resetPasswordInput.value = "";
+      if (resetPasswordInput) {
+        resetPasswordInput.value = "";
+        resetPasswordInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
     }
     if (authLoginForm) {
       authLoginForm.classList.toggle("hidden", !isLogin);
@@ -1623,6 +1671,7 @@
       authRegisterTabBtn.className = isRegister ? "px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold" : "px-4 py-2 rounded-xl bg-surface-container-low text-primary text-sm font-semibold";
     }
     preparePinInputs();
+    refreshPinButtonStates();
   }
 
   function openAuthModal(mode = "register") {
@@ -2495,7 +2544,7 @@
       if (resetEmailInput && loginEmailInput) {
         resetEmailInput.value = loginEmailInput.value.trim().toLowerCase();
       }
-      setAuthMessage("Enter your email, request a PIN, then set a new password.");
+      setAuthMessage("Enter your email and new password, then request a PIN.");
       setAuthMode("reset");
     });
   }
@@ -2504,35 +2553,57 @@
   }
   if (sendRegisterPinBtn) {
     sendRegisterPinBtn.addEventListener("click", async () => {
+      if (sendRegisterPinBtn.dataset.pinBusy === "true") return;
       try {
+        if (!isRegisterPinReady()) throw new Error("Enter your full name, a valid email, and a password that meets all requirements first.");
+        sendRegisterPinBtn.dataset.pinBusy = "true";
+        refreshPinButtonStates();
         setAuthMessage("Sending verification PIN...");
         await requestAuthPin(registerEmailInput ? registerEmailInput.value : "", "register", sendRegisterPinBtn);
       } catch (error) {
         setAuthMessage(error.message || "Could not send PIN", true, true);
+      } finally {
+        delete sendRegisterPinBtn.dataset.pinBusy;
+        refreshPinButtonStates();
       }
     });
   }
   if (sendResetPinBtn) {
     sendResetPinBtn.addEventListener("click", async () => {
+      if (sendResetPinBtn.dataset.pinBusy === "true") return;
       try {
+        if (!isResetPinReady()) throw new Error("Enter a valid email and a new password that meets all requirements first.");
+        sendResetPinBtn.dataset.pinBusy = "true";
+        refreshPinButtonStates();
         setAuthMessage("Sending reset PIN...");
         await requestAuthPin(resetEmailInput ? resetEmailInput.value : "", "password_reset", sendResetPinBtn);
       } catch (error) {
         setAuthMessage(error.message || "Could not send PIN", true, true);
+      } finally {
+        delete sendResetPinBtn.dataset.pinBusy;
+        refreshPinButtonStates();
       }
     });
   }
   if (sendProfilePinBtn) {
     sendProfilePinBtn.addEventListener("click", async () => {
+      if (sendProfilePinBtn.dataset.pinBusy === "true") return;
       try {
         const currentUser = getAuthUser();
         if (!currentUser || !currentUser.email) {
           throw new Error("Please sign in first.");
         }
+        const passwordIssue = getPasswordValidationMessage(profilePasswordInput ? profilePasswordInput.value : "");
+        if (passwordIssue) throw new Error(passwordIssue);
+        sendProfilePinBtn.dataset.pinBusy = "true";
+        refreshPinButtonStates();
         setProfileMessage("Sending password-change PIN...");
         await requestAuthPin(currentUser.email, "password_reset", sendProfilePinBtn, setProfileMessage);
       } catch (error) {
         setProfileMessage(error.message || "Could not send PIN", true, true);
+      } finally {
+        delete sendProfilePinBtn.dataset.pinBusy;
+        refreshPinButtonStates();
       }
     });
   }

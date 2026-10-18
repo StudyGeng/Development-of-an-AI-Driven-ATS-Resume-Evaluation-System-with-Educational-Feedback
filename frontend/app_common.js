@@ -169,6 +169,10 @@
     return "";
   }
 
+  function isValidEmail(email) {
+    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || "").trim().toLowerCase());
+  }
+
   function sanitizePinInput(input, clearMixedText = false) {
     if (!input) {
       return;
@@ -239,6 +243,9 @@
     const cleanEmail = (email || "").trim().toLowerCase();
     if (!cleanEmail) {
       throw new Error("Enter your email address first.");
+    }
+    if (!isValidEmail(cleanEmail)) {
+      throw new Error("Enter a valid email address first.");
     }
     if (button) {
       button.disabled = true;
@@ -624,9 +631,19 @@
       if (newEmailInput) newEmailInput.value = "";
       if (emailPasswordInput) emailPasswordInput.value = "";
       if (emailPinInput) emailPinInput.value = "";
+      updateEmailPinAvailability();
       showMessage(emailMessage, "");
       showMessage(nameMessage, "");
       showMessage(avatarMessage, "");
+    }
+
+    let emailPinSending = false;
+    function updateEmailPinAvailability() {
+      if (!sendEmailPinButton) return;
+      const newEmail = newEmailInput?.value.trim().toLowerCase() || "";
+      const currentEmail = String(currentUser?.email || "").toLowerCase();
+      sendEmailPinButton.disabled = emailPinSending || !currentUser || Boolean(currentUser.is_admin) ||
+        !isValidEmail(newEmail) || !newEmailInput.checkValidity() || newEmail === currentEmail || !emailPasswordInput?.value.trim();
     }
 
     function show(view) {
@@ -645,6 +662,7 @@
     function setUser(user) {
       hasAccount = Boolean(user);
       currentUser = user || null;
+      updateEmailPinAvailability();
       const name = user ? String(user.full_name || "Your account") : "Guest";
       const email = user ? String(user.email || "") : "Sign in or create an account";
       if (modal) {
@@ -746,15 +764,21 @@
     });
 
     if (emailPinInput) emailPinInput.addEventListener("input", () => sanitizePinInput(emailPinInput, true));
-    if (newEmailInput) newEmailInput.addEventListener("input", () => { if (emailPinInput) emailPinInput.value = ""; });
+    if (newEmailInput) newEmailInput.addEventListener("input", () => {
+      if (emailPinInput) emailPinInput.value = "";
+      updateEmailPinAvailability();
+    });
+    if (emailPasswordInput) emailPasswordInput.addEventListener("input", updateEmailPinAvailability);
+    updateEmailPinAvailability();
     if (sendEmailPinButton) sendEmailPinButton.addEventListener("click", async () => {
-      if (!currentUser) return;
+      if (emailPinSending || !currentUser || currentUser.is_admin) return;
       const newEmail = newEmailInput.value.trim().toLowerCase();
       const currentPassword = emailPasswordInput.value;
-      if (!newEmailInput.checkValidity()) return showMessage(emailMessage, "Enter a valid new email address.", true);
+      if (!isValidEmail(newEmail) || !newEmailInput.checkValidity()) return showMessage(emailMessage, "Enter a valid new email address.", true);
       if (newEmail === String(currentUser.email || "").toLowerCase()) return showMessage(emailMessage, "Enter a different email address.", true);
-      if (!currentPassword) return showMessage(emailMessage, "Enter your current password first.", true);
-      sendEmailPinButton.disabled = true;
+      if (!currentPassword.trim()) return showMessage(emailMessage, "Enter your current password first.", true);
+      emailPinSending = true;
+      updateEmailPinAvailability();
       showMessage(emailMessage, "Sending a PIN to the new email...");
       try {
         const response = await fetch(apiBaseUrl + "/users/me/email-change/pin", {
@@ -770,7 +794,8 @@
       } catch (error) {
         showMessage(emailMessage, error.message || "Could not send the verification PIN.", true);
       } finally {
-        sendEmailPinButton.disabled = false;
+        emailPinSending = false;
+        updateEmailPinAvailability();
       }
     });
 
@@ -780,9 +805,9 @@
       const newEmail = newEmailInput.value.trim().toLowerCase();
       const currentPassword = emailPasswordInput.value;
       const verificationPin = emailPinInput.value.trim();
-      if (!newEmailInput.checkValidity()) return showMessage(emailMessage, "Enter a valid new email address.", true);
+      if (!isValidEmail(newEmail) || !newEmailInput.checkValidity()) return showMessage(emailMessage, "Enter a valid new email address.", true);
       if (newEmail === String(currentUser.email || "").toLowerCase()) return showMessage(emailMessage, "Enter a different email address.", true);
-      if (!currentPassword) return showMessage(emailMessage, "Enter your current password first.", true);
+      if (!currentPassword.trim()) return showMessage(emailMessage, "Enter your current password first.", true);
       if (!/^[0-9]{6}$/.test(verificationPin)) return showMessage(emailMessage, "Enter the 6-digit PIN sent to your new email.", true);
       const saveButton = emailForm.querySelector('button[type="submit"]');
       saveButton.disabled = true;
@@ -802,6 +827,7 @@
         newEmailInput.value = "";
         emailPasswordInput.value = "";
         emailPinInput.value = "";
+        updateEmailPinAvailability();
         showMessage(emailMessage, "Email updated and verified.");
       } catch (error) {
         showMessage(emailMessage, error.message || "Could not change your email.", true);
@@ -943,6 +969,7 @@
     syncAuthUserFromServer,
     isAuthSessionVerified: () => authSessionVerified,
     getPasswordValidationMessage,
+    isValidEmail,
     sanitizePinInput,
     escapeHtml,
     getToastMessage,
@@ -966,74 +993,128 @@
   document.addEventListener("DOMContentLoaded", () => {
     const passwordInput = document.getElementById("loginPasswordInput");
     const emailInput = document.getElementById("loginEmailInput");
-    const toggleButton = document.getElementById("toggleLoginPasswordBtn");
     const authMessage = document.getElementById("authMessage");
-    const authModal = document.getElementById("authModal");
-    if (!passwordInput || !toggleButton) return;
-
-    const setPasswordVisible = (visible) => {
-      passwordInput.type = visible ? "text" : "password";
-      toggleButton.textContent = visible ? "Hide" : "Show";
-      toggleButton.setAttribute("aria-label", visible ? "Hide password" : "Show password");
-      toggleButton.setAttribute("aria-pressed", String(visible));
-    };
-    toggleButton.addEventListener("click", () => {
-      setPasswordVisible(passwordInput.type === "password");
-      passwordInput.focus({ preventScroll: true });
-    });
     const clearStaleLoginError = () => {
       if (!authMessage || !authMessage.classList.contains("text-error")) return;
       authMessage.textContent = "";
       authMessage.classList.add("hidden");
     };
-    passwordInput.addEventListener("input", clearStaleLoginError);
+    if (passwordInput) passwordInput.addEventListener("input", clearStaleLoginError);
     if (emailInput) emailInput.addEventListener("input", clearStaleLoginError);
-    if (authModal) {
-      new MutationObserver(() => {
-        if (authModal.classList.contains("hidden")) setPasswordVisible(false);
-      }).observe(authModal, { attributes: true, attributeFilter: ["class"] });
-    }
   });
 
   document.addEventListener("DOMContentLoaded", () => {
-    const input = document.getElementById("profilePasswordInput");
-    const feedback = document.getElementById("profilePasswordFeedback");
-    const label = document.getElementById("profilePasswordStrengthLabel");
-    const meter = document.getElementById("profilePasswordMeter");
-    if (!input || !feedback || !label || !meter) return;
-
     const rules = {
       length: (value) => value.length >= 8,
       letter: (value) => /[A-Za-z]/.test(value),
       number: (value) => /\d/.test(value),
       symbol: (value) => /[^A-Za-z0-9]/.test(value)
     };
-    const updateStrength = () => {
-      const value = input.value;
-      let metCount = 0;
-      feedback.querySelectorAll("[data-password-rule]").forEach((item) => {
-        if (item.dataset.passwordRule === "length") {
-          item.textContent = value && value.length < 8 ? `${value.length} of 8 characters` : "8 or more characters";
-        }
-        const met = Boolean(rules[item.dataset.passwordRule]?.(value));
-        if (met) metCount++;
-        item.classList.toggle("is-met", met);
-        item.setAttribute("aria-label", `${met ? "Met" : "Needed"}: ${item.textContent.trim()}`);
-      });
-      const valid = !getPasswordValidationMessage(value);
-      const score = metCount + (valid && value.length >= 12 ? 1 : 0);
-      const level = !value ? "empty" : score <= 2 ? "weak" : score === 3 ? "developing" : score === 4 ? "good" : "strong";
-      const strengthText = { empty: "Start typing", weak: "Weak", developing: "Developing", good: "Good", strong: "Strong" }[level];
-      feedback.dataset.level = level;
-      label.textContent = strengthText;
-      meter.setAttribute("aria-valuenow", String(score));
-      meter.setAttribute("aria-valuetext", value ? `${strengthText}. ${metCount} of 4 requirements met.` : "Start typing");
-      meter.querySelector("span").style.width = `${score * 20}%`;
-      if (value) input.setAttribute("aria-invalid", String(!valid));
-      else input.removeAttribute("aria-invalid");
+    const makeFeedback = (input) => {
+      const prefix = input.id;
+      const feedback = document.createElement("div");
+      feedback.id = `${prefix}Feedback`;
+      feedback.className = "account-password-feedback auth-password-feedback";
+      feedback.dataset.level = "empty";
+      feedback.innerHTML = `<div class="account-password-feedback-head"><span>Password strength</span><strong id="${prefix}StrengthLabel" role="status" aria-live="polite">Start typing</strong></div>
+        <div class="account-password-meter" id="${prefix}Meter" role="meter" aria-label="Password strength" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="Start typing"><span></span></div>
+        <ul class="account-password-requirements" id="${prefix}Requirements"><li data-password-rule="length">8 or more characters</li><li data-password-rule="letter">A letter</li><li data-password-rule="number">A number</li><li data-password-rule="symbol">A symbol</li></ul>
+        <p class="account-password-note">Strength is an estimate. Avoid names and common passwords.</p>`;
+      input.insertAdjacentElement("afterend", feedback);
+      const describedBy = new Set((input.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean));
+      describedBy.add(`${prefix}StrengthLabel`);
+      describedBy.add(`${prefix}Requirements`);
+      input.setAttribute("aria-describedby", Array.from(describedBy).join(" "));
+      return feedback;
     };
-    input.addEventListener("input", updateStrength);
-    updateStrength();
+
+    ["profilePasswordInput", "registerPasswordInput", "resetPasswordInput"].forEach((inputId) => {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      const feedback = document.getElementById(inputId === "profilePasswordInput" ? "profilePasswordFeedback" : `${inputId}Feedback`) || makeFeedback(input);
+      const label = feedback.querySelector(".account-password-feedback-head strong");
+      const meter = feedback.querySelector(".account-password-meter");
+      const meterFill = meter?.querySelector("span");
+      if (!label || !meterFill) return;
+
+      const updateStrength = () => {
+        const value = input.value;
+        let metCount = 0;
+        feedback.querySelectorAll("[data-password-rule]").forEach((item) => {
+          if (item.dataset.passwordRule === "length") {
+            item.textContent = value && value.length < 8 ? `${value.length} of 8 characters` : "8 or more characters";
+          }
+          const met = Boolean(rules[item.dataset.passwordRule]?.(value));
+          if (met) metCount++;
+          item.classList.toggle("is-met", met);
+          item.setAttribute("aria-label", `${met ? "Met" : "Needed"}: ${item.textContent.trim()}`);
+        });
+        const valid = !getPasswordValidationMessage(value);
+        const score = metCount + (valid && value.length >= 12 ? 1 : 0);
+        const level = !value ? "empty" : score <= 2 ? "weak" : score === 3 ? "developing" : score === 4 ? "good" : "strong";
+        const strengthText = { empty: "Start typing", weak: "Weak", developing: "Developing", good: "Good", strong: "Strong" }[level];
+        feedback.dataset.level = level;
+        label.textContent = strengthText;
+        meter.setAttribute("aria-valuenow", String(score));
+        meter.setAttribute("aria-valuetext", value ? `${strengthText}. ${metCount} of 4 requirements met.` : "Start typing");
+        meterFill.style.width = `${score * 20}%`;
+        if (value) input.setAttribute("aria-invalid", String(!valid));
+        else input.removeAttribute("aria-invalid");
+      };
+      input.addEventListener("input", updateStrength);
+      input.form?.addEventListener("reset", () => setTimeout(updateStrength, 0));
+      if (input.form) {
+        new MutationObserver(updateStrength).observe(input.form, { attributes: true, attributeFilter: ["class"] });
+      }
+      updateStrength();
+    });
+  });
+
+  // Use one visibility control for each password field across account dialogs.
+  // Run after password feedback is inserted so its panel stays outside the input wrap.
+  document.addEventListener("DOMContentLoaded", () => {
+    const eyeIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="auth-eye-on"><path d="M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.5"/></g><g class="auth-eye-off"><path d="M3 3 21 21M9.9 6.7A10 10 0 0 1 12 6.5c6 0 9.5 5.5 9.5 5.5a14 14 0 0 1-3.1 3.4M6.2 8.2C3.8 9.8 2.5 12 2.5 12s3.5 5.5 9.5 5.5c1.1 0 2.2-.2 3.1-.5"/></g></svg>`;
+    document.querySelectorAll("#authModal input[type='password'], #profileModal input[type='password']").forEach((input) => {
+      let wrap = input.closest(".auth-password-wrap");
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.className = "auth-password-wrap";
+        input.parentNode.insertBefore(wrap, input);
+        wrap.appendChild(input);
+      }
+      let button = wrap.querySelector(".auth-password-toggle");
+      if (!button) {
+        button = document.createElement("button");
+        button.className = "auth-password-toggle";
+        button.type = "button";
+        wrap.appendChild(button);
+      }
+      button.innerHTML = eyeIcon;
+      button.setAttribute("aria-controls", input.id);
+      const setVisible = (visible) => {
+        input.type = visible ? "text" : "password";
+        button.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+        button.setAttribute("aria-pressed", String(visible));
+      };
+      setVisible(false);
+      button.addEventListener("click", () => {
+        setVisible(input.type === "password");
+        input.focus({ preventScroll: true });
+      });
+
+      const modal = input.closest("#authModal, #profileModal");
+      const form = input.closest("form");
+      const panel = input.closest("[data-account-panel]");
+      const hideWhenClosed = () => {
+        if (modal?.classList.contains("hidden") || form?.classList.contains("hidden") || panel?.hidden) setVisible(false);
+      };
+      if (modal) new MutationObserver(hideWhenClosed).observe(modal, { attributes: true, attributeFilter: ["class"] });
+      if (form) {
+        new MutationObserver(hideWhenClosed).observe(form, { attributes: true, attributeFilter: ["class"] });
+        form.addEventListener("reset", () => setVisible(false));
+      }
+      if (panel) new MutationObserver(hideWhenClosed).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+    });
   });
 
   // Keep keyboard focus inside the dialog currently shown on any app page.
