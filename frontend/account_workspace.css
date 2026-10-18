@@ -157,7 +157,7 @@ input[type="password"]::-ms-clear { display: none !important; }
 .account-eyebrow { display: inline-block; margin-bottom: 9px; color: #0066c7; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
 .account-panel-title { margin: 0; color: #14263c; font: 800 clamp(25px,3vw,32px)/1.2 Manrope, Inter, sans-serif; letter-spacing: -.04em; }
 .account-panel-intro { max-width: 52ch; margin: 10px 0 24px; color: #62748b; font-size: 14px; line-height: 1.6; }
-.auth-workspace { width: min(760px, 100%); min-height: min(520px, calc(100dvh - 32px)); }
+.auth-workspace { min-height: min(520px, calc(100dvh - 32px)); }
 .auth-sidebar .auth-menu { gap: 7px; }
 .auth-sidebar .account-menu-button { border-color: #d6e6f6; background: #fff; color: #0064bf; box-shadow: 0 3px 10px rgba(14,73,132,.05); }
 .auth-sidebar .account-menu-button:hover { border-color: #a8d1f7; background: #f8fcff; box-shadow: 0 5px 15px rgba(14,73,132,.1); }
@@ -165,7 +165,7 @@ input[type="password"]::-ms-clear { display: none !important; }
 .auth-main { overscroll-behavior: contain; }
 .auth-main .account-topbar { margin-bottom: 18px; }
 .auth-main .account-panel-intro { margin-bottom: 20px; }
-.auth-main form { max-width: 500px; }
+.auth-main form { width: 100%; }
 .auth-main form label { color: #273e55; }
 .auth-main form input { min-height: 43px; border: 1px solid #ccd9e7; border-radius: 10px; background: #fff; color: #172438; }
 .auth-main form button[type="submit"] { min-height: 44px; border-radius: 10px; }
@@ -306,7 +306,6 @@ input[type="password"]::-ms-clear { display: none !important; }
   .account-password-requirements { grid-template-columns: 1fr; }
   .account-overlay { padding: 8px; align-items: center; }
   .account-workspace { grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr); min-height: min(520px, calc(100dvh - 16px)); max-height: calc(100dvh - 16px); border-radius: 19px; }
-  .auth-workspace { width: min(460px, 100%); }
   .account-sidebar { gap: 12px; padding: 15px 14px 12px; border-right: 0; border-bottom: 1px solid #dce7f1; }
   .account-identity { padding: 0 4px; }
   .account-avatar { width: 38px; height: 38px; flex-basis: 38px; border-radius: 12px; font-size: 14px; }
