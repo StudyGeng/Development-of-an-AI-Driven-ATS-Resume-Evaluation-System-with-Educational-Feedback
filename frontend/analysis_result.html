@@ -112,24 +112,6 @@
             line-height: 1.1;
             text-align: left;
         }
-        .footer-link-row {
-            display: flex;
-            flex-wrap: nowrap;
-            justify-content: flex-end;
-            gap: 0.5rem;
-        }
-        .footer-action-link {
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.82);
-            white-space: nowrap;
-            transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-        }
-        .footer-action-link:hover {
-            transform: translateY(-1px);
-            background: rgba(255, 255, 255, 0.16);
-            color: #ffffff;
-        }
         .priority-action-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
@@ -142,10 +124,6 @@
             }
             .metric-label {
                 grid-column: 1 / -1;
-            }
-            .footer-link-row {
-                flex-wrap: wrap;
-                justify-content: flex-start;
             }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -168,20 +146,19 @@
         :where(.hidden) { display: none; }
         html { scroll-behavior: smooth; overflow-x: clip; }
         body { background: var(--studio-canvas); color: var(--studio-ink); }
-        .report-nav { border-bottom: 1px solid var(--studio-border); background: rgba(255,255,255,.96); }
-        .report-nav a, .report-nav button { letter-spacing: 0; }
-        .report-nav > div:first-child > a { color: var(--studio-ink); }
-        .report-brand { display: inline-flex; align-items: center; gap: .6rem; min-width: 0; text-decoration: none; }
-        .report-brand-mark { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; flex: 0 0 auto; border-radius: 10px; background: var(--studio-teal); color: white; }
-        .report-brand-name { display: grid; min-width: 0; line-height: 1.1; }
-        .report-brand-name small { color: var(--studio-teal-dark); font-size: .61rem; font-weight: 800; letter-spacing: .16em; }
-        .report-brand-name strong { color: var(--studio-ink); font-family: Manrope,Inter,sans-serif; font-size: .98rem; font-weight: 800; white-space: nowrap; }
-        .report-auth-short { display: none; }
-        .report-nav #openAuthModalBtn { border-radius: 10px; background: var(--studio-teal-dark); color: white; }
+        .report-nav { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--studio-border); background: rgba(255,255,255,.96); backdrop-filter: blur(14px); }
+        .report-nav-inner { width: min(1200px, calc(100% - 48px)); min-height: 78px; margin-inline: auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; }
+        .report-brand { display: inline-flex; align-items: center; gap: 10px; width: max-content; min-width: 0; color: var(--studio-ink); text-decoration: none; }
+        .report-brand-mark { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto; border-radius: 11px; background: var(--studio-teal); color: #fff; }
+        .report-brand-name { display: grid; min-width: 0; line-height: 1.12; letter-spacing: -.025em; }
+        .report-brand-name small { color: #0064c8; font-size: 10px; font-weight: 800; letter-spacing: .17em; }
+        .report-brand-name strong { color: var(--studio-ink); font-family: Manrope,Inter,sans-serif; font-size: 16px; font-weight: 800; white-space: nowrap; }
+        .report-nav-links { display: flex; align-items: center; gap: 22px; }
+        .report-nav-links a { color: #526276; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+        .report-nav-links a:hover, .report-nav-links a:focus-visible { color: #0064c8; }
+        .report-nav-actions { display: flex; justify-content: flex-end; align-items: center; }
+        .report-nav #openAuthModalBtn { border-radius: 12px; background: #0064c8; color: #fff; cursor: pointer; }
         .report-nav #openAuthModalBtn:hover { background: #0055aa; }
-        .report-nav #openHistoryBtn { border-radius: 10px; background: #edf5f7; color: var(--studio-teal-dark); }
-        .report-nav a[href="analysis_result.html"] { color: var(--studio-teal-dark); border-color: var(--studio-teal); }
-        .report-nav a[href="home_page.html"]:hover { color: var(--studio-teal-dark); }
         .report-main { max-width: 1200px; }
         .report-empty { max-width: 680px; margin: clamp(4rem, 12vh, 9rem) auto; padding: clamp(2rem, 6vw, 4rem); border: 1px solid var(--studio-border); border-radius: 24px; background: white; box-shadow: 0 12px 36px rgba(22,35,56,.06); text-align: center; }
         .report-empty-icon { width: 4rem; height: 4rem; margin: 0 auto 1.5rem; display: grid; place-items: center; border-radius: 18px; background: #dff6ee; color: var(--studio-teal); }
@@ -230,11 +207,31 @@
         .report-shell .evidence-ring span { color: var(--studio-ink); }
         .report-shell .evidence-ring .soft-count { font-size: .72rem; }
         .report-shell .priority-action-grid article { min-height: auto; }
-        .site-footer { background: #162338; }
+        .career-footer { background: #122b3b; color: #fff; }
+        .career-container { width: min(1200px, calc(100% - 48px)); margin-inline: auto; }
+        .career-footer-cta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 32px; padding-block: clamp(42px, 6vw, 68px); border-bottom: 1px solid rgba(220,241,250,.18); }
+        .career-footer-kicker { margin: 0 0 12px; color: #9fe4eb; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+        .career-footer-cta h2 { max-width: 670px; margin: 0; font-family: Manrope,Inter,sans-serif; font-size: clamp(27px, 3.3vw, 43px); font-weight: 800; letter-spacing: -.045em; line-height: 1.15; }
+        .career-footer-cta p:not(.career-footer-kicker) { max-width: 610px; margin: 14px 0 0; color: #bcd0da; font-size: 14px; line-height: 1.65; }
+        .career-footer-cta-button { min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 18px; padding: 12px 20px; border-radius: 12px; background: #fff; color: #075f83; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; box-shadow: 0 10px 26px rgba(0,0,0,.13); transition: background-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+        .career-footer-cta-button:hover { background: #e8f7fa; box-shadow: 0 14px 30px rgba(0,0,0,.18); transform: translateY(-2px); }
+        .career-footer-cta-button svg { width: 18px; height: 18px; }
+        .career-footer-inner { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(130px, .55fr) minmax(160px, .65fr); gap: clamp(26px, 5vw, 72px); padding-block: 43px 48px; }
+        .career-footer-identity { max-width: 410px; }
+        .career-footer-lockup { display: inline-flex; align-items: center; gap: 11px; color: #fff; text-decoration: none; }
+        .career-footer-mark { width: 38px; height: 38px; display: grid; place-items: center; flex: none; border: 1px solid rgba(179,234,242,.3); border-radius: 11px; background: var(--studio-teal); }
+        .career-footer-mark svg { width: 25px; height: 25px; }
+        .career-footer-brand { display: grid; margin: 0; font-family: Manrope,Inter,sans-serif; font-size: 16px; font-weight: 800; line-height: 1.1; }
+        .career-footer-brand small { margin-bottom: 3px; color: #9fe4eb; font-family: Inter,sans-serif; font-size: 10px; font-weight: 800; letter-spacing: .15em; }
+        .career-footer-copy { max-width: 380px; margin: 18px 0 0; color: #b7cbd4; font-size: 13px; line-height: 1.7; }
+        .career-footer-group h3 { margin: 2px 0 17px; color: #fff; font-family: Manrope,Inter,sans-serif; font-size: 13px; font-weight: 800; }
+        .career-footer-links { display: grid; justify-items: start; gap: 12px; }
+        .career-footer-links a, .career-footer-links button { padding: 0; border: 0; background: transparent; color: #b7cbd4; font: 600 12px/1.5 Inter,sans-serif; text-align: left; text-decoration: none; cursor: pointer; transition: color .2s ease; }
+        .career-footer-links a:hover, .career-footer-links button:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+        .career-footer-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; padding-block: 18px 24px; border-top: 1px solid rgba(255,255,255,.13); color: #a8c0cc; font-size: 11px; line-height: 1.5; }
         /* Report surface and controls */
         .report-nav { box-shadow: none; }
-        .report-main { max-width: 1240px; }
-        .report-nav #openHistoryBtn { background: #edf6ff; }
+        .report-main { max-width: 1240px; padding-top: 48px; }
         .report-hero {
             position: relative;
             isolation: isolate;
@@ -408,6 +405,12 @@
         @media (max-width: 980px) {
             .report-quick { grid-template-columns: 1fr; gap: 1.3rem; }
             .report-quick h2 { max-width: none; }
+            .report-nav-inner { grid-template-columns: minmax(0, 1fr) auto auto; gap: 18px; }
+            .report-nav-links { gap: 18px; }
+            .career-footer-cta { grid-template-columns: 1fr; gap: 23px; }
+            .career-footer-cta-button { justify-self: start; }
+            .career-footer-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px 24px; }
+            .career-footer-identity { grid-column: 1 / -1; }
         }
         @media (max-width: 850px) {
             .submission-meta { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -415,8 +418,15 @@
             .submission-meta-item:nth-child(n+3) { border-top: 1px solid var(--studio-border); }
         }
         @media (max-width: 700px) {
+            .report-nav-inner { width: min(100% - 32px, 1200px); min-height: 0; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding-block: 10px; }
+            .report-brand-mark { width: 32px; height: 32px; }
+            .report-brand-mark svg { width: 21px; height: 21px; }
+            .report-brand-name strong { font-size: 14px; }
+            .report-nav-links { grid-column: 1 / -1; grid-row: 2; justify-content: center; gap: clamp(14px, 5vw, 28px); padding-top: 4px; }
+            .report-nav-links a { font-size: 11px; }
+            .report-nav-actions { grid-column: 2; grid-row: 1; }
             .report-workspace-grid { grid-template-columns: 1fr; }
-            .report-tabs { top: 4.25rem; }
+            .report-tabs { top: 6rem; }
             .report-reveal[data-reveal-side] { --reveal-x: 0; }
             .report-hero { grid-template-columns: 1fr; min-height: 0; gap: 1.5rem; }
             .report-score-card { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-height: 0; padding: 1.5rem 0 0; border-left: 0; border-top: 1px solid #cfdfed; }
@@ -425,13 +435,9 @@
             .report-quick-list article { grid-template-columns: 4.5rem minmax(0,1fr); }
         }
         @media (max-width: 600px) {
-            .report-nav .mobile-home-link { display: none; }
-            .report-brand-mark { width: 2.15rem; height: 2.15rem; }
-            .report-brand-name strong { font-size: .8rem; }
-            .report-brand-name small { font-size: .54rem; }
-            .report-auth-long { display: none; }
-            .report-auth-short { display: inline; }
-            .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { min-height: 2.5rem; padding: .55rem .7rem; font-size: .75rem; }
+            .career-container { width: min(100% - 32px, 1200px); }
+            .career-footer-inner { grid-template-columns: 1fr; }
+            .career-footer-identity { grid-column: auto; }
             .report-tabs { position: static; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: .25rem; overflow: visible; margin: 1.4rem 0 2rem; padding: .3rem; }
             .report-tabs a { display: flex; min-width: 0; min-height: 2.75rem; align-items: center; justify-content: center; padding: .45rem .2rem; font-size: .78rem; line-height: 1.2; text-align: center; white-space: normal; }
             .report-tabs a:nth-child(-n+3) { grid-column: span 2; }
@@ -468,12 +474,10 @@
             .report-score-card { display: block; }
         }
         @media (max-width: 360px) {
-            .report-nav > div:first-child { gap: .35rem; padding-left: .65rem; padding-right: .65rem; }
-            .report-brand { gap: .35rem; }
-            .report-brand-mark { width: 2rem; height: 2rem; }
-            .report-brand-name strong { font-size: .72rem; }
-            .report-nav > div:first-child > div:last-child { gap: .3rem; }
-            .report-nav #openAuthModalBtn, .report-nav #openHistoryBtn { padding-left: .55rem; padding-right: .55rem; font-size: .7rem; }
+            .report-brand { gap: 6px; }
+            .report-brand-name strong { font-size: 12px; }
+            .report-nav-links { gap: 12px; }
+            .report-nav-links a { font-size: 10px; }
         }
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
@@ -489,25 +493,20 @@
 </head>
 <body class="min-h-screen bg-background text-on-background">
 <!-- TopNavBar Shell -->
-<nav class="report-nav fixed top-0 w-full z-50 backdrop-blur-xl">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+<nav class="report-nav" aria-label="Main navigation">
+<div class="report-nav-inner">
 <a class="report-brand" href="home_page.html" aria-label="UTS CS Career Navigator home"><span class="report-brand-mark" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 32 32" fill="none"><path d="M7 7v10c0 6 3.4 9 9 9s9-3 9-9V7" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11h8M12 15h8" stroke="#B7ECF2" stroke-width="2" stroke-linecap="round"/></svg></span><span class="report-brand-name"><small>UTS CS</small><strong>Career Navigator</strong></span></a>
-<div class="hidden md:flex items-center space-x-8">
-<a class="font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="home_page.html">Dashboard</a>
-<a class="font-headline text-sm font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 transition-colors duration-200 ease-in-out" href="analysis_result.html">Results</a>
-<a class="hidden font-headline text-sm font-semibold tracking-tight text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-200 ease-in-out" href="job_data_insights.html" data-admin-link>Admin Insights</a>
+<div class="report-nav-links">
+<a href="home_page.html#how-it-works">How it works</a>
+<a href="home_page.html#sample-results">Sample results</a>
+<a class="hidden" href="job_data_insights.html" data-admin-link>Admin insights</a>
 </div>
-<div class="flex items-center gap-2 sm:gap-4 shrink-0">
-<button class="account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account" aria-haspopup="dialog" aria-controls="authModal" title="Sign in or create account"><span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span></button>
-<button id="openHistoryBtn" class="h-10 inline-flex items-center justify-center px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold text-primary bg-surface-container-low hover:bg-surface-container-high transition-colors active:scale-95 whitespace-nowrap">History</button>
-<a class="mobile-home-link md:hidden h-9 w-9 rounded-xl bg-surface-container-low text-primary hover:bg-surface-container-high inline-flex items-center justify-center transition-colors active:scale-95" href="home_page.html" aria-label="Back to home" title="Back to home">
-<span aria-hidden="true">←</span>
-</a>
+<div class="report-nav-actions">
+<button class="account-header-trigger" id="openAuthModalBtn" type="button" aria-label="Open account options" aria-haspopup="dialog" aria-controls="profileModal" title="Account options"><span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span></button>
 </div>
 </div>
-<div class="bg-slate-100 dark:bg-slate-800 h-[1px] w-full"></div>
 </nav>
-<main class="report-main pt-24 pb-20 mx-auto px-4 sm:px-6">
+<main class="report-main pb-20 mx-auto px-4 sm:px-6">
 <section class="report-empty" id="reportLoadingState" role="status" aria-live="polite">
 <span class="report-eyebrow">Opening your report</span>
 <p>Checking for a saved analysis...</p>
@@ -868,21 +867,41 @@ Download PDF
 </section>
 </div>
 </main>
-<!-- Footer Shell -->
-<footer class="site-footer w-full py-10 md:py-12">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
-<div class="space-y-3">
-<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary-fixed-dim">UTS CS Career Navigator</p>
-<h2 class="font-headline text-2xl md:text-3xl font-extrabold text-white leading-tight max-w-xl">Academic ATS feedback for computer science graduates.</h2>
-<p class="font-inter text-sm leading-relaxed text-white/70 max-w-2xl">© 2026 UTS CS Career Navigator. Student project for University of Technology Sarawak, Malaysia.</p>
-</div>
-<div class="footer-link-row font-inter text-xs font-semibold">
-<button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openPrivacyPolicyBtn" type="button">Privacy Policy</button>
-<button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openTermsOfServiceBtn" type="button">Terms of Service</button>
-<button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openResearchCreditsBtn" type="button">Research Credits</button>
-<button class="footer-action-link rounded-xl px-3 py-2 text-center" id="openUniversityPartnersBtn" type="button">About This Project</button>
-</div>
-</div>
+<footer class="career-footer">
+  <div class="career-container career-footer-cta">
+    <div>
+      <p class="career-footer-kicker">Your next draft starts here</p>
+      <h2>Turn resume feedback into a clearer next step.</h2>
+      <p>Choose a role, upload your resume, and see the evidence and improvements in your report.</p>
+    </div>
+    <a class="career-footer-cta-button" href="home_page.html?open_evaluation=1">Check my resume <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
+  </div>
+  <div class="career-container career-footer-inner">
+    <div class="career-footer-identity">
+      <a class="career-footer-lockup" href="home_page.html" aria-label="UTS CS Career Navigator home">
+        <span class="career-footer-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 7v10c0 6 3.4 9 9 9s9-3 9-9V7" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11h8M12 15h8" stroke="#B7ECF2" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="career-footer-brand"><small>UTS CS</small>Career Navigator</span>
+      </a>
+      <p class="career-footer-copy">A student resume feedback project at the University of Technology Sarawak, Malaysia.</p>
+    </div>
+    <div class="career-footer-group">
+      <h3>Explore</h3>
+      <div class="career-footer-links">
+        <a href="home_page.html#how-it-works">How it works</a>
+        <a href="analysis_result.html?sample=1">Sample report</a>
+      </div>
+    </div>
+    <div class="career-footer-group">
+      <h3>Project &amp; policies</h3>
+      <div class="career-footer-links">
+        <button id="openUniversityPartnersBtn" type="button">About this project</button>
+        <button id="openResearchCreditsBtn" type="button">Research credits</button>
+        <button id="openPrivacyPolicyBtn" type="button">Privacy policy</button>
+        <button id="openTermsOfServiceBtn" type="button">Terms of service</button>
+      </div>
+    </div>
+  </div>
+  <div class="career-container career-footer-bottom"><span>© 2026 UTS CS Career Navigator.</span></div>
 </footer>
 <dialog class="report-preview-dialog" id="feedbackReportPreviewDialog" aria-modal="true" aria-labelledby="feedbackReportPreviewTitle" aria-describedby="feedbackReportPreviewDescription">
 <div class="report-preview-shell">
@@ -912,7 +931,7 @@ Download PDF
 <button class="px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold" id="authLoginTabBtn" type="button">Log In</button>
 <button class="px-4 py-2 rounded-xl bg-surface-container-low text-primary text-sm font-semibold" id="authRegisterTabBtn" type="button">Sign Up</button>
 </div>
-<p class="text-sm mb-4 hidden" id="authMessage"></p>
+<p class="text-sm mb-4 hidden" id="authMessage" role="status" aria-live="polite"></p>
 <form class="space-y-4" id="authLoginForm">
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="loginEmailInput">Email</label>
@@ -920,7 +939,7 @@ Download PDF
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="loginPasswordInput">Password</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginPasswordInput" type="password" placeholder="Your password" required>
+<div class="auth-password-wrap"><input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="Your password" required><button class="auth-password-toggle" id="toggleLoginPasswordBtn" type="button" aria-label="Show password" aria-pressed="false">Show</button></div>
 </div>
 <div class="flex justify-end">
 <button class="text-sm font-semibold text-secondary hover:text-primary" id="forgotPasswordBtn" type="button">Forgot password?</button>
@@ -979,6 +998,7 @@ Download PDF
       <aside class="account-sidebar">
         <div class="account-identity"><span class="account-avatar" data-account-avatar>U</span><div><strong class="account-identity-name" data-account-name>Your account</strong><small class="account-identity-email" data-account-email>UTS CS Career Navigator</small></div></div>
         <nav class="account-menu" aria-label="Account sections">
+          <button class="account-menu-button" data-account-view="access" data-account-guest-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>Sign in</button>
           <button class="account-menu-button" data-account-view="info" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>User info</button>
           <button class="account-menu-button" data-account-view="settings" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg>Settings</button>
           <button class="account-menu-button" data-account-view="history" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>History</button>
@@ -987,6 +1007,12 @@ Download PDF
       </aside>
       <div class="account-main">
         <div class="account-topbar"><span>My account</span><button class="account-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button></div>
+        <section class="account-panel" data-account-panel="access" hidden>
+          <span class="account-eyebrow">Account access</span><h2 class="account-panel-title">Welcome to your career workspace.</h2>
+          <p class="account-panel-intro">Sign in to analyze a resume and keep your feedback together. You can also review history saved in this browser.</p>
+          <div class="account-guest-card"><strong>Ready to make your next move?</strong><p>Continue with your account, or create one to get started.</p><div class="account-guest-actions"><button class="account-primary" data-account-auth-action="login" type="button">Log in</button><button class="account-secondary" data-account-auth-action="register" type="button">Sign up</button></div></div>
+          <button class="account-text-action" data-account-go="history" type="button">View evaluation history <span aria-hidden="true">&rarr;</span></button>
+        </section>
         <section class="account-panel" data-account-panel="info">
           <span class="account-eyebrow">User info</span><h2 class="account-panel-title">Your profile</h2>
           <p class="account-panel-intro">Add a photo and keep the name on your account up to date.</p>
@@ -996,7 +1022,7 @@ Download PDF
               <div class="account-photo-actions"><button class="account-secondary account-photo-button" id="chooseProfileAvatarBtn" type="button">Upload photo</button><button class="account-secondary account-photo-remove" id="removeProfileAvatarBtn" type="button" hidden>Remove</button></div>
             </div>
           </div>
-          <input class="account-file-input" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="profileAvatarHint">
+          <input class="account-file-input" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="profileAvatarHint" tabindex="-1">
           <p class="account-field-hint" id="profileAvatarHint">JPG, PNG, or WebP · up to 2 MB.</p>
           <p class="account-inline-message" id="profileAvatarMessage" role="status" aria-live="polite" hidden></p>
           <form id="profileNameForm" class="account-form">
@@ -1147,7 +1173,6 @@ Download PDF
     const universityPartnersModalBackdrop = document.getElementById("universityPartnersModalBackdrop");
     const closeUniversityPartnersBtn = document.getElementById("closeUniversityPartnersBtn");
     const openAuthModalBtn = document.getElementById("openAuthModalBtn");
-    const openHistoryBtn = document.getElementById("openHistoryBtn");
     const authModal = document.getElementById("authModal");
     const authModalBackdrop = document.getElementById("authModalBackdrop");
     const feedbackReportPreviewDialog = document.getElementById("feedbackReportPreviewDialog");
@@ -1251,15 +1276,10 @@ Download PDF
     function updateAuthUi() {
         const currentUser = getAuthUser();
         if (openAuthModalBtn) {
-            openAuthModalBtn.innerHTML = currentUser
-                ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span>'
-                : '<span class="report-auth-long">Log In / Sign Up</span><span class="report-auth-short">Sign in</span>';
             openAuthModalBtn.classList.toggle("is-signed-in", Boolean(currentUser));
-            openAuthModalBtn.setAttribute("aria-controls", currentUser ? "profileModal" : "authModal");
-            openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Sign in or create account");
-            openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Sign in or create account";
+            openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Open account options");
+            openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Account options";
         }
-        if (openHistoryBtn) openHistoryBtn.hidden = Boolean(currentUser);
         accountWorkspace.setUser(currentUser);
         document.querySelectorAll("[data-admin-link]").forEach((link) => {
             link.classList.toggle("hidden", !(currentUser && currentUser.is_admin));
@@ -1332,7 +1352,7 @@ Download PDF
 
     function openProfileModal(view = "info") {
         const currentUser = getAuthUser();
-        if (!profileModal || (!currentUser && view !== "history")) {
+        if (!profileModal) {
             return;
         }
         if (currentUser) populateProfileForm();
@@ -1710,13 +1730,16 @@ Download PDF
 
     if (openAuthModalBtn) {
         openAuthModalBtn.addEventListener("click", () => {
-            if (getAuthUser()) {
-                openProfileModal();
-                return;
-            }
-            openAuthModal("register");
+            openProfileModal(getAuthUser() ? "info" : "access");
         });
     }
+    document.querySelectorAll('[data-account-auth-action]').forEach((button) => {
+        button.addEventListener("click", () => {
+            const mode = button.dataset.accountAuthAction === "login" ? "login" : "register";
+            closeProfileModal();
+            openAuthModal(mode);
+        });
+    });
     if (authModalBackdrop) {
         authModalBackdrop.addEventListener("click", closeAuthModal);
     }
@@ -4241,7 +4264,6 @@ Download PDF
         }
     });
     renderAccountHistory = historyController.render;
-    if (openHistoryBtn) openHistoryBtn.addEventListener("click", () => openProfileModal("history"));
     if (doneHistoryBtn) doneHistoryBtn.addEventListener("click", closeProfileModal);
 </script>
 </body></html>

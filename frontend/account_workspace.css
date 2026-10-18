@@ -1,4 +1,32 @@
 /* Shared account window on the dashboard and report pages. */
+.auth-password-wrap { position: relative; }
+.auth-password-wrap input { padding-right: 5.25rem; }
+.auth-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: .45rem;
+  transform: translateY(-50%);
+  min-width: 3.75rem;
+  min-height: 2rem;
+  padding: .25rem .55rem;
+  border: 0;
+  border-radius: .5rem;
+  background: #eaf4ff;
+  color: #0064c8;
+  font: 700 .75rem/1 Inter, sans-serif;
+  cursor: pointer;
+}
+.auth-password-toggle:hover { background: #d9ebff; }
+.auth-password-toggle:focus-visible { outline: 2px solid #087fec; outline-offset: 2px; }
+#authModal h3 { color: #17202e; }
+#authModal .text-secondary { color: #0064c8; }
+#authModal button.bg-primary { background: #0064c8; color: #fff; }
+#authModal button.bg-primary:hover:not(:disabled) { background: #0055aa; }
+#authModal button.bg-surface-container-low { border: 1px solid #d6e4e9; background: #f5f9fa; color: #0064c8; }
+#authModal button.bg-surface-container-low:hover:not(:disabled) { background: #eaf3f5; }
+#authModal button[aria-label^="Close"] { display: inline-grid; flex: 0 0 36px; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #f0f5f7; color: #0064c8; }
+#authModal button[aria-label^="Close"]:hover { background: #e1edf1; }
+
 .account-backdrop {
   position: absolute;
   inset: 0;
@@ -117,6 +145,12 @@
 .account-eyebrow { display: inline-block; margin-bottom: 9px; color: #0066c7; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
 .account-panel-title { margin: 0; color: #14263c; font: 800 clamp(25px,3vw,32px)/1.2 Manrope, Inter, sans-serif; letter-spacing: -.04em; }
 .account-panel-intro { max-width: 52ch; margin: 10px 0 24px; color: #62748b; font-size: 14px; line-height: 1.6; }
+.account-guest-card { position: relative; overflow: hidden; padding: clamp(20px, 4vw, 30px); border: 1px solid #cfe4f8; border-radius: 18px; background: linear-gradient(125deg, #eff8ff 0%, #e7f2ff 100%); }
+.account-guest-card::after { position: absolute; right: -55px; bottom: -92px; width: 180px; height: 180px; border: 1px solid #c5e1fc; border-radius: 50%; content: ""; pointer-events: none; }
+.account-guest-card strong { position: relative; display: block; max-width: 22ch; color: #14263c; font: 800 19px/1.35 Manrope, Inter, sans-serif; }
+.account-guest-card p { position: relative; max-width: 35ch; margin: 8px 0 0; color: #5b7189; font-size: 13px; line-height: 1.6; }
+.account-guest-actions { position: relative; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.account-panel[data-account-panel="access"] > .account-text-action { margin-top: 20px; }
 .account-profile-hero {
   display: flex;
   align-items: center;
@@ -202,8 +236,8 @@
 .account-history-list > div button:not(.viewHistoryBtn):not(.deleteHistoryBtn) { border-radius: 9px; background: #0068ca; color: #fff; }
 .account-history-list button { min-height: 34px; white-space: nowrap; }
 
-.account-header-trigger { display: inline-flex; align-items: center; justify-content: center; }
-#openAuthModalBtn.account-header-trigger.is-signed-in {
+.account-header-trigger { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+#openAuthModalBtn.account-header-trigger {
   width: 42px;
   min-width: 42px;
   height: 42px;
@@ -242,6 +276,7 @@
 
 @media (max-width: 480px) {
   .account-menu { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 4px; overflow: visible; }
+  .account-workspace.is-guest .account-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .account-menu-button, .account-logout { min-width: 0; width: 100%; justify-content: center; gap: 4px; padding: 8px 2px; font-size: 10px; white-space: nowrap; }
   .account-menu-button svg, .account-logout svg { width: 13px; height: 13px; flex-basis: 13px; }
 }

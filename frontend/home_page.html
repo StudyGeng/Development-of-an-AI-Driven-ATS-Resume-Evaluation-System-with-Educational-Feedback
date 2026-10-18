@@ -269,8 +269,6 @@
         .career-nav-actions button:not(.hidden) { min-height: 42px; padding: 8px 15px; border-radius: 12px; font-size: 12px; font-weight: 750; white-space: nowrap; transition: background-color .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
         .career-nav-login { background: var(--career-teal-deep); color: #fff; }
         .career-nav-login:hover { background: #0055aa; box-shadow: 0 9px 20px rgba(23,107,137,.18); transform: translateY(-1px); }
-        .career-nav-history { color: var(--career-teal-deep); border: 1px solid var(--career-line); background: white; }
-        .career-nav-history:hover { border-color: var(--career-teal); background: #f1f8f8; transform: translateY(-1px); }
         .career-hero { background: radial-gradient(circle at 88% 12%, #f2f9ff 0%, transparent 33%), var(--career-canvas); }
         .career-hero-grid { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr); align-items: center; gap: clamp(24px, 5vw, 72px); min-height: 690px; padding-block: 74px 90px; }
         .career-hero-content { min-width: 0; }
@@ -441,7 +439,7 @@
         .career-footer-inner { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(130px, .55fr) minmax(160px, .65fr); gap: clamp(26px, 5vw, 72px); padding-block: 43px 48px; }
         .career-footer-identity { max-width: 410px; }
         .career-footer-lockup { display: inline-flex; align-items: center; gap: 11px; color: #fff; text-decoration: none; }
-        .career-footer-mark { width: 38px; height: 38px; display: grid; place-items: center; flex: none; border: 1px solid rgba(179,234,242,.3); border-radius: 11px; background: #157ba0; }
+        .career-footer-mark { width: 38px; height: 38px; display: grid; place-items: center; flex: none; border: 1px solid rgba(179,234,242,.3); border-radius: 11px; background: var(--career-teal); }
         .career-footer-mark svg { width: 25px; height: 25px; }
         .career-footer-brand { display: grid; margin: 0; font-family: Manrope,Inter,sans-serif; font-size: 16px; font-weight: 800; line-height: 1.1; }
         .career-footer-brand small { margin-bottom: 3px; color: #9fe4eb; font-family: Inter,sans-serif; font-size: 10px; font-weight: 800; letter-spacing: .15em; }
@@ -509,8 +507,8 @@
         body.motion-ready [data-reveal].is-visible { opacity: 1; filter: blur(0); transform: translate3d(0,0,0); }
         @keyframes careerOrbitDrift { to { transform: rotate(360deg); } }
         @media (max-width: 1000px) {
-            .career-nav-inner { grid-template-columns: 1fr auto; }
-            .career-nav-links { display: none; }
+            .career-nav-inner { grid-template-columns: minmax(0, 1fr) auto auto; gap: 18px; }
+            .career-nav-links { gap: 18px; }
             .career-hero-grid { grid-template-columns: 1fr; gap: 46px; padding-block: 58px 70px; }
             .career-visual { width: min(590px, 100%); margin-inline: auto; }
             .career-intelligence-grid, .career-sample-grid, .career-writing-grid { grid-template-columns: 1fr; }
@@ -520,12 +518,14 @@
         }
         @media (max-width: 700px) {
             .career-container { width: min(100% - 32px, 1200px); }
-            .career-nav-inner { min-height: 84px; grid-template-columns: 1fr; gap: 8px; padding-block: 10px; }
+            .career-nav-inner { min-height: 0; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding-block: 10px; }
+            .career-brand { min-width: 0; }
             .career-brand-mark { width: 32px; height: 32px; }
             .career-brand-mark svg { width: 21px; height: 21px; }
             .career-brand-name strong { font-size: 14px; }
-            .career-nav-actions { justify-content: flex-start; }
-            .career-nav-actions button:not(.hidden) { min-height: 34px; padding: 5px 10px; font-size: 11px; }
+            .career-nav-links { display: flex; grid-column: 1 / -1; grid-row: 2; justify-content: center; gap: clamp(14px, 5vw, 28px); padding-top: 4px; }
+            .career-nav-links a { font-size: 11px; }
+            .career-nav-actions { grid-column: 2; grid-row: 1; justify-content: flex-end; }
             .career-hero-grid { padding-block: 47px 60px; gap: 37px; }
             .career-hero h1 { font-size: clamp(2.65rem, 12vw, 4rem); }
             .career-hero-actions { align-items: stretch; gap: 7px; }
@@ -592,8 +592,7 @@
       <a class="hidden" href="job_data_insights.html" data-admin-link>Admin insights</a>
     </div>
     <div class="career-nav-actions">
-      <button class="career-nav-login account-header-trigger" id="openAuthModalBtn" type="button" aria-label="Sign in or create account" aria-haspopup="dialog" aria-controls="authModal" title="Sign in or create account">Log In / Sign Up</button>
-      <button class="career-nav-history" id="openHistoryBtn" type="button">History</button>
+      <button class="career-nav-login account-header-trigger" id="openAuthModalBtn" type="button" aria-label="Open account options" aria-haspopup="dialog" aria-controls="profileModal" title="Account options"><span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span></button>
     </div>
   </div>
 </nav>
@@ -947,7 +946,7 @@
 <button class="px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold" id="authLoginTabBtn" type="button">Log In</button>
 <button class="px-4 py-2 rounded-xl bg-surface-container-low text-primary text-sm font-semibold" id="authRegisterTabBtn" type="button">Sign Up</button>
 </div>
-<p class="text-sm mb-4 hidden" id="authMessage"></p>
+<p class="text-sm mb-4 hidden" id="authMessage" role="status" aria-live="polite"></p>
 <form class="space-y-4" id="authLoginForm">
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="loginEmailInput">Email</label>
@@ -955,7 +954,7 @@
 </div>
 <div>
 <label class="text-sm font-semibold text-on-surface mb-2 block" for="loginPasswordInput">Password</label>
-<input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginPasswordInput" type="password" placeholder="Your password" required>
+<div class="auth-password-wrap"><input class="w-full rounded-xl border-outline-variant bg-surface-container-lowest text-sm" id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="Your password" required><button class="auth-password-toggle" id="toggleLoginPasswordBtn" type="button" aria-label="Show password" aria-pressed="false">Show</button></div>
 </div>
 <div class="flex justify-end">
 <button class="text-sm font-semibold text-secondary hover:text-primary" id="forgotPasswordBtn" type="button">Forgot password?</button>
@@ -1014,6 +1013,7 @@
       <aside class="account-sidebar">
         <div class="account-identity"><span class="account-avatar" data-account-avatar>U</span><div><strong class="account-identity-name" data-account-name>Your account</strong><small class="account-identity-email" data-account-email>UTS CS Career Navigator</small></div></div>
         <nav class="account-menu" aria-label="Account sections">
+          <button class="account-menu-button" data-account-view="access" data-account-guest-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>Sign in</button>
           <button class="account-menu-button" data-account-view="info" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>User info</button>
           <button class="account-menu-button" data-account-view="settings" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg>Settings</button>
           <button class="account-menu-button" data-account-view="history" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>History</button>
@@ -1022,6 +1022,12 @@
       </aside>
       <div class="account-main">
         <div class="account-topbar"><span>My account</span><button class="account-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button></div>
+        <section class="account-panel" data-account-panel="access" hidden>
+          <span class="account-eyebrow">Account access</span><h2 class="account-panel-title">Welcome to your career workspace.</h2>
+          <p class="account-panel-intro">Sign in to analyze a resume and keep your feedback together. You can also review history saved in this browser.</p>
+          <div class="account-guest-card"><strong>Ready to make your next move?</strong><p>Continue with your account, or create one to get started.</p><div class="account-guest-actions"><button class="account-primary" data-account-auth-action="login" type="button">Log in</button><button class="account-secondary" data-account-auth-action="register" type="button">Sign up</button></div></div>
+          <button class="account-text-action" data-account-go="history" type="button">View evaluation history <span aria-hidden="true">&rarr;</span></button>
+        </section>
         <section class="account-panel" data-account-panel="info">
           <span class="account-eyebrow">User info</span><h2 class="account-panel-title">Your profile</h2>
           <p class="account-panel-intro">Add a photo and keep the name on your account up to date.</p>
@@ -1031,7 +1037,7 @@
               <div class="account-photo-actions"><button class="account-secondary account-photo-button" id="chooseProfileAvatarBtn" type="button">Upload photo</button><button class="account-secondary account-photo-remove" id="removeProfileAvatarBtn" type="button" hidden>Remove</button></div>
             </div>
           </div>
-          <input class="account-file-input" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="profileAvatarHint">
+          <input class="account-file-input" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="profileAvatarHint" tabindex="-1">
           <p class="account-field-hint" id="profileAvatarHint">JPG, PNG, or WebP · up to 2 MB.</p>
           <p class="account-inline-message" id="profileAvatarMessage" role="status" aria-live="polite" hidden></p>
           <form id="profileNameForm" class="account-form">
@@ -1211,7 +1217,6 @@
   const universityPartnersModalBackdrop = document.getElementById("universityPartnersModalBackdrop");
   const closeUniversityPartnersBtn = document.getElementById("closeUniversityPartnersBtn");
   const openAuthModalBtn = document.getElementById("openAuthModalBtn");
-  const openHistoryBtn = document.getElementById("openHistoryBtn");
   const authModal = document.getElementById("authModal");
   const authModalBackdrop = document.getElementById("authModalBackdrop");
   const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
@@ -1296,15 +1301,10 @@
   function updateAuthUi() {
     const currentUser = getAuthUser();
     if (openAuthModalBtn) {
-      openAuthModalBtn.innerHTML = currentUser
-        ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span>'
-        : "Log In / Sign Up";
       openAuthModalBtn.classList.toggle("is-signed-in", Boolean(currentUser));
-      openAuthModalBtn.setAttribute("aria-controls", currentUser ? "profileModal" : "authModal");
-      openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Sign in or create account");
-      openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Sign in or create account";
+      openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Open account options");
+      openAuthModalBtn.title = currentUser ? ("Open profile for " + (currentUser.full_name || "current user")) : "Account options";
     }
-    if (openHistoryBtn) openHistoryBtn.hidden = Boolean(currentUser);
     accountWorkspace.setUser(currentUser);
     document.querySelectorAll("[data-admin-link]").forEach((link) => {
       link.classList.toggle("hidden", !(currentUser && currentUser.is_admin));
@@ -1397,7 +1397,7 @@
 
   function openProfileModal(view = "info") {
     const currentUser = getAuthUser();
-    if (!profileModal || (!currentUser && view !== "history")) {
+    if (!profileModal) {
       return;
     }
     if (currentUser) populateProfileForm();
@@ -2411,14 +2411,16 @@
 
   if (openAuthModalBtn) {
     openAuthModalBtn.addEventListener("click", () => {
-      if (getAuthUser()) {
-        openProfileModal();
-        return;
-      }
-      openAuthModal("register");
+      openProfileModal(getAuthUser() ? "info" : "access");
     });
   }
-  // Profile is opened from the main auth button when signed in.
+  document.querySelectorAll('[data-account-auth-action]').forEach((button) => {
+    button.addEventListener("click", () => {
+      const mode = button.dataset.accountAuthAction === "login" ? "login" : "register";
+      closeProfileModal();
+      openAuthModal(mode);
+    });
+  });
   if (authModalBackdrop) {
     authModalBackdrop.addEventListener("click", closeAuthModal);
   }
@@ -2891,7 +2893,6 @@
   });
   renderAccountHistory = historyController.render;
   const openHistoryModal = () => openProfileModal("history");
-  if (openHistoryBtn) openHistoryBtn.addEventListener("click", openHistoryModal);
   if (doneHistoryBtn) doneHistoryBtn.addEventListener("click", closeProfileModal);
 
   const viewSampleBtn = document.getElementById("viewSampleBtn");
@@ -2916,8 +2917,12 @@
     window.history.replaceState({}, document.title, "home_page.html");
   }
   if (startupParams.get("open_auth") === "1") {
-    openAuthModal("login");
+    openAuthModal(startupParams.get("auth_mode") === "register" ? "register" : "login");
     window.history.replaceState({}, document.title, "home_page.html");
+  }
+  if (startupParams.get("open_evaluation") === "1" && evaluateResumeBtn) {
+    window.history.replaceState({}, document.title, "home_page.html");
+    evaluateResumeBtn.click();
   }
   if (startupParams.get("open_profile") === "1") {
     if (getAuthUser()) {

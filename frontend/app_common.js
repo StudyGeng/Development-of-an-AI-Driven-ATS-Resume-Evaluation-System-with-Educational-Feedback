@@ -581,7 +581,7 @@
     }
 
     function renderAvatarInitials() {
-      const name = currentUser ? String(currentUser.full_name || "Your account") : "Guest history";
+      const name = currentUser ? String(currentUser.full_name || "Your account") : "Guest";
       const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "U";
       modal.querySelectorAll("[data-account-avatar]").forEach((element) => { element.textContent = initials; });
     }
@@ -627,7 +627,8 @@
     }
 
     function show(view) {
-      currentView = hasAccount && (view === "info" || view === "settings") ? view : "history";
+      const allowedViews = hasAccount ? ["info", "settings", "history"] : ["access", "history"];
+      currentView = allowedViews.includes(view) ? view : (hasAccount ? "info" : "access");
       buttons.forEach((button) => {
         const active = button.dataset.accountView === currentView;
         button.classList.toggle("is-active", active);
@@ -641,12 +642,15 @@
     function setUser(user) {
       hasAccount = Boolean(user);
       currentUser = user || null;
-      const name = user ? String(user.full_name || "Your account") : "Guest history";
-      const email = user ? String(user.email || "") : "Saved on this browser";
+      const name = user ? String(user.full_name || "Your account") : "Guest";
+      const email = user ? String(user.email || "") : "Account access and history";
       if (modal) {
+        const workspace = modal.querySelector(".account-workspace");
+        if (workspace) workspace.classList.toggle("is-guest", !hasAccount);
         modal.querySelectorAll("[data-account-name]").forEach((element) => { element.textContent = name; });
         modal.querySelectorAll("[data-account-email]").forEach((element) => { element.textContent = email; });
         modal.querySelectorAll("[data-account-auth-only]").forEach((element) => { element.hidden = !hasAccount; });
+        modal.querySelectorAll("[data-account-guest-only]").forEach((element) => { element.hidden = hasAccount; });
         const isAdmin = Boolean(user && user.is_admin);
         if (emailChangeCard) emailChangeCard.hidden = isAdmin;
         if (adminEmailNote) adminEmailNote.hidden = !isAdmin;
@@ -660,7 +664,8 @@
           renderAvatarInitials();
         }
       }
-      if (!hasAccount) show("history");
+      if (!hasAccount && currentView !== "history") show("access");
+      else if (hasAccount && currentView === "access") show("info");
     }
 
     if (nameForm) nameForm.addEventListener("submit", async (event) => {
@@ -807,6 +812,27 @@
       show(button.dataset.accountGo);
       if (button.dataset.accountGo === "settings" && newEmailInput) newEmailInput.focus({ preventScroll: true });
     }));
+    if (modal) modal.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        const closeButton = modal.querySelector(".account-close");
+        if (closeButton) closeButton.click();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([tabindex="-1"])'))
+        .filter((element) => element.getClientRects().length && !element.closest('[aria-hidden="true"]'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
     return { show, setUser, clearSensitiveFields, refreshAvatar, getCurrentView: () => currentView };
   }
 
@@ -933,6 +959,38 @@
     createAccountWorkspace,
     createHistoryModal
   };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const passwordInput = document.getElementById("loginPasswordInput");
+    const emailInput = document.getElementById("loginEmailInput");
+    const toggleButton = document.getElementById("toggleLoginPasswordBtn");
+    const authMessage = document.getElementById("authMessage");
+    const authModal = document.getElementById("authModal");
+    if (!passwordInput || !toggleButton) return;
+
+    const setPasswordVisible = (visible) => {
+      passwordInput.type = visible ? "text" : "password";
+      toggleButton.textContent = visible ? "Hide" : "Show";
+      toggleButton.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+      toggleButton.setAttribute("aria-pressed", String(visible));
+    };
+    toggleButton.addEventListener("click", () => {
+      setPasswordVisible(passwordInput.type === "password");
+      passwordInput.focus({ preventScroll: true });
+    });
+    const clearStaleLoginError = () => {
+      if (!authMessage || !authMessage.classList.contains("text-error")) return;
+      authMessage.textContent = "";
+      authMessage.classList.add("hidden");
+    };
+    passwordInput.addEventListener("input", clearStaleLoginError);
+    if (emailInput) emailInput.addEventListener("input", clearStaleLoginError);
+    if (authModal) {
+      new MutationObserver(() => {
+        if (authModal.classList.contains("hidden")) setPasswordVisible(false);
+      }).observe(authModal, { attributes: true, attributeFilter: ["class"] });
+    }
+  });
 
   // Keep keyboard focus inside the dialog currently shown on any app page.
   document.addEventListener("keydown", (event) => {

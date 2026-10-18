@@ -192,18 +192,16 @@ tbody tr:hover { background: #f1f8f8; }
 @media (max-width: 640px) {
   .admin-nav .nav-inner {
     height: auto;
-    min-height: 6.5rem;
-    flex-wrap: wrap;
-    align-content: center;
-    padding-top: 0.65rem;
-    padding-bottom: 0.65rem;
-    row-gap: 0.45rem;
+    min-height: 4.5rem;
+    flex-wrap: nowrap;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
   }
-  .admin-brand { flex-basis: 100%; }
+  .admin-brand { flex: 1 1 auto; min-width: 0; }
   .admin-brand-mark { width: 32px; height: 32px; }
   .admin-brand-mark svg { width: 21px; height: 21px; }
   .admin-brand-name strong { font-size: 14px; }
-  .admin-actions { width: 100%; justify-content: flex-end; }
+  .admin-actions { width: auto; margin-left: auto; justify-content: flex-end; }
   .admin-mobile-home { display: none; }
   .admin-access-card { grid-template-columns: 1fr; }
   .admin-overview { padding-top: 4rem; padding-bottom: 4rem; }
@@ -231,8 +229,7 @@ tbody tr:hover { background: #f1f8f8; }
       <a class="font-headline text-sm font-semibold tracking-tight border-b-2 pb-1 transition-colors" href="job_data_insights.html" aria-current="page" data-admin-link>Admin Insights</a>
     </div>
     <div class="admin-actions flex items-center gap-2 sm:gap-4 shrink-0">
-      <button class="admin-button admin-button-primary account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Sign in or create account" aria-haspopup="dialog" aria-controls="profileModal" title="Sign in or create account">Log In / Sign Up</button>
-      <button id="openHistoryBtn" class="admin-button admin-button-secondary h-10 inline-flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap" type="button">History</button>
+      <button class="admin-button admin-button-primary account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Open account options" aria-haspopup="dialog" aria-controls="profileModal" title="Account options"><span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span></button>
       <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights" hidden>
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.4 6"/><path d="M20 4v7h-7"/></svg>
       </button>
@@ -460,6 +457,7 @@ tbody tr:hover { background: #f1f8f8; }
       <aside class="account-sidebar">
         <div class="account-identity"><span class="account-avatar" data-account-avatar>U</span><div><strong class="account-identity-name" data-account-name>Your account</strong><small class="account-identity-email" data-account-email>UTS CS Career Navigator</small></div></div>
         <nav class="account-menu" aria-label="Account sections">
+          <button class="account-menu-button" data-account-view="access" data-account-guest-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>Sign in</button>
           <button class="account-menu-button" data-account-view="info" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>User info</button>
           <button class="account-menu-button" data-account-view="settings" data-account-auth-only type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 2.8h4l.6 2.2 2 1.1 2.2-.7 2 3.4-1.7 1.6v2.3l1.7 1.6-2 3.4-2.2-.7-2 1.1-.6 2.2h-4l-.6-2.2-2-1.1-2.2.7-2-3.4 1.7-1.6v-2.3L3.2 8.8l2-3.4 2.2.7 2-1.1.6-2.2Z"/><circle cx="12" cy="11.5" r="2.4"/></svg>Settings</button>
           <button class="account-menu-button" data-account-view="history" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>History</button>
@@ -468,6 +466,12 @@ tbody tr:hover { background: #f1f8f8; }
       </aside>
       <div class="account-main">
         <div class="account-topbar"><span>My account</span><button class="account-close" id="closeProfileModalBtn" type="button" aria-label="Close account dialog">&times;</button></div>
+        <section class="account-panel" data-account-panel="access" hidden>
+          <span class="account-eyebrow">Account access</span><h2 class="account-panel-title">Welcome to your career workspace.</h2>
+          <p class="account-panel-intro">Sign in to analyze a resume and keep your feedback together. You can also review history saved in this browser.</p>
+          <div class="account-guest-card"><strong>Ready to make your next move?</strong><p>Continue with your account, or create one to get started.</p><div class="account-guest-actions"><button class="account-primary" data-account-auth-action="login" type="button">Log in</button><button class="account-secondary" data-account-auth-action="register" type="button">Sign up</button></div></div>
+          <button class="account-text-action" data-account-go="history" type="button">View evaluation history <span aria-hidden="true">&rarr;</span></button>
+        </section>
         <section class="account-panel" data-account-panel="info">
           <span class="account-eyebrow">User info</span><h2 class="account-panel-title">Your profile</h2>
           <p class="account-panel-intro">Add a photo and keep the name on your account up to date.</p>
@@ -477,7 +481,7 @@ tbody tr:hover { background: #f1f8f8; }
               <div class="account-photo-actions"><button class="account-secondary account-photo-button" id="chooseProfileAvatarBtn" type="button">Upload photo</button><button class="account-secondary account-photo-remove" id="removeProfileAvatarBtn" type="button" hidden>Remove</button></div>
             </div>
           </div>
-          <input class="account-file-input" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="profileAvatarHint">
+          <input class="account-file-input" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="profileAvatarHint" tabindex="-1">
           <p class="account-field-hint" id="profileAvatarHint">JPG, PNG, or WebP · up to 2 MB.</p>
           <p class="account-inline-message" id="profileAvatarMessage" role="status" aria-live="polite" hidden></p>
           <form id="profileNameForm" class="account-form">
@@ -536,7 +540,6 @@ const numberFormatter = new Intl.NumberFormat("en-US");
 const scoreFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 const barColors = ["#087fec", "#2c9af4", "#367dc8", "#5aa9ee", "#5c75bb", "#78b8ee", "#4b94d2", "#7aa9d2"];
 const openAuthModalBtn = document.getElementById("openAuthModalBtn");
-const openHistoryBtn = document.getElementById("openHistoryBtn");
 const profileModal = document.getElementById("profileModal");
 const profileModalBackdrop = document.getElementById("profileModalBackdrop");
 const closeProfileModalBtn = document.getElementById("closeProfileModalBtn");
@@ -614,16 +617,12 @@ function getStoredUser() {
 function updateHeaderAuthUi() {
   const currentUser = getStoredUser();
   if (openAuthModalBtn) {
-    openAuthModalBtn.innerHTML = currentUser
-      ? '<span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span>'
-      : "Log In / Sign Up";
     openAuthModalBtn.classList.toggle("is-signed-in", Boolean(currentUser));
-    openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Sign in or create account");
+    openAuthModalBtn.setAttribute("aria-label", currentUser ? "Open account for " + (currentUser.full_name || "current user") : "Open account options");
     openAuthModalBtn.title = currentUser
       ? "Open profile for " + (currentUser.full_name || "current user")
-      : "Sign in or create account";
+      : "Account options";
   }
-  if (openHistoryBtn) openHistoryBtn.hidden = Boolean(currentUser);
   accountWorkspace.setUser(currentUser);
 }
 
@@ -900,7 +899,6 @@ async function deleteUser(userId) {
 async function loadInsights() {
   if (window.location.protocol === "file:") {
     openAuthModalBtn.hidden = true;
-    openHistoryBtn.hidden = true;
     showAdminAccessState(
       "Admin access",
       "Open the running app to view insights",
@@ -961,10 +959,6 @@ function setProfileMessage(message, isError = false) {
 
 function openAccountWorkspace(view = "info") {
   const currentUser = getStoredUser();
-  if (!currentUser && view !== "history") {
-    window.location.href = "home_page.html?open_auth=1";
-    return;
-  }
   if (currentUser) {
     window.CareerNavigatorCommon.populateProfileForm(currentUser, {
       nameInput: profileNameInput,
@@ -1016,8 +1010,14 @@ const historyController = window.CareerNavigatorCommon.createHistoryModal({
 });
 renderAccountHistory = historyController.render;
 
-if (openAuthModalBtn) openAuthModalBtn.addEventListener("click", () => openAccountWorkspace("info"));
-if (openHistoryBtn) openHistoryBtn.addEventListener("click", () => openAccountWorkspace("history"));
+if (openAuthModalBtn) openAuthModalBtn.addEventListener("click", () => openAccountWorkspace(getStoredUser() ? "info" : "access"));
+document.querySelectorAll('[data-account-auth-action]').forEach((button) => {
+  button.addEventListener("click", () => {
+    const mode = button.dataset.accountAuthAction === "register" ? "register" : "login";
+    closeAccountWorkspace();
+    window.location.href = "home_page.html?open_auth=1&auth_mode=" + mode;
+  });
+});
 if (profileModalBackdrop) profileModalBackdrop.addEventListener("click", closeAccountWorkspace);
 if (closeProfileModalBtn) closeProfileModalBtn.addEventListener("click", closeAccountWorkspace);
 if (doneHistoryBtn) doneHistoryBtn.addEventListener("click", closeAccountWorkspace);
