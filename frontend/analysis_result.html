@@ -909,22 +909,20 @@ Download PDF
 <iframe class="report-preview-frame" id="feedbackReportPreviewFrame" title="Full feedback report preview" sandbox="" referrerpolicy="no-referrer"></iframe>
 </div>
 </dialog>
-<div class="fixed inset-0 z-[85] hidden" id="authModal" role="dialog" aria-modal="true" aria-label="Account access" aria-hidden="true">
-<div class="absolute inset-0 bg-slate-900/60" id="authModalBackdrop"></div>
-<div class="absolute inset-0 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
-<div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface-container-lowest border border-outline-variant/40 shadow-2xl p-6 md:p-8">
-<div class="flex items-start justify-between gap-4 mb-4">
-<div>
-<p class="text-xs uppercase tracking-[0.2em] font-bold text-secondary mb-2">Account Access</p>
-<h3 class="font-headline text-2xl font-extrabold text-primary">Sign up or log in to continue</h3>
-<p class="text-sm text-on-surface-variant mt-2">You need an account before exporting analysis results.</p>
-</div>
-<button class="text-on-surface-variant hover:text-primary" id="closeAuthModalBtn" type="button" aria-label="Close account dialog"><span aria-hidden="true">&times;</span></button>
-</div>
-<div class="flex gap-2 mb-5">
-<button class="px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold" id="authLoginTabBtn" type="button">Log In</button>
-<button class="px-4 py-2 rounded-xl bg-surface-container-low text-primary text-sm font-semibold" id="authRegisterTabBtn" type="button">Sign Up</button>
-</div>
+<div class="fixed inset-0 z-[85] hidden" id="authModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="authModalTitle" aria-describedby="authModalDescription">
+<div class="account-backdrop" id="authModalBackdrop"></div>
+<div class="account-overlay">
+<div class="account-workspace auth-workspace">
+<aside class="account-sidebar auth-sidebar">
+<div class="account-identity"><span class="account-avatar" aria-hidden="true">G</span><div><strong class="account-identity-name">Guest</strong><small class="account-identity-email">Sign in or create an account</small></div></div>
+<nav class="account-menu auth-menu" aria-label="Account access">
+<button class="account-menu-button" id="authLoginTabBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20v-1.2a6.5 6.5 0 0 1 13 0V20"/></svg>Sign in</button>
+<button class="account-menu-button" id="authRegisterTabBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.3"/><path d="M2.8 19v-1a6.2 6.2 0 0 1 9.7-5.1M18 12v8M14 16h8"/></svg>Sign up</button>
+</nav>
+</aside>
+<div class="account-main auth-main">
+<div class="account-topbar"><span>My account</span><button class="account-close" id="closeAuthModalBtn" type="button" aria-label="Close account access modal">&times;</button></div>
+<div class="auth-intro"><span class="account-eyebrow">Account access</span><h3 class="account-panel-title" id="authModalTitle">Sign in</h3><p class="account-panel-intro" id="authModalDescription">Sign in to continue with your resume analysis.</p></div>
 <p class="text-sm mb-4 hidden" id="authMessage" role="status" aria-live="polite"></p>
 <form class="space-y-4" id="authLoginForm">
 <div>
@@ -938,7 +936,7 @@ Download PDF
 <div class="flex justify-end">
 <button class="text-sm font-semibold text-secondary hover:text-primary" id="forgotPasswordBtn" type="button">Forgot password?</button>
 </div>
-<button class="w-full px-5 py-3 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors" type="submit">Log In</button>
+<button class="w-full px-5 py-3 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors" type="submit">Sign in</button>
 </form>
 <form class="space-y-4 hidden" id="authRegisterForm">
 <div>
@@ -961,7 +959,7 @@ Download PDF
 </div>
 <p class="text-xs text-on-surface-variant mt-2">Complete your name, email, and password before requesting a PIN.</p>
 </div>
-<button class="w-full px-5 py-3 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors" type="submit">Create Account</button>
+<button class="w-full px-5 py-3 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors" type="submit">Sign up</button>
 </form>
 <form class="space-y-4 hidden" id="authResetForm">
 <div>
@@ -981,8 +979,9 @@ Download PDF
 <p class="text-xs text-on-surface-variant mt-2">Complete your email and new password before requesting a PIN.</p>
 </div>
 <button class="w-full px-5 py-3 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary-container transition-colors" type="submit">Reset Password</button>
-<button class="w-full px-5 py-3 rounded-xl bg-surface-container-low text-primary font-bold hover:bg-surface-container-high transition-colors" id="backToLoginBtn" type="button">Back to Log In</button>
+<button class="w-full px-5 py-3 rounded-xl bg-surface-container-low text-primary font-bold hover:bg-surface-container-high transition-colors" id="backToLoginBtn" type="button">Back to Sign in</button>
 </form>
+</div>
 </div>
 </div>
 </div>
@@ -1174,6 +1173,8 @@ Download PDF
     const feedbackReportPreviewFrame = document.getElementById("feedbackReportPreviewFrame");
     const closeFeedbackReportPreviewBtn = document.getElementById("closeFeedbackReportPreviewBtn");
     const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
+    const authModalTitle = document.getElementById("authModalTitle");
+    const authModalDescription = document.getElementById("authModalDescription");
     const authLoginTabBtn = document.getElementById("authLoginTabBtn");
     const authRegisterTabBtn = document.getElementById("authRegisterTabBtn");
     const authLoginForm = document.getElementById("authLoginForm");
@@ -1536,6 +1537,13 @@ Download PDF
         const isLogin = mode === "login";
         const isRegister = mode === "register";
         const isReset = mode === "reset";
+        const copy = isRegister
+            ? { title: "Sign up", description: "Create an account to analyze your resume and save your feedback." }
+            : isReset
+                ? { title: "Reset your password", description: "Enter your email and a new password, then request a verification PIN." }
+                : { title: "Sign in", description: "Sign in to analyze your resume and keep your feedback together." };
+        if (authModalTitle) authModalTitle.textContent = copy.title;
+        if (authModalDescription) authModalDescription.textContent = copy.description;
         if (!isRegister && registerPinInput) {
             registerPinInput.value = "";
         }
@@ -1556,10 +1564,14 @@ Download PDF
             authResetForm.classList.toggle("hidden", !isReset);
         }
         if (authLoginTabBtn) {
-            authLoginTabBtn.className = isLogin ? "px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold" : "px-4 py-2 rounded-xl bg-surface-container-low text-primary text-sm font-semibold";
+            authLoginTabBtn.classList.toggle("is-active", isLogin || isReset);
+            if (isLogin) authLoginTabBtn.setAttribute("aria-current", "page");
+            else authLoginTabBtn.removeAttribute("aria-current");
         }
         if (authRegisterTabBtn) {
-            authRegisterTabBtn.className = isRegister ? "px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold" : "px-4 py-2 rounded-xl bg-surface-container-low text-primary text-sm font-semibold";
+            authRegisterTabBtn.classList.toggle("is-active", isRegister);
+            if (isRegister) authRegisterTabBtn.setAttribute("aria-current", "page");
+            else authRegisterTabBtn.removeAttribute("aria-current");
         }
         preparePinInputs();
         refreshPinButtonStates();
@@ -1593,7 +1605,7 @@ Download PDF
     async function submitLogin(event) {
         event.preventDefault();
         try {
-            setAuthMessage("Logging in...");
+            setAuthMessage("Signing in...");
             const email = loginEmailInput ? loginEmailInput.value.trim().toLowerCase() : "";
             const password = loginPasswordInput ? loginPasswordInput.value : "";
 
@@ -1605,18 +1617,18 @@ Download PDF
             });
             const payload = await response.json();
             if (!response.ok) {
-                throw new Error(payload.detail || "Login failed");
+                throw new Error(payload.detail || "Sign in failed");
             }
             setAuthUser(payload.user);
 
             closeAuthModal();
-            setAuthMessage("Logged in successfully.", false, true);
+            setAuthMessage("Signed in successfully.", false, true);
             if (getAuthUser() && getAuthUser().is_admin) {
                 window.location.href = "job_data_insights.html";
                 return;
             }
         } catch (error) {
-            setAuthMessage(error.message || "Login failed", true, true);
+            setAuthMessage(error.message || "Sign in failed", true, true);
         }
     }
 
@@ -1650,7 +1662,7 @@ Download PDF
                 throw new Error(payload.detail || "Password reset failed");
             }
             clearAuthForms({ keepLoginEmail: email });
-            setAuthMessage("Password reset successfully. Please log in.", false, true);
+            setAuthMessage("Password reset successfully. Please sign in.", false, true);
             setAuthMode("login");
         } catch (error) {
             setAuthMessage(error.message || "Password reset failed", true, true);
@@ -1702,7 +1714,7 @@ Download PDF
         if (getAuthUser()) {
             return true;
         }
-        setAuthMessage("Please sign up or log in first to export your report.");
+        setAuthMessage("Please sign in or sign up first to export your report.");
         openAuthModal("register");
         return false;
     }
