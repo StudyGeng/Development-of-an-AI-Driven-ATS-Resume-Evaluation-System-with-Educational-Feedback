@@ -10,7 +10,8 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from analysis_helpers import compute_tfidf_score  # noqa: E402
+from analysis_helpers import compute_tfidf_score, get_scoring_cache, scoring_cache_scope  # noqa: E402
+from sklearn.feature_extraction.text import TfidfVectorizer  # noqa: E402
 
 
 with patch.dict(
@@ -26,6 +27,34 @@ with patch.dict(
 
 
 class AnalysisScoringTests(unittest.TestCase):
+    def test_fast_tfidf_matches_two_document_vectorizer(self):
+        document_pairs = [
+            ("", ""),
+            ("the and or", "a to in"),
+            ("Python Flask API testing", "Python API development"),
+            ("SQL SQL SQL Docker", "Docker and SQL"),
+            ("C++ .NET React.js", "React JavaScript and C++"),
+            ("Multilingual résumé: Bahasa Melayu and Python", "Python developer"),
+        ]
+
+        for resume_text, job_text in document_pairs:
+            with self.subTest(resume=resume_text, job=job_text):
+                vectorizer = TfidfVectorizer(stop_words="english", binary=True)
+                try:
+                    matrix = vectorizer.fit_transform([resume_text, job_text])
+                    expected = float((matrix[0] @ matrix[1].T).toarray()[0][0]) * 100.0
+                except ValueError:
+                    expected = 0.0
+                self.assertAlmostEqual(compute_tfidf_score(resume_text, job_text), expected, places=10)
+
+    def test_scoring_cache_is_discarded_after_a_ranking_run(self):
+        self.assertIsNone(get_scoring_cache())
+        with scoring_cache_scope():
+            first = compute_tfidf_score("Python and SQL", "Python developer")
+            self.assertEqual(compute_tfidf_score("Python and SQL", "Python developer"), first)
+            self.assertEqual(len(get_scoring_cache().tfidf), 1)
+        self.assertIsNone(get_scoring_cache())
+
     def test_repeating_keywords_does_not_raise_tfidf_score(self):
         job_text = "Python Flask API development and testing"
         normal_score = compute_tfidf_score("Python Flask API testing", job_text)
