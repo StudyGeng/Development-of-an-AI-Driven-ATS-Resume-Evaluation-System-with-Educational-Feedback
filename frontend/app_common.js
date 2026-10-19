@@ -1565,7 +1565,7 @@
   function createHistoryModal(options) {
     const modal = options.modal;
     const list = options.list;
-    const apiBaseUrl = options.apiBaseUrl || (window.location.protocol.startsWith("http") ? window.location.origin : "http://127.0.0.1:5000");
+    const apiBaseUrl = options.apiBaseUrl || getApiBaseUrl();
     let focusBeforeOpen = null;
     let renderVersion = 0;
     let serverAvailable = false;

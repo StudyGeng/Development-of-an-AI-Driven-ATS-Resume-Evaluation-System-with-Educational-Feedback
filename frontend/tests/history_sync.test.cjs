@@ -63,7 +63,9 @@ function setupHistory() {
     requests.push({ url, options });
     const route = new URL(url, 'https://app.example.test').pathname;
     let payload;
-    if (route === '/auth/session') {
+    if (route === '/auth/csrf-token') {
+      payload = { csrf_token: 'test-csrf-token' };
+    } else if (route === '/auth/session') {
       payload = { authenticated: true, user: { email: 'student@example.test' } };
     } else if (route === '/analyses' && options.method === 'DELETE') {
       serverRows = [];
@@ -89,10 +91,11 @@ function setupHistory() {
   };
   const window = {
     fetch,
+    APP_CONFIG: { apiBaseUrl: 'https://api.example.test' },
     location: { protocol: 'https:', origin: 'https://app.example.test', href: 'https://app.example.test/' },
     confirm: () => true
   };
-  const context = { window, document, localStorage, fetch, URL, Headers };
+  const context = { window, document, localStorage, fetch: (...args) => window.fetch(...args), URL, Headers };
   vm.runInNewContext(
     fs.readFileSync(path.join(__dirname, '..', 'app_common.js'), 'utf8'),
     context,
@@ -133,5 +136,6 @@ test('history loads a database report on a second device, opens it, and deletes 
   const deleteRequest = requests.find(({ options }) => options.method === 'DELETE');
   assert.equal(deleteRequest.url, 'https://api.example.test/analyses/42');
   assert.equal(deleteRequest.options.credentials, 'include');
+  assert.equal(deleteRequest.options.headers.get('X-CSRF-Token'), 'test-csrf-token');
   assert.equal(list.children.some((element) => element.querySelector('.viewHistoryBtn')), false);
 });
