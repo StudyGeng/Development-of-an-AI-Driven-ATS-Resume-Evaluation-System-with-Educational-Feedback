@@ -18,7 +18,7 @@ The app runs on Render Free. After a period without visitors, the first page loa
 6. Review the **UTS CS Readiness Score**, job-role match, matched and missing keywords, and improvement suggestions.
 7. If useful, click **Generate Optimized Resume** to preview a draft and download it as a PDF. You can also preview the complete feedback report on the results page or download the report as a PDF.
 
-Open the account menu and choose **History** to reopen recent results saved in the current browser. After visiting the home page or fictional sample, use **Your report** in the header to return to your latest analysis. To explore the interface before uploading a résumé, use **See a sample report** on the home page. The sample uses fictional information and is clearly labelled.
+Open the account menu and choose **History** to reopen reports saved to your account, including from another device. If a report could not be saved to the database, it remains available only in the browser where you ran the analysis. After visiting the home page or fictional sample, use **Your report** in the header to return to your latest analysis. To explore the interface before uploading a résumé, use **See a sample report** on the home page. The sample uses fictional information and is clearly labelled.
 
 ## What the feedback means
 
@@ -34,7 +34,7 @@ The project uses Python, Flask, scikit-learn, pypdf, Tesseract OCR for supported
 
 ## For developers
 
-- Branches: `main` contains the current layout for Render, `update_version` contains the faster analysis implementation, `method_2` stages the Netlify + Koyeb split, and `old_version` preserves the previous `main` release.
+- Branches: `main` contains the current Render testing version, `update_version` holds the updated app, `method_2` prepares Netlify and Koyeb staging, and `old_version` preserves the previous release.
 - To preview locally, build the stylesheet with `npm ci` and `npm run build:css`, then start the configured Flask app with `.\\.venv\\Scripts\\python.exe backend/app.py`. Open `http://127.0.0.1:5000/`. Opening an HTML file directly cannot load account or admin data.
 - `outputs/` contains local evaluation data and is ignored by Git. QA screenshots and temporary browser profiles are not needed by the app and should be removed after testing.
 - [Render deployment guide](docs/deployment/DEPLOY_RENDER_FREE.md)
