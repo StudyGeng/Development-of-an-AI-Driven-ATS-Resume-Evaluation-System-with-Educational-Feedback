@@ -84,7 +84,7 @@ Set `RESEND_API_KEY` and `RESEND_FROM` in Render instead of the SMTP variables. 
 
 Create the service and wait for its build and deploy logs to finish. Render Free does **not** offer a pre-deploy command or one-off shell job. That is fine for this first deploy because the Supabase schema and catalogue were already created locally. For future schema changes, run `.\.venv\Scripts\python.exe backend/manage.py migrate` and `.\.venv\Scripts\python.exe backend/seed_job_catalog.py seed` from this laptop with its private `config/env`, then verify with `.\.venv\Scripts\python.exe backend/seed_job_catalog.py verify --database` before pushing the new app version. [Render deploy steps](https://render.com/docs/deploys), [Free limitations](https://render.com/docs/free).
 
-The updated account profile stores photos in the new `user_avatars` table. Run the migration before deploying that frontend and backend version; the current `main` hosting branch can continue using its existing schema meanwhile.
+The account profile stores photos in the `user_avatars` table. Run the migration before deploying this version of `main` so profile photo uploads have database storage.
 
 Open the Render URL and check, in order:
 
