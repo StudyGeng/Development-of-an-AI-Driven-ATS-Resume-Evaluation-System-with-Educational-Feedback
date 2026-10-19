@@ -21,6 +21,7 @@ outputs/
 .qa/
 tmp/
 node_modules/
+dist/
 .npm-cache/
 frontend/tailwind.css
 .DS_Store
