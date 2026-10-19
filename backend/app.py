@@ -46,7 +46,7 @@ from admin_helpers import (
     isoformat_datetime,
     parse_stored_analysis_json,
 )
-from analysis_helpers import compute_tfidf_score, get_scoring_cache, scoring_cache_scope
+from analysis_helpers import compute_tfidf_score
 from app_config import (
     ACCURACY_TESTING_PENDING_FILE,
     ACCURACY_TESTING_WORKBOOK,
@@ -2200,13 +2200,6 @@ def compute_database_role_confidence_score(
 
 
 def rank_database_role_matches(resume_text: str, limit: int | None = None) -> list[dict[str, Any]]:
-    # The same requirement phrases appear across many roles. Keep exact scoring
-    # results only for this ranking run, without retaining a student's text.
-    with scoring_cache_scope():
-        return _rank_database_role_matches(resume_text, limit)
-
-
-def _rank_database_role_matches(resume_text: str, limit: int | None = None) -> list[dict[str, Any]]:
     roles, requirements_by_role = fetch_job_catalog()
     ranked_matches: list[dict[str, Any]] = []
     employment_entries = extract_employment_entries(resume_text)
@@ -2467,11 +2460,6 @@ NEGATED_EVIDENCE_MARKERS = {
 
 
 def phrase_has_positive_resume_evidence(phrase: str, resume_text: str) -> bool:
-    cache = get_scoring_cache()
-    cache_key = (phrase, resume_text)
-    if cache is not None and cache_key in cache.phrase:
-        return cache.phrase[cache_key]
-
     phrase_tokens = tokenize_canonical_keywords(phrase)
     if not phrase_tokens:
         return False
@@ -2492,11 +2480,7 @@ def phrase_has_positive_resume_evidence(phrase: str, resume_text: str) -> bool:
                 continue
             preceding = clause_tokens[max(0, index - 6) : index]
             if not (set(preceding) & NEGATED_EVIDENCE_MARKERS):
-                if cache is not None:
-                    cache.phrase[cache_key] = True
                 return True
-    if cache is not None:
-        cache.phrase[cache_key] = False
     return False
 
 

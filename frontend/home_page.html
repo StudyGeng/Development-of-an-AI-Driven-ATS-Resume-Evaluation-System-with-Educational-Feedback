@@ -2903,10 +2903,8 @@
         localStorage.setItem("selectedJobDescription", finalJobDescription);
         localStorage.setItem("pipelineStatus", "ready_for_ats_nlp");
         localStorage.setItem("analysisStartedAt", new Date().toISOString());
-        // Read the optional visual preview while the server analyzes the file.
-        // Waiting for FileReader before upload adds avoidable time for large PDFs.
-        const previewPromise = persistResumeVisualPreview(fileAtStart, () => runId === analysisRunId)
-          .catch(() => false);
+        await persistResumeVisualPreview(fileAtStart, () => runId === analysisRunId);
+        if (runId !== analysisRunId) return;
 
         const formData = new FormData();
         formData.append("resume_file", fileAtStart, fileNameAtStart);
@@ -2937,8 +2935,6 @@
         }
 
         const analysisResult = await response.json();
-        if (runId !== analysisRunId) return;
-        await previewPromise;
         if (runId !== analysisRunId) return;
         if (analysisResult.target_role) {
           localStorage.setItem("selectedJobRole", analysisResult.target_role);
