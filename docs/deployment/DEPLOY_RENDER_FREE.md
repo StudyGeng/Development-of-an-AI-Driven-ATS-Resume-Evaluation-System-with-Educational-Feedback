@@ -4,7 +4,7 @@ This option runs the existing Flask website and API in one Render web service. S
 
 ## 1. Put the current code on GitHub
 
-The project already has a root `Dockerfile` that builds the frontend CSS, installs Python and Tesseract, and starts Gunicorn. Render can build it directly from a GitHub repository. **Use the intended live commit on `main` when creating or updating the service**; Render cannot deploy changes that exist only on your laptop. Keep the in-progress frontend on `update_version` until it is ready for the live site. Keep `config/env` and all passwords out of GitHub. [Render Docker deployment](https://render.com/docs/docker), [web service sources](https://render.com/docs/web-services).
+The project already has a root `Dockerfile` that builds the frontend CSS, installs Python and Tesseract, and starts Gunicorn. Render can build it directly from a GitHub repository. **Use the intended live commit on `main` when creating or updating the service**; Render cannot deploy changes that exist only on your laptop. Use `update_version` for further work, while `old_version` preserves the previous `main` release. Keep `config/env` and all passwords out of GitHub. [Render Docker deployment](https://render.com/docs/docker), [web service sources](https://render.com/docs/web-services).
 
 The Supabase testing database has already been migrated and seeded locally. The role list and analysis history stay in Supabase when the Render process sleeps or restarts. The completed database URI is private; use the **Shared/Session pooler** connection string on port `5432` with `sslmode=require`. [Supabase connection methods](https://supabase.com/docs/guides/database/connecting-to-postgres).
 
@@ -26,7 +26,7 @@ In [Render Dashboard](https://dashboard.render.com/), choose **New → Web Servi
 | Dockerfile path | `./Dockerfile` |
 | Docker command | Leave empty |
 
-For an existing Render service, check its selected branch in the Render dashboard and set it to `main` for the current live version. Keep redesign commits on `update_version`; switch the live branch or merge the redesign into `main` only when the new frontend is ready to launch. Editing this guide does not change the service setting.
+For an existing Render service, check its selected branch in the Render dashboard and set it to `main` for the current layout. If automatic deploy is on, a push to `main` starts a deployment; otherwise choose **Manual Deploy → Deploy latest commit** after selecting `main`. The `old_version` branch keeps the former layout available for rollback. Editing this guide does not change the service setting.
 
 The Dockerfile already binds Gunicorn to Render's `PORT`; no separate frontend service, build command, or start command is needed. Render provides an HTTPS `onrender.com` address after deployment. [Docker setup](https://render.com/docs/docker), [regions](https://render.com/docs/regions), [port binding](https://render.com/docs/web-services), [health checks](https://render.com/docs/health-checks).
 
