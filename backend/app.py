@@ -18,6 +18,7 @@ from io import BytesIO
 import smtplib
 import urllib.error
 import urllib.request
+from time import perf_counter
 from urllib.parse import urlsplit
 from typing import Any
 
@@ -9316,7 +9317,127 @@ def list_resume_analyses():
             }
         )
 
-    return jsonify({"count": len(analyses), "analyses": analyses})
+    response = jsonify({"count": len(analyses), "analyses": analyses})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@app.get("/analyses/<int:analysis_id>")
+def get_saved_resume_analysis(analysis_id: int):
+    """Restore a saved report for its owner, including on a second device."""
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while validating session"}), 500
+
+    if not current_user:
+        return jsonify({"detail": "Authentication required"}), 401
+
+    try:
+        ownership_status, analysis = load_owned_analysis_snapshot(int(current_user["id"]), analysis_id)
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while loading the saved analysis"}), 500
+
+    # Return the same response for missing and foreign IDs so report IDs do not
+    # reveal whether another account has an analysis.
+    if ownership_status in {"not_found", "forbidden"}:
+        return jsonify({"detail": "Analysis not found"}), 404
+    if ownership_status != "owned" or not analysis:
+        return jsonify({"detail": "The saved analysis is unavailable or invalid"}), 409
+
+    analysis["history_saved"] = True
+    response = jsonify({"analysis": analysis})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@app.delete("/analyses/<int:analysis_id>")
+def delete_saved_resume_analysis(analysis_id: int):
+    """Remove one owned report and its download records."""
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while validating session"}), 500
+    if not current_user:
+        return jsonify({"detail": "Authentication required"}), 401
+
+    user_id = int(current_user["id"])
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT id FROM resume_analyses WHERE id = %s AND user_id = %s",
+            (analysis_id, user_id),
+        )
+        if not cursor.fetchone():
+            return jsonify({"detail": "Analysis not found"}), 404
+
+        cursor.execute(
+            "DELETE FROM download_history WHERE analysis_id = %s AND user_id = %s",
+            (analysis_id, user_id),
+        )
+        cursor.execute(
+            "DELETE FROM resume_analyses WHERE id = %s AND user_id = %s",
+            (analysis_id, user_id),
+        )
+        connection.commit()
+    except DatabaseErrors:
+        if connection is not None:
+            connection.rollback()
+        return jsonify({"detail": "Database error while deleting the saved analysis"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    response = jsonify({"deleted": True, "id": analysis_id})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@app.delete("/analyses")
+def clear_saved_resume_analyses():
+    """Remove all reports owned by the current user."""
+    try:
+        current_user = get_authenticated_session_user()
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while validating session"}), 500
+    if not current_user:
+        return jsonify({"detail": "Authentication required"}), 401
+
+    user_id = int(current_user["id"])
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            DELETE FROM download_history
+            WHERE user_id = %s
+              AND analysis_id IN (SELECT id FROM resume_analyses WHERE user_id = %s)
+            """,
+            (user_id, user_id),
+        )
+        cursor.execute("DELETE FROM resume_analyses WHERE user_id = %s", (user_id,))
+        deleted_count = cursor.rowcount
+        connection.commit()
+    except DatabaseErrors:
+        if connection is not None:
+            connection.rollback()
+        return jsonify({"detail": "Database error while clearing analysis history"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    response = jsonify({"deleted_count": deleted_count})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @app.post("/downloads")
@@ -9757,6 +9878,9 @@ def api_index():
                 "PUT /admin/users/<user_id>",
                 "DELETE /admin/users/<user_id>",
                 "GET /analyses",
+                "GET /analyses/<analysis_id>",
+                "DELETE /analyses/<analysis_id>",
+                "DELETE /analyses",
                 "POST /downloads",
                 "POST /generate-resume",
                 "POST /generate-resume-pdf",
@@ -9773,6 +9897,16 @@ def api_index():
 
 @app.post("/analyze-file")
 def analyze_file():
+    started_at = perf_counter()
+    phase_started_at = started_at
+    phase_timings: list[str] = []
+
+    def mark_phase(name: str) -> None:
+        nonlocal phase_started_at
+        now = perf_counter()
+        phase_timings.append(f"{name};dur={(now - phase_started_at) * 1000:.2f}")
+        phase_started_at = now
+
     try:
         current_user = get_authenticated_session_user()
     except DatabaseErrors:
@@ -9782,6 +9916,7 @@ def analyze_file():
         return jsonify({"detail": "Authentication required"}), 401
 
     session_user_id = int(current_user["id"])
+    mark_phase("auth")
 
     if should_enforce_extra_rate_limits():
         try:
@@ -9808,6 +9943,7 @@ def analyze_file():
         resume_text, document_info = extract_resume_text(resume_file, resume_file.filename)
     except ValueError as error:
         return jsonify({"detail": str(error)}), 400
+    mark_phase("extract")
 
     if not resume_text:
         if file_extension in IMAGE_EXTENSIONS:
@@ -9931,6 +10067,7 @@ def analyze_file():
         analysis_requirements = selected_job.get("requirements", [])
     else:
         analysis_requirements = None
+    mark_phase("role")
     analysis = build_analysis_payload(resume_text, job_description, resume_file.filename, analysis_requirements, target_role, document_info)
     analysis["target_role"] = target_role
     analysis["selected_role"] = requested_target_role
@@ -9947,6 +10084,7 @@ def analyze_file():
     )
     analysis["resume_contact"] = extract_resume_contact(resume_text)
     analysis["recommendation_module"] = build_part8_recommendation_module(analysis)
+    mark_phase("report")
 
     try:
         analysis["analysis_id"] = persist_analysis(
@@ -9964,8 +10102,14 @@ def analyze_file():
     accuracy_testing_result = update_accuracy_testing_workbook(analysis)
     analysis.update(accuracy_testing_result)
     analysis["resume_text_for_generation"] = resume_text[:RESUME_GENERATION_MAX_TEXT_LENGTH]
+    mark_phase("save")
 
-    return jsonify(analysis)
+    response = jsonify(analysis)
+    total_ms = (perf_counter() - started_at) * 1000
+    response.headers["Server-Timing"] = ", ".join(
+        (*phase_timings, f"total;dur={total_ms:.2f}")
+    )
+    return response
 
 
 if __name__ == "__main__":
