@@ -9,6 +9,7 @@ docs/*
 docs/deployment/*
 !docs/deployment/DEPLOY_RENDER_FREE.md
 !docs/deployment/DEPLOY_SUPABASE.md
+!docs/deployment/DEPLOY_KOYEB_NETLIFY.md
 Resume_template/
 .venv/
 __pycache__/
@@ -23,5 +24,6 @@ tmp/
 node_modules/
 .npm-cache/
 frontend/tailwind.css
+dist/
 .DS_Store
 Thumbs.db

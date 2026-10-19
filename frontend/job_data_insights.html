@@ -7,6 +7,7 @@
 <link href="tailwind.css" rel="stylesheet">
 <link href="account_workspace.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<script src="runtime_config.js"></script>
 <script src="app_common.js"></script>
 <style>
 :root {
@@ -533,9 +534,7 @@ tbody tr:hover { background: #f1f8f8; }
   </div>
 </div>
 <script>
-const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
-  ? window.location.origin
-  : "http://127.0.0.1:5000";
+const API_BASE_URL = window.CareerNavigatorCommon.getApiBaseUrl();
 const numberFormatter = new Intl.NumberFormat("en-US");
 const scoreFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 const barColors = ["#087fec", "#2c9af4", "#367dc8", "#5aa9ee", "#5c75bb", "#78b8ee", "#4b94d2", "#7aa9d2"];
@@ -657,7 +656,7 @@ function showAdminDashboard() {
 
 async function fetchAdminJson(path, options = {}) {
   const response = await fetch(API_BASE_URL + path, {
-    credentials: "same-origin",
+    credentials: "include",
     ...options,
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -1093,7 +1092,7 @@ if (profileForm) profileForm.addEventListener("submit", async (event) => {
   }
 });
 if (logoutBtn) logoutBtn.addEventListener("click", () => {
-  fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+  fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "include" }).catch(() => {});
   window.CareerNavigatorCommon.setAuthUser(null);
   try {
     ["analysisResult", "analysisOwner", "pipelineStatus", "uploadedResumeName", "selectedJobRole", "selectedJobDescription", "analysisStartedAt"].forEach((key) => localStorage.removeItem(key));

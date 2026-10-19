@@ -136,6 +136,13 @@ TRUE_ENVIRONMENT_VALUES = {"1", "true", "yes", "on"}
 FALSE_ENVIRONMENT_VALUES = {"0", "false", "no", "off"}
 
 
+def get_boolean_environment(name: str, default: bool = False) -> bool:
+    raw_value = os.getenv(name, "1" if default else "0").strip().lower()
+    if raw_value not in TRUE_ENVIRONMENT_VALUES | FALSE_ENVIRONMENT_VALUES:
+        raise RuntimeError(f"{name} must be a true or false value.")
+    return raw_value in TRUE_ENVIRONMENT_VALUES
+
+
 class EmailPinConfigurationError(RuntimeError):
     """Raised when PIN delivery is unavailable or unsafe for this environment."""
 
@@ -154,6 +161,10 @@ def is_production_environment() -> bool:
 
 
 CORS_ALLOWED_ORIGINS = get_allowed_cors_origins()
+CROSS_SITE_SESSION_COOKIES = get_boolean_environment("CROSS_SITE_SESSION_COOKIES")
+PARTITIONED_SESSION_COOKIES = get_boolean_environment("SESSION_COOKIE_PARTITIONED")
+if PARTITIONED_SESSION_COOKIES and not CROSS_SITE_SESSION_COOKIES:
+    raise RuntimeError("SESSION_COOKIE_PARTITIONED requires CROSS_SITE_SESSION_COOKIES=1.")
 
 
 def get_accuracy_testing_auto_export_enabled() -> bool:

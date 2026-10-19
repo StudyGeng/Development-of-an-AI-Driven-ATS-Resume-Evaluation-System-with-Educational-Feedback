@@ -117,6 +117,9 @@ class WebProtectionTests(unittest.TestCase):
         "ENFORCE_CSRF_IN_TESTS",
         "ENFORCE_RATE_LIMITS_IN_TESTS",
         "MAX_CONTENT_LENGTH",
+        "SESSION_COOKIE_SAMESITE",
+        "SESSION_COOKIE_SECURE",
+        "SESSION_COOKIE_PARTITIONED",
     )
 
     def setUp(self):
@@ -169,6 +172,92 @@ class WebProtectionTests(unittest.TestCase):
         )
         self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertIn("X-CSRF-Token", response.headers.get("Access-Control-Allow-Headers", ""))
+
+    def test_cross_origin_profile_preflight_allows_patch_without_csrf(self):
+        app_module.app.config["ENFORCE_CSRF_IN_TESTS"] = True
+        frontend_origin = "https://career-app.netlify.app"
+        with patch.object(app_module, "CORS_ALLOWED_ORIGINS", (frontend_origin,)):
+            response = self.client.options(
+                "/users/me",
+                headers={
+                    "Origin": frontend_origin,
+                    "Access-Control-Request-Method": "PATCH",
+                    "Access-Control-Request-Headers": "content-type,x-csrf-token",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Access-Control-Allow-Origin"], frontend_origin)
+        self.assertEqual(response.headers["Access-Control-Allow-Credentials"], "true")
+        self.assertIn("PATCH", response.headers["Access-Control-Allow-Methods"])
+        self.assertIn("Content-Type", response.headers["Access-Control-Allow-Headers"])
+        self.assertIn("X-CSRF-Token", response.headers["Access-Control-Allow-Headers"])
+        self.assertIn("Origin", response.headers["Vary"])
+
+    def test_disallowed_origin_has_no_cors_grant_but_varies_cache_by_origin(self):
+        with patch.object(
+            app_module, "CORS_ALLOWED_ORIGINS", ("https://career-app.netlify.app",)
+        ):
+            response = self.client.get(
+                "/health", headers={"Origin": "https://evil.example"}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.headers.get("Access-Control-Allow-Origin"))
+        self.assertIn("Origin", response.headers["Vary"])
+
+    def test_allowlisted_cross_origin_can_use_session_csrf_token(self):
+        app_module.app.config["ENFORCE_CSRF_IN_TESTS"] = True
+        frontend_origin = "https://career-app.netlify.app"
+        backend_origin = "https://career-api.koyeb.app"
+        with patch.object(app_module, "CORS_ALLOWED_ORIGINS", (frontend_origin,)):
+            token_response = self.client.get(
+                "/auth/csrf-token",
+                base_url=backend_origin,
+                headers={"Origin": frontend_origin},
+            )
+            self.assertEqual(token_response.status_code, 200)
+            self.assertEqual(token_response.headers["Access-Control-Allow-Origin"], frontend_origin)
+            self.assertEqual(token_response.headers["Cache-Control"], "no-store")
+            response = self.client.post(
+                "/users/logout",
+                base_url=backend_origin,
+                headers={
+                    "Origin": frontend_origin,
+                    "X-CSRF-Token": token_response.get_json()["csrf_token"],
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"message": "Logged out successfully"})
+
+    def test_split_hosting_cookie_flags_are_opt_in(self):
+        app_module.app.config.update(
+            SESSION_COOKIE_SAMESITE="None",
+            SESSION_COOKIE_SECURE=True,
+            SESSION_COOKIE_PARTITIONED=True,
+        )
+        response = self.client.get(
+            "/auth/csrf-token", base_url="https://career-api.koyeb.app"
+        )
+
+        cookie = response.headers["Set-Cookie"]
+        self.assertIn("SameSite=None", cookie)
+        self.assertIn("Secure", cookie)
+        self.assertIn("HttpOnly", cookie)
+        self.assertIn("Partitioned", cookie)
+
+    def test_default_cookie_flags_keep_same_origin_session(self):
+        app_module.app.config.update(
+            SESSION_COOKIE_SAMESITE="Lax",
+            SESSION_COOKIE_SECURE=False,
+            SESSION_COOKIE_PARTITIONED=False,
+        )
+        response = self.client.get("/auth/csrf-token")
+
+        cookie = response.headers["Set-Cookie"]
+        self.assertIn("SameSite=Lax", cookie)
+        self.assertNotIn("Partitioned", cookie)
 
     def test_csrf_blocks_missing_token_and_foreign_origin(self):
         app_module.app.config["ENFORCE_CSRF_IN_TESTS"] = True
@@ -282,6 +371,11 @@ class WebProtectionTests(unittest.TestCase):
 
 
 class WebProtectionConfigurationTests(unittest.TestCase):
+    def test_cross_site_cookie_environment_requires_boolean_values(self):
+        with patch.dict(os.environ, {"CROSS_SITE_SESSION_COOKIES": "sometimes"}):
+            with self.assertRaisesRegex(RuntimeError, "CROSS_SITE_SESSION_COOKIES"):
+                app_config.get_boolean_environment("CROSS_SITE_SESSION_COOKIES")
+
     def test_cors_wildcard_is_rejected(self):
         with patch.dict(os.environ, {"CORS_ALLOWED_ORIGINS": "*"}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "CORS_ALLOWED_ORIGINS"):

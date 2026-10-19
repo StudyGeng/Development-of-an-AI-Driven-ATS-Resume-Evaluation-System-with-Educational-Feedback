@@ -5,6 +5,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tailwind.css">
 <link rel="stylesheet" href="account_workspace.css">
+<script src="runtime_config.js"></script>
 <script src="app_common.js"></script>
 <style>
         *, *::before, *::after { box-sizing: border-box; }
@@ -1153,9 +1154,7 @@ Download PDF
 
 </div>
 <script>
-    const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
-        ? window.location.origin
-        : "http://127.0.0.1:5000";
+    const API_BASE_URL = window.CareerNavigatorCommon.getApiBaseUrl();
     const openPrivacyPolicyBtn = document.getElementById("openPrivacyPolicyBtn");
     const privacyPolicyModal = document.getElementById("privacyPolicyModal");
     const privacyPolicyModalBackdrop = document.getElementById("privacyPolicyModalBackdrop");
@@ -1476,7 +1475,7 @@ Download PDF
         loadingState.querySelector("p").textContent = "Signing out...";
         const logoutRequest = fetch(API_BASE_URL + "/users/logout", {
             method: "POST",
-            credentials: "same-origin",
+            credentials: "include",
             signal: AbortSignal.timeout(8000)
         });
         setAuthUser(null);
@@ -1617,7 +1616,7 @@ Download PDF
 
             const response = await fetch(API_BASE_URL + "/users/login", {
                 method: "POST",
-                credentials: "same-origin",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password })
             });
@@ -3450,7 +3449,7 @@ Download PDF
             }
             await fetch(API_BASE_URL + "/downloads", {
                 method: "POST",
-                credentials: "same-origin",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     analysis_id: analysisId || null,

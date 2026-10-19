@@ -54,6 +54,7 @@ from app_config import (
     ANALYSIS_REQUEST_LIMIT_PER_IP,
     APP_TITLE,
     CORS_ALLOWED_ORIGINS,
+    CROSS_SITE_SESSION_COOKIES,
     CS_SAMPLE_ONLY_TOP_MATCH_THRESHOLD,
     EMAIL_PIN_ATTEMPT_LIMIT_PER_IP,
     EmailPinConfigurationError,
@@ -82,6 +83,7 @@ from app_config import (
     PDF_EXTENSIONS,
     RESUME_GENERATION_MAX_TEXT_LENGTH,
     SESSION_LIFETIME_DAYS,
+    PARTITIONED_SESSION_COOKIES,
     SUPPORTED_RESUME_EXTENSIONS,
     TRUSTED_PROXY_COUNT,
 )
@@ -854,8 +856,9 @@ app.secret_key = FLASK_SESSION_SECRET_KEY
 app.config.update(
     APP_ENV=get_app_environment(),
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=is_production_environment(),
+    SESSION_COOKIE_SAMESITE="None" if CROSS_SITE_SESSION_COOKIES else "Lax",
+    SESSION_COOKIE_SECURE=is_production_environment() or CROSS_SITE_SESSION_COOKIES,
+    SESSION_COOKIE_PARTITIONED=PARTITIONED_SESSION_COOKIES,
     PERMANENT_SESSION_LIFETIME=timedelta(days=SESSION_LIFETIME_DAYS),
     SESSION_REFRESH_EACH_REQUEST=True,
     MAX_CONTENT_LENGTH=MAX_RESUME_UPLOAD_BYTES,
@@ -996,12 +999,7 @@ def apply_browser_security_headers(response):
         )
 
     origin = request.headers.get("Origin", "")
-    if normalize_origin(origin) in {normalize_origin(value) for value in CORS_ALLOWED_ORIGINS}:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-CSRF-Token"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Max-Age"] = "600"
+    if CORS_ALLOWED_ORIGINS:
         vary_values = [
             value.strip()
             for value in response.headers.get("Vary", "").split(",")
@@ -1010,6 +1008,12 @@ def apply_browser_security_headers(response):
         if "Origin" not in vary_values:
             vary_values.append("Origin")
         response.headers["Vary"] = ", ".join(vary_values)
+    if origin in CORS_ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-CSRF-Token"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        response.headers["Access-Control-Max-Age"] = "600"
     return response
 
 
@@ -9716,6 +9720,11 @@ def job_data_insights_page():
 @app.get("/app_common.js")
 def app_common_script():
     return serve_frontend_page("app_common.js")
+
+
+@app.get("/runtime_config.js")
+def runtime_config_script():
+    return serve_frontend_page("runtime_config.js")
 
 
 @app.get("/tailwind.css")

@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tailwind.css">
 <link rel="stylesheet" href="account_workspace.css">
+<script src="runtime_config.js"></script>
 <script src="app_common.js"></script>
 <style>
         *, *::before, *::after { box-sizing: border-box; }
@@ -1285,9 +1286,7 @@
   const resetPasswordInput = document.getElementById("resetPasswordInput");
   const sendResetPinBtn = document.getElementById("sendResetPinBtn");
   const backToLoginBtn = document.getElementById("backToLoginBtn");
-  const API_BASE_URL = window.location.origin && window.location.protocol.startsWith("http")
-    ? window.location.origin
-    : "http://127.0.0.1:5000";
+  const API_BASE_URL = window.CareerNavigatorCommon.getApiBaseUrl();
 
   let selectedRole = "";
   let selectedPdfFileName = "";
@@ -1558,7 +1557,7 @@
   }
 
   function logoutUser() {
-    fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    fetch(API_BASE_URL + "/users/logout", { method: "POST", credentials: "include" }).catch(() => {});
     setAuthUser(null);
     closeProfileModal();
     clearAuthForms();
@@ -1715,7 +1714,7 @@
 
       const response = await fetch(API_BASE_URL + "/users/login", {
         method: "POST",
-        credentials: "same-origin",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
@@ -2915,7 +2914,7 @@
 
         const response = await fetch(`${API_BASE_URL}/analyze-file`, {
           method: "POST",
-          credentials: "same-origin",
+          credentials: "include",
           body: formData,
           signal: analysisAbortController.signal,
         });

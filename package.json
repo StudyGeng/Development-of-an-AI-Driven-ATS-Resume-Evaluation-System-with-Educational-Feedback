@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -c tailwind.config.js -i ./frontend/tailwind.input.css -o ./frontend/tailwind.css --minify",
+    "build:netlify": "npm run build:css && node tools/build_netlify.mjs",
     "watch:css": "tailwindcss -c tailwind.config.js -i ./frontend/tailwind.input.css -o ./frontend/tailwind.css --watch"
   },
   "devDependencies": {

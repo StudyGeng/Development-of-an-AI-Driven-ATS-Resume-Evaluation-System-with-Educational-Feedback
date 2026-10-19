@@ -2,6 +2,17 @@
   const AUTH_USER_KEY = "authUser";
   const UNSAFE_HTTP_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
   const nativeFetch = window.fetch.bind(window);
+  function getApiBaseUrl() {
+    const configured = window.APP_CONFIG && window.APP_CONFIG.apiBaseUrl;
+    if (typeof configured === "string" && configured.trim()) {
+      return new URL(configured.trim(), window.location.href).origin;
+    }
+    return window.location.protocol.startsWith("http")
+      ? window.location.origin
+      : "http://127.0.0.1:5000";
+  }
+
+  const apiBaseUrl = getApiBaseUrl();
   let csrfToken = null;
   let csrfTokenRequest = null;
   let authStateVersion = 0;
@@ -18,9 +29,9 @@
     return null;
   }
 
-  function isSameOriginRequest(input) {
+  function isApiRequest(input) {
     const requestUrl = getRequestUrl(input);
-    return Boolean(requestUrl && requestUrl.origin === window.location.origin);
+    return Boolean(requestUrl && requestUrl.origin === apiBaseUrl);
   }
 
   function getRequestMethod(input, options) {
@@ -38,8 +49,8 @@
       return csrfToken;
     }
     if (!csrfTokenRequest) {
-      csrfTokenRequest = nativeFetch("/auth/csrf-token", {
-        credentials: "same-origin",
+      csrfTokenRequest = nativeFetch(apiBaseUrl + "/auth/csrf-token", {
+        credentials: "include",
         cache: "no-store"
       })
         .then(async (response) => {
@@ -64,13 +75,16 @@
       : undefined;
     const headers = new Headers(options.headers || inheritedHeaders || {});
     headers.set("X-CSRF-Token", token);
-    return nativeFetch(input, { ...options, headers });
+    return nativeFetch(input, { ...options, headers, credentials: "include" });
   }
 
   async function secureFetch(input, options = {}) {
     const method = getRequestMethod(input, options);
-    if (!UNSAFE_HTTP_METHODS.has(method) || !isSameOriginRequest(input)) {
+    if (!isApiRequest(input)) {
       return nativeFetch(input, options);
+    }
+    if (!UNSAFE_HTTP_METHODS.has(method)) {
+      return nativeFetch(input, { ...options, credentials: "include" });
     }
 
     let response = await fetchWithCsrfToken(input, options);
@@ -148,8 +162,8 @@
     }
 
     const startingVersion = authStateVersion;
-    authSessionRequest = nativeFetch("/auth/session", {
-      credentials: "same-origin",
+    authSessionRequest = nativeFetch(apiBaseUrl + "/auth/session", {
+      credentials: "include",
       cache: "no-store"
     })
       .then(async (response) => {
@@ -577,7 +591,7 @@
     const buttons = modal ? Array.from(modal.querySelectorAll("[data-account-view]")) : [];
     const goButtons = modal ? Array.from(modal.querySelectorAll("[data-account-go]")) : [];
     const panels = modal ? Array.from(modal.querySelectorAll("[data-account-panel]")) : [];
-    const apiBaseUrl = options.apiBaseUrl || (window.location.protocol.startsWith("http") ? window.location.origin : "http://127.0.0.1:5000");
+    const apiBaseUrl = options.apiBaseUrl || getApiBaseUrl();
     const nameForm = modal && modal.querySelector("#profileNameForm");
     const nameInput = modal && modal.querySelector("#profileNameInput");
     const nameMessage = modal && modal.querySelector("#profileNameMessage");
@@ -632,7 +646,7 @@
       if (!currentUser) return;
       try {
         const response = await fetch(apiBaseUrl + "/users/me/avatar?v=" + requestId, {
-          credentials: "same-origin",
+          credentials: "include",
           cache: "no-store"
         });
         if (!response.ok || requestId !== avatarRequestId) return;
@@ -725,7 +739,7 @@
         const response = await fetch(apiBaseUrl + "/users/me", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
+          credentials: "include",
           body: JSON.stringify({ full_name: fullName })
         });
         const payload = await response.json().catch(() => ({}));
@@ -756,7 +770,7 @@
         formData.append("avatar", file);
         const response = await fetch(apiBaseUrl + "/users/me/avatar", {
           method: "PUT",
-          credentials: "same-origin",
+          credentials: "include",
           body: formData
         });
         const payload = await response.json().catch(() => ({}));
@@ -775,7 +789,7 @@
       removeAvatarButton.disabled = true;
       showMessage(avatarMessage, "Removing photo...");
       try {
-        const response = await fetch(apiBaseUrl + "/users/me/avatar", { method: "DELETE", credentials: "same-origin" });
+        const response = await fetch(apiBaseUrl + "/users/me/avatar", { method: "DELETE", credentials: "include" });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(responseError(payload, "Could not remove your photo."));
         await refreshAvatar();
@@ -808,7 +822,7 @@
         const response = await fetch(apiBaseUrl + "/users/me/email-change/pin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
+          credentials: "include",
           body: JSON.stringify({ new_email: newEmail, current_password: currentPassword })
         });
         const payload = await response.json().catch(() => ({}));
@@ -840,7 +854,7 @@
         const response = await fetch(apiBaseUrl + "/users/me/email", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
+          credentials: "include",
           body: JSON.stringify({ new_email: newEmail, current_password: currentPassword, verification_pin: verificationPin })
         });
         const payload = await response.json().catch(() => ({}));
@@ -988,6 +1002,7 @@
   }
 
   window.CareerNavigatorCommon = {
+    getApiBaseUrl,
     getAuthUser,
     hasCurrentUserReport,
     setAuthUser,
