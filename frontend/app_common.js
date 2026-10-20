@@ -1000,10 +1000,69 @@
   function createSampleAnalysis() {
     return {
       analysis_title: "UTS CS Career Navigator Resume Analyzer",
-      uploaded_resume_name: "sample_resume.pdf",
+      uploaded_resume_name: "fictional_sample_resume.pdf",
       matching_percentage: 87,
       resume_excerpt: "Sample resume excerpt showing strong systems design and Kubernetes experience.",
-      resume_text_for_generation: "Alex Tan alex.tan@example.com +60 12-345 6789 linkedin.com/in/alextan github.com/alextan Bachelor of Computer Science. Projects: Designed a cloud deployment project using Docker and Kubernetes. Built backend services and tested API workflows. Improved documentation for a software engineering capstone project.",
+      resume_text_for_generation: "Example Candidate. Software engineering graduate. Bachelor of Computer Science. Skills: systems design, Kubernetes, Docker, Python, JavaScript, REST APIs, Git. Projects: Designed a cloud deployment project using Docker and Kubernetes. Built backend services and tested API workflows. Improved documentation for a software engineering capstone project.",
+      // These document illustrations are fictional, with no identifying details from the
+      // personal resumes in Resume_template/real_resume. The stronger example adapts
+      // the fictional ATS evaluation fixture; the weak example illustrates vague
+      // bullets found in the bad-resume teaching material.
+      sample_resume_documents: [
+        {
+          key: "scored",
+          label: "Scored sample",
+          tag: "This report's resume",
+          name: "Example Candidate",
+          role: "Software engineering graduate",
+          note: "The 87/100 score and ATS finding on this page apply to this fictional resume only.",
+          sections: [
+            { heading: "Profile", lines: ["Computer science graduate with cloud deployment and backend project experience."] },
+            { heading: "Technical skills", lines: ["Systems design, Docker, Kubernetes, Python, JavaScript, REST APIs, Git"] },
+            { heading: "Projects", lines: [
+              "Designed a cloud deployment project using Docker and Kubernetes.",
+              "Built backend services and tested API workflows.",
+              "Improved documentation for a software engineering capstone project."
+            ] },
+            { heading: "Education", lines: ["Bachelor of Computer Science"] }
+          ]
+        },
+        {
+          key: "strong",
+          label: "Stronger example",
+          tag: "Good evidence example",
+          name: "Fictional Developer",
+          role: "Software developer",
+          note: "A separate fictional example shows specific work and measured outcomes. It is not scored in this report.",
+          sections: [
+            { heading: "Profile", lines: ["Software developer with experience building web applications, REST APIs, and automated tests."] },
+            { heading: "Technical skills", lines: ["Python, Flask, JavaScript, React, SQL, REST APIs, Git, pytest, Docker"] },
+            { heading: "Experience", lines: [
+              "Built and maintained 14 REST API endpoints for an internal platform used by 180 employees.",
+              "Reduced median API response time by 38% through query optimisation and caching.",
+              "Expanded automated test coverage from 61% to 86%."
+            ] },
+            { heading: "Education", lines: ["Bachelor of Computer Science (Software Engineering)"] }
+          ]
+        },
+        {
+          key: "weak",
+          label: "Needs work example",
+          tag: "Vague evidence example",
+          name: "Fictional Applicant",
+          role: "Software developer applicant",
+          note: "This separate teaching example lacks specific tasks, tools, and outcomes. It is not scored in this report.",
+          sections: [
+            { heading: "Profile", lines: ["Hardworking team player looking for a good opportunity."] },
+            { heading: "Skills", lines: ["Computers, programming, teamwork"] },
+            { heading: "Work experience", lines: [
+              "Helped with computer tasks.",
+              "Worked on applications and did testing."
+            ] },
+            { heading: "Education", lines: ["Studied IT"] }
+          ]
+        }
+      ],
       resume_summary: {
         skills: ["systems design", "kubernetes", "docker"],
         education_markers: ["bachelor"],
