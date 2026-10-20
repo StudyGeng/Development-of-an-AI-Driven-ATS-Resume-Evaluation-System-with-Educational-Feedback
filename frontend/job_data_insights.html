@@ -1097,6 +1097,10 @@ if (logoutBtn) logoutBtn.addEventListener("click", () => {
   window.CareerNavigatorCommon.setAuthUser(null);
   try {
     ["analysisResult", "analysisOwner", "pipelineStatus", "uploadedResumeName", "selectedJobRole", "selectedJobDescription", "analysisStartedAt"].forEach((key) => localStorage.removeItem(key));
+    ["resumeVisualPreviewDataUrl", "resumeVisualPreviewType", "resumeVisualPreviewName", "resumeVisualPreviewResultKey", "resumeRenderedPreviewDataUrl", "resumeRenderedPreviewName", "resumeRenderedPreviewResultKey"].forEach((key) => {
+      sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
+    });
   } catch (error) {
     // Navigation still completes when browser storage is unavailable.
   }
