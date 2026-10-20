@@ -809,12 +809,12 @@
   function initializeHeaderAccountControls() {
     const trigger = document.getElementById("openAuthModalBtn");
     if (!trigger) return;
-    if (!trigger.querySelector("[data-header-account-name]")) {
+    if (!document.querySelector("[data-header-account-name]")) {
       const name = document.createElement("span");
       name.className = "account-header-name";
       name.dataset.headerAccountName = "";
       name.hidden = true;
-      trigger.insertBefore(name, trigger.firstChild);
+      trigger.before(name);
     }
     if (!document.querySelector("[data-language-switch]")) {
       const switcher = document.createElement("div");
@@ -838,7 +838,8 @@
         button.addEventListener("click", () => setLanguage(code));
         switcher.appendChild(button);
       });
-      trigger.before(switcher);
+      const name = document.querySelector("[data-header-account-name]");
+      (name || trigger).before(switcher);
       setLanguage(language);
     }
   }
@@ -847,7 +848,7 @@
     initializeHeaderAccountControls();
     const trigger = document.getElementById("openAuthModalBtn");
     if (!trigger) return;
-    const name = trigger.querySelector("[data-header-account-name]");
+    const name = document.querySelector("[data-header-account-name]");
     const icon = trigger.querySelector(".account-header-trigger-icon");
     if (!icon) return;
     if (!trigger._guestIcon) trigger._guestIcon = icon.cloneNode(true);
