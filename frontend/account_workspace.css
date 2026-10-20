@@ -293,41 +293,45 @@ input[type="password"]::-ms-clear { display: none !important; }
   height: 42px;
   min-height: 42px;
   padding: 0;
-  border-radius: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #bbd8f0, 0 5px 14px rgba(13, 83, 151, .13);
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
 }
+#openAuthModalBtn.account-header-trigger:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px #7eb9eb, 0 8px 18px rgba(13, 83, 151, .2); }
 .account-header-trigger-icon { display: grid; width: 21px; height: 21px; place-items: center; }
 .account-header-trigger-icon svg { display: block; width: 21px; height: 21px; }
 .account-header-trigger-icon.has-initials { font: 800 12px/1 Manrope, Inter, sans-serif; letter-spacing: -.02em; }
 .account-header-trigger-icon.has-avatar { width: 100%; height: 100%; border-radius: inherit; overflow: hidden; }
 .account-header-trigger-icon.has-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
-#openAuthModalBtn.account-header-trigger.is-signed-in { width: auto; min-width: 42px; max-width: 190px; gap: 9px; padding: 0 0 0 12px; }
-#openAuthModalBtn.account-header-trigger.is-signed-in .account-header-trigger-icon { flex: 0 0 42px; width: 42px; height: 42px; }
-.account-header-name { display: block; min-width: 0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 750 12px/1.2 Manrope, Inter, sans-serif; }
+.account-header-name { display: block; min-width: 0; max-width: 165px; margin: 0 9px 0 11px; padding: 9px 13px; overflow: hidden; border: 1px solid #d7e7f5; border-radius: 999px; background: #f4f9fe; color: #1c3857; box-shadow: 0 2px 8px rgba(13, 83, 151, .04); text-overflow: ellipsis; white-space: nowrap; font: 750 12px/1.2 Manrope, Inter, sans-serif; }
 .account-header-name[hidden] { display: none; }
+.report-nav .report-nav-actions { gap: 9px; }
 .account-history-item { gap: 12px; }
 .account-history-item > div:first-child { min-width: 0; overflow-wrap: anywhere; }
 .account-history-item > div:last-child { flex: 0 0 auto; }
-.account-language-switch { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 2px; padding: 3px; border: 1px solid #d6e4ee; border-radius: 12px; background: #f5f9fd; }
-.account-language-switch button, .career-nav-actions .account-language-switch button:not(.hidden) { min-height: 32px; padding: 5px 8px; border: 0; border-radius: 9px; background: transparent; box-shadow: none; color: #4d617a; font: 750 11px/1.15 Inter, sans-serif; cursor: pointer; white-space: nowrap; transition: background-color .18s ease, color .18s ease; }
-.account-language-switch button:hover { background: #e5f1fc; color: #0059af; }
-.account-language-switch button.is-active { background: #0068ca; box-shadow: 0 3px 8px rgba(0,104,202,.15); color: #fff; }
-.career-nav-actions .account-language-switch button.is-active:not(.hidden) { background: #0068ca; color: #fff; }
-.career-nav-actions .account-language-switch button:not(.hidden):hover:not(.is-active) { background: #e5f1fc; color: #0059af; }
+.account-language-switch { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.account-language-switch button, .career-nav-actions .account-language-switch button:not(.hidden) { display: grid; place-items: center; width: 42px; min-width: 42px; height: 42px; min-height: 42px; padding: 0; border: 1px solid #cddfeb; border-radius: 50%; background: #fff; box-shadow: 0 3px 10px rgba(13, 83, 151, .07); color: #47647f; font: 800 11px/1 Inter, sans-serif; cursor: pointer; white-space: nowrap; transition: background-color .18s ease, color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+.account-language-switch button:hover, .career-nav-actions .account-language-switch button:not(.hidden):hover:not(.is-active) { transform: translateY(-1px); border-color: #94c7ef; background: #ecf6ff; color: #0059af; }
+.account-language-switch button.is-active, .career-nav-actions .account-language-switch button.is-active:not(.hidden) { border-color: #0068ca; background: #0068ca; box-shadow: 0 4px 12px rgba(0,104,202,.2); color: #fff; }
 .account-language-switch button:focus-visible { outline: 2px solid #087fec; outline-offset: 2px; }
-.account-language-short { display: none; }
+.account-language-full { display: none; }
+.account-language-short { display: inline; }
 #profileModal :is(button,input):focus-visible, .account-header-trigger:focus-visible { outline: 3px solid #83bfff; outline-offset: 2px; }
 
 @media (max-width: 1100px) {
-  .account-header-name { max-width: 74px; }
-  .account-language-full { display: none; }
-  .account-language-short { display: inline; }
+  .account-header-name { max-width: 108px; }
 }
 @media (max-width: 640px) {
-  #openAuthModalBtn.account-header-trigger.is-signed-in { width: 42px; padding: 0; }
   .account-header-name { display: none; }
   .account-history-item { flex-direction: column; align-items: stretch; }
-  .account-language-switch { padding: 2px; gap: 1px; }
-  .account-language-switch button, .career-nav-actions .account-language-switch button:not(.hidden) { min-height: 30px; padding: 5px 6px; font-size: 10px; }
+  .account-language-switch { gap: 4px; }
+  .account-language-switch button, .career-nav-actions .account-language-switch button:not(.hidden) { width: 38px; min-width: 38px; height: 38px; min-height: 38px; font-size: 10px; }
+}
+@media (max-width: 380px) {
+  .career-nav .career-nav-actions, .report-nav .report-nav-actions { gap: 5px; }
+  .account-language-switch button, .career-nav-actions .account-language-switch button:not(.hidden) { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
 }
 
 @keyframes account-workspace-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -367,6 +371,6 @@ input[type="password"]::-ms-clear { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .account-workspace, .account-panel { animation: none; }
-  .account-menu-button, .account-logout, .account-primary, .account-secondary, #profileModal .account-close { transition: none; }
-  .account-menu-button:hover, .account-logout:hover, .account-primary:hover, .account-secondary:hover, #profileModal .account-close:hover { transform: none; }
+  .account-menu-button, .account-logout, .account-primary, .account-secondary, #profileModal .account-close, .account-language-switch button, #openAuthModalBtn.account-header-trigger { transition: none; }
+  .account-menu-button:hover, .account-logout:hover, .account-primary:hover, .account-secondary:hover, #profileModal .account-close:hover, .account-language-switch button:hover, #openAuthModalBtn.account-header-trigger:hover { transform: none; }
 }
