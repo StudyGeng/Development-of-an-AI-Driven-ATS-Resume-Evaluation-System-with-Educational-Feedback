@@ -18,6 +18,9 @@ class ScoringCache:
     tfidf: dict[tuple[str, str], float] = field(default_factory=dict)
     tfidf_terms: dict[str, frozenset[str]] = field(default_factory=dict)
     phrase: dict[tuple[str, str], bool] = field(default_factory=dict)
+    clause_index: dict[str, tuple[list[list[str]], dict[str, list[tuple[int, int]]]]] = field(default_factory=dict)
+    match_text: dict[str, str] = field(default_factory=dict)
+    canonical_tokens: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 _scoring_cache: ContextVar[ScoringCache | None] = ContextVar("scoring_cache", default=None)
@@ -31,6 +34,11 @@ def get_scoring_cache() -> ScoringCache | None:
 
 @contextmanager
 def scoring_cache_scope() -> Iterator[None]:
+    # A nested scope shares the caller's cache, so one analysis request scores
+    # each resume/requirement pair once across ranking and report building.
+    if _scoring_cache.get() is not None:
+        yield
+        return
     token = _scoring_cache.set(ScoringCache())
     try:
         yield

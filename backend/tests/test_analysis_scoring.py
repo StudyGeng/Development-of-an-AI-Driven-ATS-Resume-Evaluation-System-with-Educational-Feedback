@@ -88,6 +88,63 @@ class AnalysisScoringTests(unittest.TestCase):
         self.assertFalse(app_module.keyword_matches_resume("SQL", text, tokens))
         self.assertTrue(app_module.keyword_matches_resume("Java", text, tokens))
 
+    def test_indexed_phrase_evidence_matches_full_clause_scan(self):
+        import re
+
+        def full_scan(phrase, resume_text):
+            phrase_tokens = app_module.tokenize_canonical_keywords(phrase)
+            if not phrase_tokens:
+                return False
+            clauses = re.split(r"[\n.!?;]+|\b(?:but|however|although)\b", resume_text, flags=re.I)
+            width = len(phrase_tokens)
+            for clause in clauses:
+                tokens = [
+                    app_module.normalize_keyword_token(token)
+                    for token in re.findall(r"[a-zA-Z][a-zA-Z+.#/-]*", clause.lower())
+                ]
+                for index in range(0, len(tokens) - width + 1):
+                    if tokens[index : index + width] == phrase_tokens and not (
+                        set(tokens[max(0, index - 6) : index]) & app_module.NEGATED_EVIDENCE_MARKERS
+                    ):
+                        return True
+            return False
+
+        texts = [
+            "No experience with Python or SQL, but strong Java project experience.",
+            "Not used in this role: one two three four five six seven Python scripts.",
+            "Never deployed Docker. Built machine learning models with Docker later",
+            "Machine learning; learning machine. Built REST APIs and APIs testing",
+        ]
+        phrases = ["python", "sql", "java", "docker", "machine learning", "learning machine", "rest api", "api testing", "kotlin"]
+        for text in texts:
+            for phrase in phrases:
+                expected = full_scan(phrase, text)
+                self.assertEqual(app_module.phrase_has_positive_resume_evidence(phrase, text), expected, (phrase, text))
+                with scoring_cache_scope():
+                    self.assertEqual(app_module.phrase_has_positive_resume_evidence(phrase, text), expected, (phrase, text))
+
+    def test_nested_scoring_scope_shares_cache_and_clears_after_outer_scope(self):
+        with scoring_cache_scope():
+            outer = get_scoring_cache()
+            with scoring_cache_scope():
+                self.assertIs(get_scoring_cache(), outer)
+            self.assertIs(get_scoring_cache(), outer)
+        self.assertIsNone(get_scoring_cache())
+
+    def test_role_title_alias_ties_resolve_the_same_in_any_order(self):
+        # Both aliases are equally similar to the title, so only a fixed
+        # tie-break keeps the score stable across server processes.
+        aliases = ["cybersecurity specialist", "data security specialist"]
+        scores = []
+        for ordered in (aliases, list(reversed(aliases))):
+            with patch.dict(app_module.ROLE_TITLE_MATCH_ALIASES, {"data security specialist": ordered}):
+                scores.append(
+                    app_module.compute_role_title_match_score(
+                        "Security Engineer", "Data Security Specialist", "Security Engineer"
+                    )
+                )
+        self.assertEqual(scores[0], scores[1])
+
     def test_title_fit_uses_most_recent_dated_job_not_old_role(self):
         text = """
         WORK EXPERIENCE
