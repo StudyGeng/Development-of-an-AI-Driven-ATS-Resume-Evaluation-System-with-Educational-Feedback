@@ -338,7 +338,6 @@
         .report-shell section > div:is(.bg-surface-container-lowest,.bg-surface-container-high) { box-shadow: none; }
         .report-shell #overview > .grid > div:first-child > div:first-child,
         .report-shell #job-match > div,
-        .report-shell #score-notes > div,
         .report-shell #ats-checks > div { border: 1px solid var(--studio-border); background: #fff; }
         .report-shell #overview > .grid > div:first-child > .grid article { border-color: var(--studio-border); background: #f8fbff; box-shadow: none; }
         .report-shell #overview > .grid > div:first-child > .grid article h4 { font-size: 1rem; }
@@ -675,7 +674,6 @@
 <div>
 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Top Database Matches</p>
 <h3 class="text-xl font-bold text-primary" id="topRoleMatchesTitle">Top 3 Role Matches</h3>
-<p class="text-xs text-on-surface-variant mt-1">These are evidence-match scores from resume text and database requirements, not hiring probabilities or validated model accuracy.</p>
 </div>
 <span class="self-start px-3 py-1 rounded-full bg-surface-container-high text-primary text-xs font-bold" id="topRoleMatchesBadge">Resume evidence ranking</span>
 </div>
@@ -718,54 +716,6 @@ Recommendation actions will appear after analysis.
 <span class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant text-xs font-semibold">Matched evidence pending.</span>
 </div>
 </article>
-</div>
-</section>
-<section class="report-section mb-12" id="score-notes">
-<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 sm:p-6 lg:p-8">
-<div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
-<div>
-<p class="text-xs uppercase tracking-widest font-bold text-secondary mb-2">Analysis Snapshot</p>
-<h2 class="text-2xl sm:text-3xl font-extrabold text-primary tracking-tight">Score, Evidence, and Rewrite Plan</h2>
-</div>
-<p class="font-bold text-primary text-lg" id="matchScoreText">Final score shown above</p>
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
-<div class="space-y-5">
-<div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">ATS Parsing</p>
-<p class="font-bold text-primary" id="parsedSkillsCount">Skills found: 0</p>
-<p class="text-sm text-on-surface-variant" id="parsedEducationCount">Education markers: 0</p>
-<p class="text-sm text-on-surface-variant" id="parsedExperienceCount">Experience markers: 0</p>
-</div>
-<div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Keyword Match</p>
-<p class="font-bold text-primary" id="jobKeywordCount">Important keywords: 0</p>
-<p class="text-sm text-on-surface-variant" id="missingKeywordCount">Missing keywords: 0</p>
-</div>
-<div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">How It Is Combined</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="matchScoreDetail">One final score combines role match, resume evidence, and ATS format quality.</p>
-</div>
-</div>
-<div class="space-y-5 lg:border-l lg:border-outline-variant/60 lg:pl-8">
-<div>
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Why This Role</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="fitReasonInsight">Role-fit reasoning will appear after analysis.</p>
-</div>
-<div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Beyond Keywords</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="semanticMatchInsight">Text-matching notes will appear after analysis.</p>
-</div>
-<div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Next Rewrite</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="rewriteTargetInsight">Missing keyword rewrite targets will appear after analysis.</p>
-</div>
-<div class="border-t border-outline-variant/60 pt-5">
-<p class="text-xs uppercase tracking-widest text-secondary mb-2">ATS Resume Generator</p>
-<p class="text-sm text-on-surface-variant leading-relaxed" id="generatorInputInsight">Resume-generation input will appear after analysis.</p>
-</div>
-</div>
-</div>
 </div>
 </section>
 <section class="report-section mb-12" id="ats-checks">
@@ -2121,37 +2071,17 @@ Download PDF
 
         const safeContext = context || {};
         const cleanSourceMatches = Array.isArray(matches) ? matches.filter(Boolean) : [];
-        let contextNotice = "";
-        if (safeContext.mode === "selectedRoleExample") {
-            const roleName = safeContext.roleName || safeContext.selectedRole || "the selected job";
-            const scoreText = Number.isFinite(safeContext.selectedMatchScore)
-                ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "below the review threshold";
-            contextNotice =
-                '<div class="lg:col-span-3 rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
-                    '<p class="font-bold text-on-error-container">Review required: this resume does not sufficiently match ' + escapeHtml(roleName) + '.</p>' +
-                    '<p class="mt-2">Selected-role evidence: ' + escapeHtml(scoreText) + '. The cards below are evidence comparisons only. The builder offers a clearly labelled fictional example for the selected field and does not invent experience.</p>' +
-                '</div>';
-        } else if (safeContext.mode === "autoNoSuitableRole") {
-            const closestRole = safeContext.closestRole || "the closest database role";
-            contextNotice =
-                '<div class="lg:col-span-3 rounded-xl border border-error-container bg-error-container/30 p-4 text-sm text-on-surface-variant">' +
-                    '<p class="font-bold text-on-error-container">No suitable CS role was confirmed — human review is required.</p>' +
-                    '<p class="mt-2">' + escapeHtml(closestRole) + ' is shown only as the closest evidence comparison, not as a job recommendation. The builder will use a separate fictional fallback example.</p>' +
-                '</div>';
-        }
-
         const maxMatches = safeContext.mode === "autoDetectedRole" ? 1 : 3;
         const cleanMatches = cleanSourceMatches.slice(0, maxMatches);
         if (cleanMatches.length === 0) {
-            container.innerHTML = contextNotice +
+            container.innerHTML =
                 '<div class="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 text-sm text-on-surface-variant">' +
                     'No alternative database role matches were returned for this analysis.' +
                 '</div>';
             return;
         }
 
-        container.innerHTML = contextNotice + cleanMatches.map((item, index) => {
+        container.innerHTML = cleanMatches.map((item, index) => {
             const rawScore = item.score === null || item.score === undefined || item.score === "" ? Number.NaN : Number(item.score);
             const score = Number.isFinite(rawScore) ? clampPercent(rawScore) : 0;
             const roundedScore = Math.round(score * 10) / 10;
@@ -2408,70 +2338,6 @@ Download PDF
         if (heading) heading.textContent = quickActions.length === 1 ? "Your next edit" : "Your next " + quickActions.length + " edits";
     }
 
-    function getResumePreviewLines(text, limit = 14) {
-        const normalized = String(text || "").replace(/\r\n?/g, "\n").replace(/\t/g, " ");
-        const sourceLines = normalized.split(/\n+/).map((line) => line.trim()).filter(Boolean);
-        const lines = sourceLines.length > 1 ? sourceLines : [];
-
-        if (sourceLines.length === 1) {
-            const words = sourceLines[0].split(/\s+/);
-            let currentLine = "";
-            words.forEach((word) => {
-                const nextLine = currentLine ? currentLine + " " + word : word;
-                if (nextLine.length > 92 && currentLine) {
-                    lines.push(currentLine);
-                    currentLine = word;
-                } else {
-                    currentLine = nextLine;
-                }
-            });
-            if (currentLine) {
-                lines.push(currentLine);
-            }
-        }
-
-        return lines.slice(0, limit).map((line) => line.length > 118 ? line.slice(0, 115).trim() + "..." : line);
-    }
-
-    function getIssueLinePatterns(item) {
-        const category = String(item.category || "").toLowerCase();
-        const title = String(item.title || "").toLowerCase();
-        const detail = String(item.detail || "").toLowerCase();
-        const combined = category + " " + title + " " + detail;
-        if (/contact|email|phone|linkedin|github|portfolio/.test(combined)) {
-            return [/(email|phone|linkedin|github|portfolio|@|\+?\d[\d\s().-]{7,}\d)/i];
-        }
-        if (/skill|technical|tool|framework|language/.test(combined)) {
-            return [/(technical skills|skills|java|python|sql|javascript|typescript|react|node|git|docker|cloud|api)/i];
-        }
-        if (/section|heading|education|project|experience/.test(combined)) {
-            return [/(education|technical skills|skills|project|projects|experience|work experience|certification)/i];
-        }
-        if (/impact|measure|quant|number|outcome/.test(combined)) {
-            return [/(\d+%|\d+\+|\$|users?|reduced|increased|improved|optimized|delivered|project|experience)/i];
-        }
-        if (/length/.test(combined)) {
-            return [/(summary|experience|project|education|skills)/i];
-        }
-        if (/image|format|layout|spacing|column|font|parser/.test(combined)) {
-            return [/(resume|cv|summary|experience|skills|project|education|.{88,})/i];
-        }
-        return [/.+/];
-    }
-
-    function findIssueLineIndex(item, lines, usedIndexes) {
-        const patterns = getIssueLinePatterns(item);
-        for (const pattern of patterns) {
-            const foundIndex = lines.findIndex((line, index) => !usedIndexes.has(index) && pattern.test(line));
-            if (foundIndex >= 0) {
-                return foundIndex;
-            }
-        }
-
-        const firstUnused = lines.findIndex((line, index) => line && !usedIndexes.has(index));
-        return firstUnused >= 0 ? firstUnused : 0;
-    }
-
     function getBestTopRoleMatch(matches) {
         const cleanMatches = Array.isArray(matches) ? matches.filter(Boolean) : [];
         return cleanMatches.length ? cleanMatches[0] : null;
@@ -2627,56 +2493,6 @@ Download PDF
             return "Add the link near email and phone. Example: linkedin.com/in/your-name or github.com/your-username.";
         }
         return baseSuggestion;
-    }
-
-    function buildProblemCalloutIntro(context) {
-        const safeContext = context || {};
-        if (safeContext.mode === "selectedRoleExample") {
-            const scoreText = Number.isFinite(safeContext.selectedMatchScore)
-                ? Math.round(safeContext.selectedMatchScore) + "/100"
-                : "below the review threshold";
-            return (
-                '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
-                    'Selected-role evidence is ' + escapeHtml(scoreText) + ' for ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "the selected job") + '. This is REVIEW REQUIRED / NOT MATCH, and the builder provides a separate fictional example instead of inventing experience.' +
-                '</p>'
-            );
-        }
-        if (safeContext.mode === "autoNoSuitableRole") {
-            return (
-                '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
-                    'No suitable CS role was confirmed. Suggestions refer to the closest evidence comparison only and require human review.' +
-                '</p>'
-            );
-        }
-        if (safeContext.mode === "autoDetectedRole") {
-            return (
-                '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
-                    'No job was selected. Examples use the Top 1 detected role: ' + escapeHtml(safeContext.roleName || "closest database role") + '.' +
-                '</p>'
-            );
-        }
-        if (safeContext.mode === "selectedRoleFit") {
-            return (
-                '<p class="mb-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface-variant">' +
-                    'Notes are based on the selected job: ' + escapeHtml(safeContext.roleName || safeContext.selectedRole || "selected role") + '.' +
-                '</p>'
-            );
-        }
-        return "";
-    }
-
-    function buildResumeAnnotations(issues, previewLines, context = {}) {
-        const usedIndexes = new Set();
-        return issues.slice(0, 5).map((item, index) => {
-            const lineIndex = previewLines.length ? findIssueLineIndex(item, previewLines, usedIndexes) : index;
-            usedIndexes.add(lineIndex);
-            return {
-                number: index + 1,
-                lineIndex,
-                title: item.title || item.category || "ATS issue",
-                suggestion: buildIssueActionText(item, context)
-            };
-        });
     }
 
     function getStoredResumeVisualPreview(result) {
@@ -2908,7 +2724,7 @@ Download PDF
             }
         } catch (error) {
             target.className = "relative mx-auto w-full max-w-[34rem] bg-white p-5 text-sm text-on-surface-variant";
-            target.textContent = "Could not render the PDF preview. The issue callouts below still list the detected bad habits.";
+            target.textContent = "Could not render the PDF preview. The Issues to fix list still shows the detected problems.";
         }
     }
 
@@ -2932,7 +2748,7 @@ Download PDF
                     '<span class="text-error text-lg mt-0.5" aria-hidden="true">!</span>' +
                     '<span>' +
                         '<span class="block text-sm font-bold text-primary">' + escapeHtml(item.title || item.category || "ATS issue") + '</span>' +
-                        '<span class="block text-sm text-on-surface-variant leading-relaxed mt-1">' + escapeHtml(item.suggestion || item.detail || "") + '</span>' +
+                        '<span class="block text-sm text-on-surface-variant leading-relaxed mt-1">' + escapeHtml(buildIssueActionText(item, safeContext)) + '</span>' +
                     '</span>' +
                 '</li>'
             )).join("")
@@ -2942,20 +2758,6 @@ Download PDF
                 '<span class="px-3 py-1 rounded-full bg-secondary-container/20 text-on-secondary-container text-xs font-semibold">' + escapeHtml(item.category || item.title || "Passed") + '</span>'
             )).join("")
             : '<span class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant text-xs font-semibold">No passed checks yet</span>';
-        const previewLines = getResumePreviewLines(resumePreviewText);
-        const annotations = buildResumeAnnotations(issues, previewLines, safeContext);
-        const calloutIntro = buildProblemCalloutIntro(safeContext);
-        const annotationMarkup = annotations.length
-            ? annotations.map((item) => (
-                '<li class="grid grid-cols-[1.75rem_1fr] gap-2 rounded-lg border border-error-container bg-error-container/30 p-3">' +
-                    '<span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-error text-on-error text-xs font-extrabold">' + escapeHtml(String(item.number)) + '</span>' +
-                    '<span>' +
-                        '<span class="block text-xs font-extrabold text-on-error-container">' + escapeHtml(item.title) + '</span>' +
-                        '<span class="block text-xs text-on-surface-variant leading-relaxed mt-1">' + escapeHtml(item.suggestion) + '</span>' +
-                    '</span>' +
-                '</li>'
-            )).join("")
-            : '<li class="rounded-lg border border-secondary-container bg-secondary-container/20 p-3 text-xs font-semibold text-on-secondary-container">No major marked problems detected.</li>';
 
         container.innerHTML =
             '<div class="border-t border-outline-variant/60 pt-5">' +
@@ -2964,11 +2766,6 @@ Download PDF
             '</div>' +
             '<div class="space-y-5 border-t lg:border-l lg:border-t-0 border-outline-variant/60 pt-5 lg:pt-0 lg:pl-6">' +
                 buildVisualResumePreview(resumeVisualPreview, resumePreviewText, previewIsExcerpt) +
-                '<div>' +
-                    '<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Issue explanations</p>' +
-                    calloutIntro +
-                    '<ul class="grid gap-2">' + annotationMarkup + '</ul>' +
-                '</div>' +
                 '<div>' +
                     '<p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Passed checks</p>' +
                     '<div class="flex flex-wrap gap-2">' + passMarkup + '</div>' +
@@ -2983,11 +2780,6 @@ Download PDF
         if (resumeVisualPreview && (previewType === "application/pdf" || /^data:application\/pdf/i.test(resumeVisualPreview.dataUrl || ""))) {
             renderPdfResumePreview(resumeVisualPreview);
         }
-    }
-
-    function joinShortList(items, fallbackText) {
-        const cleanItems = Array.isArray(items) ? items.filter(Boolean).slice(0, 5) : [];
-        return cleanItems.length ? cleanItems.join(", ") : fallbackText;
     }
 
     function metricStatus(percent) {
@@ -3056,19 +2848,27 @@ Download PDF
             " | Role " + formatScoreComponent(safeBreakdown.role_evidence ?? safeCompatibility.role_evidence) +
             " | Exp " + formatScoreComponent(safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment) +
             " | ATS " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) + "." + employmentText;
-        const fullComponentText =
-            "Live components: requirements " + formatScoreComponent(safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match) +
-            ", role evidence " + formatScoreComponent(safeBreakdown.role_evidence ?? safeCompatibility.role_evidence) +
-            ", experience " + formatScoreComponent(safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment) +
-            ", ATS format " + formatScoreComponent(safeBreakdown.resume_quality ?? safeCompatibility.resume_quality) +
-            ", education/skills " + formatScoreComponent(safeBreakdown.academic_rigor ?? safeCompatibility.academic_rigor) +
-            ", TF-IDF text similarity " + formatScoreComponent(safeBreakdown.tfidf_similarity) + ".";
+        const components = [
+            ["Database requirements", "30%", safeBreakdown.keyword_coverage ?? safeCompatibility.keyword_match],
+            ["Role evidence", "25%", safeBreakdown.role_evidence ?? safeCompatibility.role_evidence],
+            ["Experience evidence", "15%", safeBreakdown.experience_alignment ?? safeCompatibility.experience_alignment],
+            ["ATS format quality", "20%", safeBreakdown.resume_quality ?? safeCompatibility.resume_quality],
+            ["Education / skills evidence", "7%", safeBreakdown.academic_rigor ?? safeCompatibility.academic_rigor],
+            ["TF-IDF text similarity", "3%", safeBreakdown.tfidf_similarity]
+        ].map(([label, weight, value]) => {
+            const numeric = value === null || value === undefined || value === "" ? Number.NaN : Number(value);
+            return {
+                label: label + " (" + weight + ")",
+                value: Number.isFinite(numeric) ? formatScoreComponent(numeric) + " - " + metricStatus(numeric) : "Not available"
+            };
+        });
 
         return {
             label: band.label,
             text: band.text + contextText,
             formula: componentText,
-            detail: formulaSentence + " " + fullComponentText + employmentText
+            components,
+            method: (formulaSentence + employmentText).trim()
         };
     }
 
@@ -3154,18 +2954,6 @@ Download PDF
         }).join("");
     }
 
-    function buildBadHabitRows(criteria) {
-        const cleanCriteria = Array.isArray(criteria) ? criteria.filter(Boolean) : [];
-        const issues = cleanCriteria.filter((item) => item.status !== "pass").slice(0, 6);
-        if (!issues.length) {
-            return "<li>No major resume bad habits detected.<\/li>";
-        }
-        return issues.map((item, index) => (
-            "<li><strong>" + escapeHtml(String(index + 1) + ". " + (item.title || item.category || "ATS issue")) + ":<\/strong> " +
-            escapeHtml(item.suggestion || item.detail || "Review this section for ATS readability.") + "<\/li>"
-        )).join("");
-    }
-
     function buildReportVisualResumePreview(preview, extractedText = "", isExcerpt = false) {
         if (preview && Array.isArray(preview.sampleDocuments) && preview.sampleDocuments.length) {
             const scoredSample = preview.sampleDocuments[0];
@@ -3219,11 +3007,16 @@ Download PDF
             ["ATS quality risk", report.resumeQuality.risk_level || "Not available"],
             ["Submitted at", report.submittedAt || generatedDate]
         ]);
-        const componentRows = buildReportTableRows([
-            ["Keyword match", metricStatus(report.compatibility.keyword_match)],
-            ["Experience alignment", metricStatus(report.compatibility.experience_alignment)],
-            ["Education / skills evidence", metricStatus(report.compatibility.academic_rigor)],
-            ["ATS format quality", report.resumeQuality.risk_level ? report.resumeQuality.risk_level + " risk" : "Not available"]
+        const scoreExplanation = report.scoreExplanation || {};
+        const scoreComponents = Array.isArray(scoreExplanation.components) ? scoreExplanation.components : [];
+        const componentRows = buildReportTableRows(scoreComponents.length
+            ? scoreComponents.map((item) => [item.label, item.value])
+            : [["Score components", "Not available"]]);
+        const parsing = report.resumeParsing || {};
+        const countOf = (value) => Number(value) || 0;
+        const evidenceRows = buildReportTableRows([
+            ["Parsed from resume", countOf(parsing.skills) + " skills, " + countOf(parsing.educationMarkers) + " education markers, " + countOf(parsing.experienceMarkers) + " experience markers"],
+            ["Role keywords", countOf(parsing.importantKeywords) + " important, " + countOf(parsing.missingKeywords) + " missing"]
         ]);
 
         const reportCss = `
@@ -3326,14 +3119,13 @@ Download PDF
             "<style>" + reportCss + "<\/style><\/head><body><div class=\"page\">" +
             "<header class=\"report-header\"><div><p class=\"report-kicker\">UTS CS / Career Navigator<\/p><h1>Resume feedback report<\/h1><p>" + (report.sampleOnly ? "Fictional sample report. These findings are not based on your resume." : "Structured ATS and role-fit feedback for resume improvement.") + "<\/p><\/div><div class=\"score\"><span>Readiness score<\/span><strong>" + escapeHtml(String(report.scoreOutOf100 || 0)) + "<small>/100<\/small><\/strong><\/div><\/header>" +
             "<section><h2 class=\"section-title\">At a glance<\/h2><table>" + summaryRows + "<\/table><\/section>" +
-            "<section><h2 class=\"section-title\">What your score means<\/h2><h3>" + escapeHtml((report.scoreExplanation && report.scoreExplanation.label) || "Score meaning") + "<\/h3><div class=\"note\">" + escapeHtml((report.scoreExplanation && report.scoreExplanation.text) || "The final readiness score combines role match, resume evidence, and ATS format quality.") + "<\/div><p class=\"note detail-note\">" + escapeHtml((report.scoreExplanation && (report.scoreExplanation.detail || report.scoreExplanation.formula)) || "Formula details were not available.") + "<\/p><\/section>" +
+            "<section><h2 class=\"section-title\">What your score means<\/h2><h3>" + escapeHtml((report.scoreExplanation && report.scoreExplanation.label) || "Score meaning") + "<\/h3><div class=\"note\">" + escapeHtml((report.scoreExplanation && report.scoreExplanation.text) || "The final readiness score combines role match, resume evidence, and ATS format quality.") + "<\/div><\/section>" +
             "<section><h2 class=\"section-title\">Role fit<\/h2><div class=\"note\">" + escapeHtml(report.roleReason || "Selected role and recommendation are aligned.") + "<\/div><\/section>" +
             "<section><h2 class=\"section-title\">Priority improvement plan<\/h2><ul>" + buildRecommendationActionRows(report.recommendationPlan, report.structuredFeedback) + "<\/ul><\/section>" +
             "<section><h2 class=\"section-title\">Top 3 role matches<\/h2><div class=\"note\">Evidence-match scores compare resume text with database requirements; they are not hiring probabilities or validated model accuracy.<\/div><div class=\"table-scroll\"><table><thead><tr><th>Rank<\/th><th>Database role<\/th><th>Evidence score<\/th><th>Status<\/th><th>Evidence<\/th><\/tr><\/thead><tbody>" + buildTopRoleRows(report.topRoleMatches) + "<\/tbody><\/table><\/div><\/section>" +
-            "<section><h2 class=\"section-title\">Score components<\/h2><table>" + componentRows + "<\/table><p class=\"note detail-note\">Only the final readiness score is numeric. Component results are shown as status labels to avoid confusing users with multiple percentages.<\/p><\/section>" +
-            "<section><h2 class=\"section-title\">ATS quality checks<\/h2><div class=\"table-scroll\"><table class=\"quality\"><thead><tr><th>Criteria<\/th><th>Status<\/th><th>Finding<\/th><th>Suggested fix<\/th><\/tr><\/thead><tbody>" + buildQualityRows(report.qualityCriteria) + "<\/tbody><\/table><\/div><\/section>" +
-            "<section><h2 class=\"section-title\">Resume review<\/h2><h3>Issues to fix<\/h3><ul>" + buildBadHabitRows(report.qualityCriteria) + "<\/ul>" + buildReportVisualResumePreview(report.resumeVisualPreview, report.resumeExcerpt, report.resumePreviewIsExcerpt) + "<\/section>" +
-            "<section><h2 class=\"section-title\">Resume evidence<\/h2><h3>Matched signals<\/h3><div class=\"chips\">" + reportList(report.matchedSignals, "No matched signals").split(", ").map((item) => "<span class=\"chip\">" + item + "<\/span>").join("") + "<\/div><h3 style=\"margin-top:22px\">Missing keywords<\/h3><div class=\"chips\">" + reportList(report.missingKeywords, "No missing keywords").split(", ").map((item) => "<span class=\"chip missing\">" + item + "<\/span>").join("") + "<\/div><\/section>" +
+            "<section><h2 class=\"section-title\">Score components<\/h2><table>" + componentRows + "<\/table><p class=\"note detail-note\">" + escapeHtml(scoreExplanation.method || "Formula details were not available.") + "<\/p><\/section>" +
+            "<section><h2 class=\"section-title\">ATS quality checks<\/h2><div class=\"table-scroll\"><table class=\"quality\"><thead><tr><th>Criteria<\/th><th>Status<\/th><th>Finding<\/th><th>Suggested fix<\/th><\/tr><\/thead><tbody>" + buildQualityRows(report.qualityCriteria) + "<\/tbody><\/table><\/div>" + buildReportVisualResumePreview(report.resumeVisualPreview, report.resumeExcerpt, report.resumePreviewIsExcerpt) + "<\/section>" +
+            "<section><h2 class=\"section-title\">Resume evidence<\/h2><table>" + evidenceRows + "<\/table><h3 style=\"margin-top:22px\">Matched signals<\/h3><div class=\"chips\">" + reportList(report.matchedSignals, "No matched signals").split(", ").map((item) => "<span class=\"chip\">" + item + "<\/span>").join("") + "<\/div><h3 style=\"margin-top:22px\">Missing keywords<\/h3>" + (Array.isArray(report.missingKeywords) && report.missingKeywords.some(Boolean) ? "<p>Rewrite project bullets to include these naturally, only where you have real evidence.<\/p>" : "") + "<div class=\"chips\">" + reportList(report.missingKeywords, "No missing keywords").split(", ").map((item) => "<span class=\"chip missing\">" + item + "<\/span>").join("") + "<\/div><p class=\"note detail-note\">Similar terms such as developer/development and test/testing are normalized before scoring.<\/p><\/section>" +
             "<section><h2 class=\"section-title\">Next actions<\/h2><ul>" + buildFeedbackRows(report.structuredFeedback, report.feedback || "No feedback available.") + "<\/ul><\/section>" +
             "<footer>Preview generated locally by UTS CS Career Navigator. Use Download PDF report on the results page to save a copy.<\/footer>" +
             "<\/div><\/body><\/html>";
@@ -3890,7 +3682,7 @@ Download PDF
         const links = Array.from(tabs.querySelectorAll('a[href^="#"]'));
         const linksBySection = new Map(links.map((link) => [link.getAttribute("href").slice(1), link]));
         const sections = Array.from(content.querySelectorAll(".report-section")).filter((section) =>
-            linksBySection.has(section.id) || section.id === "score-notes"
+            linksBySection.has(section.id)
         );
         const navigation = document.querySelector(".report-nav");
         let activeLink = null;
@@ -3912,7 +3704,7 @@ Download PDF
             let current = linksBySection.get("overview");
             sections.forEach((section) => {
                 if (section.getBoundingClientRect().top <= activationLine) {
-                    current = linksBySection.get(section.id === "score-notes" ? "improve" : section.id) || current;
+                    current = linksBySection.get(section.id) || current;
                 }
             });
             if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) {
@@ -4039,13 +3831,6 @@ Download PDF
             generateResumeBtn.innerHTML = getResumeGeneratorButtonHtml(result);
         }
         const downloadGeneratedPdfBtn = document.getElementById("downloadGeneratedPdfBtn");
-        const parsedSkillsCount = document.getElementById("parsedSkillsCount");
-        const parsedEducationCount = document.getElementById("parsedEducationCount");
-        const parsedExperienceCount = document.getElementById("parsedExperienceCount");
-        const jobKeywordCount = document.getElementById("jobKeywordCount");
-        const missingKeywordCount = document.getElementById("missingKeywordCount");
-        const matchScoreText = document.getElementById("matchScoreText");
-        const matchScoreDetail = document.getElementById("matchScoreDetail");
 
         animateScoreNumber(overallScore, scoreOutOf100);
         const scoreExplanation = buildScoreExplanation(scoreOutOf100, compatibility, scoreBreakdown, roleRecommendation, selectedRole, recommendedRole);
@@ -4186,28 +3971,6 @@ Download PDF
             generateResumeBtn.textContent = "Analyze your own resume to create a draft";
             setGeneratedResumeStatus("Resume drafting is available after you analyze your own resume. This report uses fictional sample data.");
         }
-        setText(
-            "fitReasonInsight",
-            roleReason || "The system compares your selected role, resume-detected role, and weighted database requirements before choosing the recommended role."
-        );
-        setText(
-            "semanticMatchInsight",
-            "Matched signals include " + joinShortList(matchedSignals, "resume skills and experience evidence") + ". Similar terms such as developer/development and test/testing are normalized before scoring."
-        );
-        setText(
-            "rewriteTargetInsight",
-            missingKeywords.length
-                ? "Rewrite project bullets to naturally include " + joinShortList(missingKeywords, "the missing database keywords") + "."
-                : "No major missing keyword targets were found for this role."
-        );
-        setText(
-            "generatorInputInsight",
-            sampleResumeOnly
-                ? "Example target: " + (exampleDecision.targetRole || "CS role") +
-                    ". The example uses complete fictional details, is not a confirmed job recommendation, and does not replace the truthful evidence comparison."
-                : "Generator input: " + recommendedRole + ", matched signals, missing keywords, and ATS feedback."
-        );
-
         renderPills("matchedSignalsChipList", matchedSignals, "No matched resume signals detected yet.");
         renderTopRoleMatches(topRoleMatches, guidanceContext);
         renderRecommendationPlan(recommendationModule, {
@@ -4218,34 +3981,6 @@ Download PDF
         });
         renderQuickActions(recommendationModule, missingKeywords, qualityCriteria);
         renderFeedbackList("structuredFeedbackList", structuredFeedback, feedback);
-
-        if (parsedSkillsCount) {
-            parsedSkillsCount.textContent = "Skills found: " + String((resumeSummary.skills || []).length);
-        }
-
-        if (parsedEducationCount) {
-            parsedEducationCount.textContent = "Education markers: " + String((resumeSummary.education_markers || []).length);
-        }
-
-        if (parsedExperienceCount) {
-            parsedExperienceCount.textContent = "Experience markers: " + String((resumeSummary.experience_markers || []).length);
-        }
-
-        if (jobKeywordCount) {
-            jobKeywordCount.textContent = "Important keywords: " + String((jobAnalysis.important_keywords || []).length);
-        }
-
-        if (missingKeywordCount) {
-            missingKeywordCount.textContent = "Missing keywords: " + String((jobAnalysis.missing_keywords || []).length);
-        }
-
-        if (matchScoreText) {
-            matchScoreText.textContent = "Final score shown above";
-        }
-
-        if (matchScoreDetail) {
-            matchScoreDetail.textContent = scoreExplanation.detail || "One final score combines database role match, resume evidence, education signals, and ATS format quality.";
-        }
 
         if (!sampleRequested && generateResumeBtn && generateResumeBtn.dataset.bound !== "true") {
             generateResumeBtn.dataset.bound = "true";
@@ -4287,6 +4022,13 @@ Download PDF
             resumeExcerpt: resumePreviewText,
             resumePreviewIsExcerpt: !result.resume_text_for_generation,
             resumeVisualPreview: sampleRequested ? resumeVisualPreview : getReportResumeVisualPreview(resumeVisualPreview),
+            resumeParsing: {
+                skills: (resumeSummary.skills || []).length,
+                educationMarkers: (resumeSummary.education_markers || []).length,
+                experienceMarkers: (resumeSummary.experience_markers || []).length,
+                importantKeywords: (jobAnalysis.important_keywords || []).length,
+                missingKeywords: (jobAnalysis.missing_keywords || []).length
+            },
             generatedAt: new Date().toLocaleString()
         });
 

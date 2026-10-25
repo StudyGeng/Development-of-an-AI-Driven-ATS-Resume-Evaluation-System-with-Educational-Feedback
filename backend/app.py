@@ -7190,7 +7190,6 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
     score_explanation = report.get("scoreExplanation") if isinstance(report.get("scoreExplanation"), dict) else {}
     quality_criteria = criteria_items()
     quality_issues = [item for item in quality_criteria if item.get("status") != "pass"]
-    passed_checks = [item for item in quality_criteria if item.get("status") == "pass"]
     final_score = score_label(report.get("scoreOutOf100"))
     generated_at = clean_report_text(report.get("generatedAt"), datetime.now().strftime("%Y-%m-%d %H:%M"))
     annotated_resume_buffer = build_annotated_resume_pdf_preview()
@@ -7368,11 +7367,43 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
         ["ATS quality risk", clean_report_text(resume_quality.get("risk_level"), "Not available", 80)],
         ["Submitted at", clean_report_text(report.get("submittedAt"), generated_at, 140)],
     ]
-    component_rows = [
-        ["Keyword match", metric_status(compatibility.get("keyword_match"))],
-        ["Experience alignment", metric_status(compatibility.get("experience_alignment"))],
-        ["Education / skills evidence", metric_status(compatibility.get("academic_rigor"))],
-        ["ATS format quality", clean_report_text(resume_quality.get("risk_level"), "Not available", 80) + " risk"],
+    raw_components = score_explanation.get("components")
+    score_components = [item for item in raw_components[:8] if isinstance(item, dict)] if isinstance(raw_components, list) else []
+    if score_components:
+        component_rows = [
+            [
+                clean_report_text(item.get("label"), "Component", 80),
+                clean_report_text(item.get("value"), "Not available", 80),
+            ]
+            for item in score_components
+        ]
+    else:
+        component_rows = [
+            ["Keyword match", metric_status(compatibility.get("keyword_match"))],
+            ["Experience alignment", metric_status(compatibility.get("experience_alignment"))],
+            ["Education / skills evidence", metric_status(compatibility.get("academic_rigor"))],
+            ["ATS format quality", clean_report_text(resume_quality.get("risk_level"), "Not available", 80) + " risk"],
+        ]
+
+    def count_value(value: Any) -> int:
+        try:
+            return max(0, int(value or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    resume_parsing = report.get("resumeParsing") if isinstance(report.get("resumeParsing"), dict) else {}
+    evidence_rows = [
+        [
+            "Parsed from resume",
+            f"{count_value(resume_parsing.get('skills'))} skills, "
+            f"{count_value(resume_parsing.get('educationMarkers'))} education markers, "
+            f"{count_value(resume_parsing.get('experienceMarkers'))} experience markers",
+        ],
+        [
+            "Role keywords",
+            f"{count_value(resume_parsing.get('importantKeywords'))} important, "
+            f"{count_value(resume_parsing.get('missingKeywords'))} missing",
+        ],
     ]
 
     top_rows = [["Rank", "Database role", "Evidence score", "Status", "Evidence"]]
@@ -7403,12 +7434,16 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
     if len(top_rows) == 1:
         top_rows.append(["-", "No top role matches returned", "-", "-", "Run an analysis to compare role evidence."])
 
+    # Fix rows are numbered in the same order as the red markers on the annotated resume page.
     quality_rows = [["Criteria", "Status", "Finding", "Suggested fix"]]
+    fix_number = 0
     for item in quality_criteria:
+        if item.get("status") != "pass":
+            fix_number += 1
         quality_rows.append(
             [
                 clean_report_text(item.get("category"), "Criteria", 80),
-                "Pass" if item.get("status") == "pass" else "Fix",
+                "Pass" if item.get("status") == "pass" else f"Fix {fix_number}",
                 clean_report_text(item.get("title") or item.get("detail"), "Finding not available", 190),
                 clean_report_text(item.get("suggestion") or item.get("detail"), "Suggested fix not available", 260),
             ]
@@ -7449,7 +7484,8 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
     add_section(story, "Score Explanation")
     story.append(paragraph(score_explanation.get("label"), "heading", "Score meaning", 120))
     story.append(paragraph(score_explanation.get("text"), "note", "The final readiness score combines role match, resume evidence, and ATS format quality.", 650))
-    story.append(paragraph(score_explanation.get("detail") or score_explanation.get("formula"), "body", "Formula details were not available.", 650))
+    if not score_components:
+        story.append(paragraph(score_explanation.get("detail") or score_explanation.get("formula"), "body", "Formula details were not available.", 650))
 
     add_section(story, "Role Fit Explanation")
     story.append(paragraph(report.get("roleReason"), "note", "Selected role and recommendation are aligned.", 650))
@@ -7479,37 +7515,30 @@ def build_feedback_report_pdf_buffer(report: dict[str, Any]) -> BytesIO:
 
     add_section(story, "Score Components")
     story.append(report_table(component_rows, [1.9 * inch, 5.1 * inch]))
-    story.append(paragraph("Only the final readiness score is numeric. Component results are shown as status labels to keep the report easy to read.", "muted", max_length=220))
+    if score_components:
+        story.append(paragraph(score_explanation.get("method"), "muted", "Formula details were not available.", 650))
+    else:
+        story.append(paragraph("Only the final readiness score is numeric. Component results are shown as status labels to keep the report easy to read.", "muted", max_length=220))
 
     add_section(story, "ATS Quality Criteria")
     story.append(report_table(quality_rows, [1.05 * inch, 0.75 * inch, 2.05 * inch, 3.15 * inch], has_header=True))
-
-    add_section(story, "Resume Review Snapshot")
-    story.append(Paragraph("Resume Bad Habits", styles["heading"]))
-    bad_habits = [
-        f"{clean_report_text(item.get('title') or item.get('category'), 'ATS issue', 90)}: "
-        f"{clean_report_text(item.get('suggestion') or item.get('detail'), 'Suggested fix not available', 180)}"
-        for item in quality_issues[:5]
-    ] or ["No major resume bad habits detected."]
-    for item in bad_habits:
-        story.append(paragraph("- " + item, "body", max_length=280))
-
-    story.append(Paragraph("Passed Checks", styles["heading"]))
-    passed_labels = [
-        clean_report_text(item.get("category") or item.get("title"), "Passed", 60)
-        for item in passed_checks[:8]
-    ]
-    story.append(paragraph(", ".join(passed_labels) if passed_labels else "No passed checks yet.", "body", max_length=320))
     if annotated_resume_buffer:
-        story.append(paragraph("The first page of this PDF is the uploaded resume with numbered red issue markers. The matching numbered explanations are listed above.", "note", max_length=260))
+        story.append(paragraph("The first page of this PDF is your uploaded resume. Its numbered red markers match the numbered Fix rows above.", "note", max_length=260))
     else:
-        story.append(paragraph("The HTML feedback export includes the visual resume preview when the original upload is available. This PDF report keeps the clean issue list and avoids showing broken extracted text.", "note", max_length=300))
+        story.append(paragraph("The report preview on the results page shows the uploaded resume when the original file is available.", "note", max_length=260))
 
     add_section(story, "Resume Evidence")
+    story.append(report_table(evidence_rows, [1.9 * inch, 5.1 * inch]))
     matched_signals = ", ".join(clean_report_items(report.get("matchedSignals"), "No matched signals", 10, 55))
     missing_keywords = ", ".join(clean_report_items(report.get("missingKeywords"), "No missing keywords", 10, 55))
     story.append(paragraph("Matched signals: " + matched_signals, "body", max_length=520))
     story.append(paragraph("Missing keywords: " + missing_keywords, "body", max_length=520))
+    rewrite_hint = (
+        "Rewrite project bullets to include missing keywords naturally, only where you have real evidence. "
+        if clean_report_items(report.get("missingKeywords"), "", 1)
+        else ""
+    )
+    story.append(paragraph(rewrite_hint + "Similar terms such as developer/development and test/testing are normalized before scoring.", "muted", max_length=260))
 
     add_section(story, "Next Actions")
     for item in clean_report_items(report.get("structuredFeedback"), clean_report_text(report.get("feedback"), "No feedback available.", 280), 8, 240):
