@@ -2045,7 +2045,9 @@ def compute_role_title_match_score(
             if normalized_alias and f" {normalized_alias} " in normalized_title_source:
                 return 100.0
 
-        best_alias = max(aliases, key=lambda alias: role_similarity_score(alias, most_recent_title))
+        # Aliases are a set; sorting makes ties resolve the same way in every
+        # server process instead of following Python's per-process hash order.
+        best_alias = max(sorted(aliases), key=lambda alias: role_similarity_score(alias, most_recent_title))
         similarity = role_similarity_score(best_alias, most_recent_title)
         alias_content = set(normalize_match_text(best_alias).split()) - GENERIC_JOB_TITLE_TOKENS
         title_content = set(normalize_match_text(most_recent_title).split()) - GENERIC_JOB_TITLE_TOKENS
@@ -2434,7 +2436,26 @@ def normalize_keyword_token(token: str) -> str:
 
 
 def tokenize_canonical_keywords(text: str) -> list[str]:
-    return [normalize_keyword_token(token) for token in tokenize_keywords(text)]
+    cache = get_scoring_cache()
+    if cache is None:
+        return [normalize_keyword_token(token) for token in tokenize_keywords(text)]
+    tokens = cache.canonical_tokens.get(text)
+    if tokens is None:
+        tokens = tuple(normalize_keyword_token(token) for token in tokenize_keywords(text))
+        cache.canonical_tokens[text] = tokens
+    return list(tokens)
+
+
+def scoped_normalize_match_text(value: str) -> str:
+    """normalize_match_text, remembered for the current scoring run only."""
+    cache = get_scoring_cache()
+    if cache is None:
+        return normalize_match_text(value)
+    normalized = cache.match_text.get(value)
+    if normalized is None:
+        normalized = normalize_match_text(value)
+        cache.match_text[value] = normalized
+    return normalized
 
 
 def get_semantic_equivalents(token: str) -> set[str]:
@@ -2467,6 +2488,35 @@ NEGATED_EVIDENCE_MARKERS = {
 }
 
 
+def get_resume_clause_index(resume_text: str) -> tuple[list[list[str]], dict[str, list[tuple[int, int]]]]:
+    """Split and normalize the resume once, with the positions of every token."""
+    cache = get_scoring_cache()
+    if cache is not None and resume_text in cache.clause_index:
+        return cache.clause_index[resume_text]
+
+    # Treat contrast words as clause boundaries so "no Python, but strong Java"
+    # does not incorrectly negate Java as well.
+    clauses = re.split(r"[\n.!?;]+|\b(?:but|however|although)\b", resume_text or "", flags=re.I)
+    clause_tokens_list: list[list[str]] = []
+    token_positions: dict[str, list[tuple[int, int]]] = {}
+    for clause in clauses:
+        # Keep short negation words such as "no" and ordinary stop words for
+        # the context window, while still normalizing skill word forms.
+        clause_tokens = [
+            normalize_keyword_token(token)
+            for token in re.findall(r"[a-zA-Z][a-zA-Z+.#/-]*", clause.lower())
+        ]
+        clause_number = len(clause_tokens_list)
+        clause_tokens_list.append(clause_tokens)
+        for position, token in enumerate(clause_tokens):
+            token_positions.setdefault(token, []).append((clause_number, position))
+
+    clause_index = (clause_tokens_list, token_positions)
+    if cache is not None:
+        cache.clause_index[resume_text] = clause_index
+    return clause_index
+
+
 def phrase_has_positive_resume_evidence(phrase: str, resume_text: str) -> bool:
     cache = get_scoring_cache()
     cache_key = (phrase, resume_text)
@@ -2477,28 +2527,20 @@ def phrase_has_positive_resume_evidence(phrase: str, resume_text: str) -> bool:
     if not phrase_tokens:
         return False
 
-    # Treat contrast words as clause boundaries so "no Python, but strong Java"
-    # does not incorrectly negate Java as well.
-    clauses = re.split(r"[\n.!?;]+|\b(?:but|however|although)\b", resume_text or "", flags=re.I)
+    clause_tokens_list, token_positions = get_resume_clause_index(resume_text)
     width = len(phrase_tokens)
-    for clause in clauses:
-        # Keep short negation words such as "no" and ordinary stop words for
-        # the context window, while still normalizing skill word forms.
-        clause_tokens = [
-            normalize_keyword_token(token)
-            for token in re.findall(r"[a-zA-Z][a-zA-Z+.#/-]*", clause.lower())
-        ]
-        for index in range(0, len(clause_tokens) - width + 1):
-            if clause_tokens[index : index + width] != phrase_tokens:
-                continue
-            preceding = clause_tokens[max(0, index - 6) : index]
-            if not (set(preceding) & NEGATED_EVIDENCE_MARKERS):
-                if cache is not None:
-                    cache.phrase[cache_key] = True
-                return True
+    found = False
+    for clause_number, index in token_positions.get(phrase_tokens[0], ()):
+        clause_tokens = clause_tokens_list[clause_number]
+        if clause_tokens[index : index + width] != phrase_tokens:
+            continue
+        preceding = clause_tokens[max(0, index - 6) : index]
+        if not (set(preceding) & NEGATED_EVIDENCE_MARKERS):
+            found = True
+            break
     if cache is not None:
-        cache.phrase[cache_key] = False
-    return False
+        cache.phrase[cache_key] = found
+    return found
 
 
 def token_has_positive_resume_evidence(token: str, resume_text: str, resume_tokens: set[str]) -> bool:
@@ -3067,7 +3109,8 @@ def score_requirement_against_resume(
     phrase_similarity = compute_tfidf_score(resume_text, requirement_text)
     score = (token_coverage * 0.85) + (phrase_similarity * 0.15)
 
-    if normalize_match_text(requirement_text) and normalize_match_text(requirement_text) in normalize_match_text(resume_text):
+    normalized_requirement = scoped_normalize_match_text(requirement_text)
+    if normalized_requirement and normalized_requirement in scoped_normalize_match_text(resume_text):
         score = 100.0
         matched_tokens = requirement_tokens
 
@@ -9917,6 +9960,13 @@ def api_index():
 
 @app.post("/analyze-file")
 def analyze_file():
+    # One scoring cache for the whole request: ranking, the recommended-role fit
+    # and the report reuse each other's results, and nothing outlives the request.
+    with scoring_cache_scope():
+        return _analyze_file()
+
+
+def _analyze_file():
     started_at = perf_counter()
     phase_started_at = started_at
     phase_timings: list[str] = []
