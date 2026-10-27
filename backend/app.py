@@ -143,6 +143,9 @@ ROLE_EVIDENCE_WEIGHT = 0.10
 ROLE_TITLE_WEIGHT = 0.35
 ROLE_TITLE_HISTORY_DECAY = 0.85
 NON_IT_HEADLINE_REVIEW_THRESHOLD = 35.0
+# A resume naming this many technical skills is not treated as a non-IT
+# profile, whatever its current job title says.
+NON_IT_PROFILE_MIN_TECHNICAL_SKILLS = 3
 AUTO_NO_MATCH_SAMPLE_ROLES = (
     "Software Developer",
     "Full Stack Developer",
@@ -1794,6 +1797,16 @@ TECHNICAL_HEADLINE_PATTERN = re.compile(
     r"technologist|tester|testing|ui|ux|web)\b",
     re.I,
 )
+IT_STUDY_FIELD_PATTERN = re.compile(
+    r"\b(?:computer science|computing|information technology|information systems?|software engineering|"
+    r"computer engineering|data science|cyber ?security|artificial intelligence|ict)\b",
+    re.I,
+)
+# "IT" is only meaningful in capitals; lowercase "it" is an ordinary word.
+IT_ABBREVIATION_PATTERN = re.compile(r"\bIT\b")
+IT_ABBREVIATION_QUALIFICATION_PATTERN = re.compile(
+    r"\b(?i:diploma|degree|bachelor|master|b\.?\s?sc|foundation|certificate)\b[^\n]{0,60}?\bIT\b"
+)
 GENERIC_JOB_TITLE_TOKENS = {
     "admin",
     "administrator",
@@ -2011,6 +2024,36 @@ def is_explicit_non_it_resume_headline(value: str) -> bool:
     )
 
 
+def has_it_related_qualification(resume_text: str) -> bool:
+    text = resume_text or ""
+    return bool(IT_STUDY_FIELD_PATTERN.search(text) or IT_ABBREVIATION_QUALIFICATION_PATTERN.search(text))
+
+
+def get_non_it_current_job_title(entries_newest_first: list[dict[str, Any]], resume_text: str) -> str:
+    """Return the current job title when the whole profile reads as non-IT.
+
+    A non-IT current job alone is not enough: CS students often list a
+    part-time retail or service job, and parsed titles can be wrong. The title
+    only counts as non-IT evidence when no dated job title is technical, the
+    resume shows no IT-related qualification and it names fewer than three
+    technical skills, so such resumes keep the ordinary review threshold.
+    """
+
+    if not entries_newest_first:
+        return ""
+    titles = [str(entry.get("title") or "") for entry in entries_newest_first]
+    current_title = normalize_text(titles[0])
+    if not is_explicit_non_it_resume_headline(current_title):
+        return ""
+    if any(TECHNICAL_HEADLINE_PATTERN.search(title) or IT_ABBREVIATION_PATTERN.search(title) for title in titles):
+        return ""
+    if has_it_related_qualification(resume_text):
+        return ""
+    if len(extract_key_phrases(resume_text, DEFAULT_SKILL_DICTIONARY)) >= NON_IT_PROFILE_MIN_TECHNICAL_SKILLS:
+        return ""
+    return current_title
+
+
 def get_total_employment_months(entries: list[dict[str, Any]]) -> int | None:
     if not entries:
         return None
@@ -2124,6 +2167,7 @@ def compute_career_role_title_match(
                 "signal_source": "non_it_headline",
                 "explicit_non_it_headline": True,
                 "non_it_headline": headline,
+                "non_it_title_source": "headline",
             }
         return {
             "score": 0.0,
@@ -2135,7 +2179,16 @@ def compute_career_role_title_match(
             "signal_source": "unavailable",
             "explicit_non_it_headline": False,
             "non_it_headline": "",
+            "non_it_title_source": "",
         }
+
+    non_it_title_source = "headline" if explicit_non_it_headline else ""
+    if not explicit_non_it_headline:
+        non_it_current_title = get_non_it_current_job_title(ordered_entries, resume_text)
+        if non_it_current_title:
+            explicit_non_it_headline = True
+            headline = non_it_current_title
+            non_it_title_source = "current_job_title"
 
     most_recent_title = str(ordered_entries[0]["title"])
     best_score = 0.0
@@ -2165,6 +2218,7 @@ def compute_career_role_title_match(
         "signal_source": "employment_title",
         "explicit_non_it_headline": explicit_non_it_headline,
         "non_it_headline": headline if explicit_non_it_headline else "",
+        "non_it_title_source": non_it_title_source,
     }
 
 
@@ -2269,6 +2323,7 @@ def _rank_database_role_matches(resume_text: str, limit: int | None = None) -> l
                 ),
                 "explicit_non_it_headline": bool(title_result.get("explicit_non_it_headline")),
                 "non_it_headline": title_result.get("non_it_headline") or "",
+                "non_it_title_source": title_result.get("non_it_title_source") or "",
                 "most_recent_title": title_result.get("most_recent_title") or most_recent_title,
                 "fit_result": fit_result,
             }
@@ -3610,6 +3665,12 @@ def build_role_recommendation(
             )
         )
     )
+    non_it_title_source = (
+        str((explicit_non_it_match or {}).get("non_it_title_source") or "headline")
+        if explicit_non_it_headline
+        else ""
+    )
+    non_it_title_label = "current job title" if non_it_title_source == "current_job_title" else "resume headline"
     review_threshold = (
         NON_IT_HEADLINE_REVIEW_THRESHOLD
         if explicit_non_it_headline
@@ -3636,7 +3697,7 @@ def build_role_recommendation(
         reason_summary = (
             f"The selected role has {selected_score:.2f}/100 evidence, below the applicable "
             f"{review_threshold:.0f}/100 review threshold"
-            + (f" and the resume headline is {non_it_headline}." if non_it_headline else ".")
+            + (f" and the {non_it_title_label} is {non_it_headline}." if non_it_headline else ".")
             + " Treat this as REVIEW REQUIRED, "
             "not as a confirmed match; the resume builder can show a separate selected-role example."
         )
@@ -3649,7 +3710,7 @@ def build_role_recommendation(
         reason_summary = (
             f"No database role reached the applicable {review_threshold:.0f}/100 evidence review threshold. "
             f"The closest role was {recommended_database_role or 'unavailable'} at {recommended_score:.2f}/100, "
-            + (f"while the explicit resume headline is {non_it_headline}. " if non_it_headline else "")
+            + (f"while the {non_it_title_label} is {non_it_headline}. " if non_it_headline else "")
             + "It is shown only for human review and is not a confirmed recommendation."
         )
     elif recommended_database_role or selected_database_role:
@@ -3683,6 +3744,7 @@ def build_role_recommendation(
         "review_threshold": review_threshold,
         "explicit_non_it_headline": explicit_non_it_headline,
         "non_it_headline": non_it_headline,
+        "non_it_title_source": non_it_title_source,
         "closest_role": recommended_database_role,
         "closest_role_score": recommended_score,
         "top_score_gap": top_score_gap,

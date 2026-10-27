@@ -405,6 +405,10 @@
         .report-reveal.is-visible { opacity: 1; filter: blur(0); transform: translate3d(0,0,0); }
         .report-reveal[data-reveal-side="left"] { --reveal-x: -24px; }
         .report-reveal[data-reveal-side="right"] { --reveal-x: 24px; }
+        /* Sections that have not scrolled into view yet start 24px to the side; clip
+           that offset so it never widens the page on tablets and small laptops.
+           clip (unlike hidden) keeps the sticky report tabs working. */
+        .report-main { overflow-x: clip; }
         @media (max-width: 980px) {
             .report-quick { grid-template-columns: 1fr; gap: 1.3rem; }
             .report-quick h2 { max-width: none; }

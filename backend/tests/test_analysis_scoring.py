@@ -312,6 +312,105 @@ class AnalysisScoringTests(unittest.TestCase):
         self.assertEqual(app_module.extract_explicit_resume_headline(name_first), "")
         self.assertEqual(app_module.extract_explicit_resume_headline(ordinary_summary), "")
 
+    def test_non_it_current_job_title_counts_when_profile_has_no_it_evidence(self):
+        text = (
+            "FICTIONAL TEST RESUME\nAisha Rahman\nRetail Operations Executive\n"
+            "EDUCATION\nBachelor of Business Administration | Meridian Business College | 2019"
+        )
+        employment_entries = [
+            {"title": "Store Administration Coordinator", "start": (2020, 2), "end": (2022, 5)},
+            {"title": "Retail Operations Executive", "start": (2022, 6), "end": (2026, 10)},
+        ]
+
+        result = app_module.compute_career_role_title_match(
+            text,
+            "Systems Tester",
+            employment_entries,
+        )
+
+        self.assertEqual(app_module.extract_explicit_resume_headline(text), "")
+        self.assertEqual(result["signal_source"], "employment_title")
+        self.assertTrue(result["explicit_non_it_headline"])
+        self.assertEqual(result["non_it_headline"], "Retail Operations Executive")
+        self.assertEqual(result["non_it_title_source"], "current_job_title")
+
+    def test_cs_student_with_part_time_non_it_job_is_not_flagged(self):
+        employment_entries = [{"title": "Sales Assistant", "start": (2024, 1), "end": (2026, 10)}]
+
+        for qualification in (
+            "Bachelor of Computer Science (Hons.), University of Technology Sarawak",
+            "Diploma in IT, Kolej Teknologi",
+        ):
+            with self.subTest(qualification=qualification):
+                text = f"Alex Tan\nEDUCATION\n{qualification}\nSKILLS\nPython, SQL"
+                result = app_module.compute_career_role_title_match(
+                    text,
+                    "Software Developer",
+                    employment_entries,
+                )
+                self.assertFalse(result["explicit_non_it_headline"])
+                self.assertEqual(result["non_it_title_source"], "")
+
+    def test_technical_job_history_keeps_ordinary_threshold(self):
+        employment_entries = [
+            {"title": "Sales Assistant", "start": (2025, 1), "end": (2026, 10)},
+            {"title": "Software Developer Intern", "start": (2024, 6), "end": (2024, 9)},
+        ]
+
+        self.assertEqual(
+            app_module.get_non_it_current_job_title(employment_entries, "Jordan Lee\nEXPERIENCE"),
+            "",
+        )
+        self.assertEqual(
+            app_module.get_non_it_current_job_title(
+                [{"title": "IT Support Executive", "start": (2024, 1), "end": (2026, 10)}],
+                "Jordan Lee\nEXPERIENCE",
+            ),
+            "",
+        )
+
+    def test_technical_skills_keep_ordinary_threshold_despite_non_it_title(self):
+        # A misparsed or unusual title must not override clear technical evidence.
+        employment_entries = [{"title": "Disaster Recovery Specialist", "start": (2015, 9), "end": (2026, 10)}]
+        technical_text = "First Last\nSKILLS\nPython, Django, JavaScript, MySQL, Git"
+        retail_text = "Aisha Rahman\nCORE SKILLS\nRetail Operations | Inventory Control | Microsoft Excel"
+
+        self.assertEqual(app_module.get_non_it_current_job_title(employment_entries, technical_text), "")
+        self.assertEqual(
+            app_module.get_non_it_current_job_title(employment_entries, retail_text),
+            "Disaster Recovery Specialist",
+        )
+
+    def test_auto_non_it_current_job_title_below_35_has_no_suitable_role(self):
+        detected_job = {"role": {"role_name": "Systems Tester"}}
+        ranked_matches = [
+            {
+                "role": {"role_name": "Systems Tester"},
+                "confidence_score": 21.38,
+                "fit_result": {"combined_score": 30.0},
+                "title_match_source": "current",
+                "title_match_title": "Retail Operations Executive",
+                "explicit_non_it_headline": True,
+                "non_it_headline": "Retail Operations Executive",
+                "non_it_title_source": "current_job_title",
+            }
+        ]
+
+        recommendation = app_module.build_role_recommendation(
+            "",
+            None,
+            detected_job,
+            detected_job,
+            None,
+            {"combined_score": 30.0},
+            ranked_matches,
+        )
+
+        self.assertEqual(recommendation["match_status"], "no_suitable_role")
+        self.assertEqual(recommendation["review_threshold"], 35.0)
+        self.assertEqual(recommendation["non_it_title_source"], "current_job_title")
+        self.assertIn("current job title is Retail Operations Executive", recommendation["reason_summary"])
+
     def test_technical_headline_does_not_trigger_non_it_penalty(self):
         text = """
         SOFTWARE DEVELOPER   PROFESSIONAL SUMMARY
