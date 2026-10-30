@@ -90,7 +90,7 @@ h1, h2, h3, .font-headline {
 .admin-overview-row h3 { margin: 0 0 .4rem; color: var(--admin-ink); font-size: 1rem; font-weight: 800; }
 .admin-overview-row p { margin: 0; color: var(--admin-muted); font-size: .88rem; line-height: 1.55; }
 .admin-access { max-width: 80rem; margin: 0 auto; padding: clamp(2rem, 5vw, 4rem) 1rem 5rem; }
-.admin-access-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 1.25rem; max-width: 46rem; padding: clamp(1.5rem, 4vw, 2.5rem); border: 1px solid var(--admin-line); border-radius: 20px; background: #fff; box-shadow: 0 16px 40px rgba(22,35,56,.07); }
+.admin-access-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 1.25rem; max-width: 46rem; margin: 0 auto; padding: clamp(1.5rem, 4vw, 2.5rem); border: 1px solid var(--admin-line); border-radius: 20px; background: #fff; box-shadow: 0 16px 40px rgba(22,35,56,.07); }
 .admin-access-icon { display: grid; width: 3.5rem; height: 3.5rem; place-items: center; border-radius: 15px; background: #e8f4ff; color: var(--admin-teal); }
 .admin-access-icon svg { width: 1.5rem; height: 1.5rem; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .admin-access-kicker { margin: 0 0 .5rem; color: var(--admin-teal-deep); font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
@@ -351,9 +351,6 @@ h1, h2, h3, .font-headline {
     </div>
     <div class="admin-actions flex items-center gap-2 sm:gap-4 shrink-0">
       <button class="admin-button admin-button-primary account-header-trigger h-10 inline-flex items-center justify-center bg-primary text-on-primary text-xs sm:text-sm whitespace-nowrap" id="openAuthModalBtn" type="button" aria-label="Open account options" aria-haspopup="dialog" aria-controls="profileModal" title="Account options"><span class="account-header-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg></span></button>
-      <button id="refreshBtn" class="admin-button admin-button-secondary h-10 w-10 inline-flex items-center justify-center" type="button" title="Refresh insights" aria-label="Refresh insights" hidden>
-        <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.4 6"/><path d="M20 4v7h-7"/></svg>
-      </button>
       <a class="admin-mobile-home admin-button admin-button-secondary md:hidden h-9 w-9 inline-flex items-center justify-center" href="home_page.html" aria-label="Back to home" title="Back to home">
         <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v11H3V10Z"/><path d="M9 21v-7h6v7"/></svg>
       </a>
@@ -691,7 +688,6 @@ const accountWorkspace = window.CareerNavigatorCommon.createAccountWorkspace({
   modal: profileModal,
   onHistory: () => renderAccountHistory()
 });
-const refreshBtn = document.getElementById("refreshBtn");
 const adminDashboard = document.getElementById("adminDashboard");
 const adminAccessState = document.getElementById("adminAccessState");
 const adminAccessKicker = document.getElementById("adminAccessKicker");
@@ -929,13 +925,11 @@ function showAdminAccessState(kicker, title, description, canRetry = false, deta
     ...(detail ? [document.createTextNode(" " + detail)] : [])
   );
   adminAccessActions.hidden = !canRetry;
-  refreshBtn.hidden = true;
 }
 
 function showAdminDashboard() {
   adminAccessState.hidden = true;
   adminDashboard.hidden = false;
-  refreshBtn.hidden = false;
   enableScrollReveals();
 }
 
@@ -1029,7 +1023,7 @@ function renderDatasetLoading() {
 }
 
 function renderDatasetError() {
-  document.getElementById("datasetMetricGrid").innerHTML = '<p class="col-span-full rounded-xl bg-surface-container-low p-4 text-sm font-semibold text-on-surface-variant">Could not load the dataset overview. Use refresh to try again.</p>';
+  document.getElementById("datasetMetricGrid").innerHTML = '<p class="col-span-full rounded-xl bg-surface-container-low p-4 text-sm font-semibold text-on-surface-variant">Could not load the dataset overview. Reload the page to try again.</p>';
   DATASET_BAR_IDS.forEach((id) => {
     document.getElementById(id).innerHTML = '<p class="text-sm font-semibold text-on-surface-variant">No data available.</p>';
   });
@@ -1570,8 +1564,6 @@ async function loadInsights() {
   }
 
   const requestId = ++insightsRequestId;
-  refreshBtn.disabled = true;
-  refreshBtn.classList.add("opacity-70");
   showPageMessage("");
   if (adminDashboard.hidden) {
     showAdminAccessState("Checking access", "Preparing admin insights", "Checking your administrator session and loading live data.");
@@ -1603,7 +1595,6 @@ async function loadInsights() {
     showAdminDashboard();
   } catch (error) {
     if (requestId === insightsRequestId) {
-      finishInsightsRequest();
       const detail = error && error.message && error.message !== "Failed to fetch" ? error.message : "";
       showAdminAccessState(
         "Insights unavailable",
@@ -1633,16 +1624,7 @@ async function loadInsights() {
     if (requestId === insightsRequestId) {
       renderDatasetError();
     }
-  } finally {
-    if (requestId === insightsRequestId) {
-      finishInsightsRequest();
-    }
   }
-}
-
-function finishInsightsRequest() {
-  refreshBtn.disabled = false;
-  refreshBtn.classList.remove("opacity-70");
 }
 
 function setProfileMessage(message, isError = false) {
@@ -1879,7 +1861,6 @@ document.addEventListener("keydown", (event) => {
     closeReportModal();
   }
 });
-refreshBtn.addEventListener("click", loadInsights);
 retryAdminBtn.addEventListener("click", loadInsights);
 
 let scrollRevealsEnabled = false;
