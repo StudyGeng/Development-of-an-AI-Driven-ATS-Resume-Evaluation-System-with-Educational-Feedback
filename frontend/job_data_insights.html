@@ -100,6 +100,14 @@ h1, h2, h3, .font-headline {
 .admin-access-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
 .admin-access-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: .65rem 1rem; border-radius: 10px; font-size: .875rem; font-weight: 800; }
 .admin-access-actions button { border: 1px solid var(--admin-line); background: #fff; color: var(--admin-teal-deep); cursor: pointer; }
+.admin-access-progress { display: flex; align-items: center; gap: .85rem; margin-top: 1.25rem; }
+.admin-progress-track { position: relative; flex: 1; height: .5rem; overflow: hidden; border-radius: 999px; background: #e8f1fa; }
+.admin-progress-fill { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; background: linear-gradient(90deg, #2c9af4, var(--admin-teal)); transform: scaleX(0); transform-origin: left; transition: transform .2s linear; }
+.admin-progress-fill::after { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .55), transparent); content: ""; transform: translateX(-100%); animation: adminProgressShine 1.3s ease-in-out infinite; }
+.admin-progress-value { min-width: 3rem; color: var(--admin-teal-deep); font-family: Manrope, Inter, sans-serif; font-size: 1rem; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.admin-access.is-loading .admin-access-icon { animation: adminIconPulse 1.6s ease-in-out infinite; }
+@keyframes adminProgressShine { to { transform: translateX(100%); } }
+@keyframes adminIconPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(8, 127, 236, .22); } 50% { box-shadow: 0 0 0 .55rem rgba(8, 127, 236, 0); } }
 .admin-access-actions button:hover { background: #f2faf9; }
 .admin-page :is(a, button, input):focus-visible {
   outline: 3px solid #69bbd1;
@@ -322,6 +330,8 @@ h1, h2, h3, .font-headline {
   .admin-hero::after { animation: none; }
   .admin-hero::before { display: none; }
   .admin-skeleton { animation: none; }
+  .admin-progress-fill { transition: none; }
+  .admin-progress-fill::after, .admin-access.is-loading .admin-access-icon { animation: none; }
   .admin-dashboard > section.is-revealed { animation: none; }
   .admin-button, .icon-button, .metric-card { transition: none; }
   .admin-button:hover:not(:disabled), .icon-button:hover, .metric-card:hover { transform: none; }
@@ -369,6 +379,10 @@ h1, h2, h3, .font-headline {
         <p class="admin-access-kicker" id="adminAccessKicker">Checking access</p>
         <h2 id="adminAccessTitle">Preparing admin insights</h2>
         <p id="adminAccessDescription">This dashboard is available to signed-in administrators.</p>
+        <div id="adminAccessProgress" class="admin-access-progress" role="progressbar" aria-label="Loading admin insights" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+          <span class="admin-progress-track"><span id="adminProgressFill" class="admin-progress-fill"></span></span>
+          <span id="adminProgressValue" class="admin-progress-value" aria-hidden="true">0%</span>
+        </div>
         <div class="admin-access-actions" id="adminAccessActions" hidden>
           <button id="retryAdminBtn" type="button">Try again</button>
         </div>
@@ -840,7 +854,70 @@ function showPageMessage(message, type = "info") {
   element.className = "mt-3 text-sm font-semibold " + (type === "error" ? "text-error" : "text-on-surface-variant") + (message ? "" : " hidden");
 }
 
+const adminAccessProgress = document.getElementById("adminAccessProgress");
+const adminProgressFill = document.getElementById("adminProgressFill");
+const adminProgressValue = document.getElementById("adminProgressValue");
+const SLOW_LOAD_NOTICE_MS = 6000;
+let loadingProgressTimer = null;
+let loadingProgressValue = 0;
+
+function setLoadingProgress(value) {
+  loadingProgressValue = Math.min(100, Math.max(loadingProgressValue, value));
+  const shown = Math.floor(loadingProgressValue);
+  adminProgressFill.style.transform = `scaleX(${loadingProgressValue / 100})`;
+  adminProgressValue.textContent = `${shown}%`;
+  adminAccessProgress.setAttribute("aria-valuenow", String(shown));
+}
+
+function stopLoadingProgress() {
+  clearInterval(loadingProgressTimer);
+  loadingProgressTimer = null;
+  adminAccessState.classList.remove("is-loading");
+}
+
+// The server does not report how far along it is, so the bar eases toward 90%
+// while waiting and only reaches 100% once the data has arrived.
+function startLoadingProgress() {
+  stopLoadingProgress();
+  loadingProgressValue = 0;
+  setLoadingProgress(0);
+  adminAccessProgress.hidden = false;
+  adminAccessState.classList.add("is-loading");
+  const startedAt = performance.now();
+  let slowNoticeShown = false;
+  loadingProgressTimer = setInterval(() => {
+    const elapsed = performance.now() - startedAt;
+    setLoadingProgress(90 * (1 - Math.exp(-elapsed / 2500)));
+    if (!slowNoticeShown && elapsed > SLOW_LOAD_NOTICE_MS) {
+      slowNoticeShown = true;
+      // Render Free stops idle servers; the first request after a pause waits for start-up.
+      adminAccessDescription.textContent = "The server is waking up. This can take up to a minute.";
+    }
+  }, 100);
+}
+
+function finishLoadingProgress() {
+  stopLoadingProgress();
+  const from = loadingProgressValue;
+  const duration = prefersReducedMotion ? 0 : 350;
+  return new Promise((resolve) => {
+    const startedAt = performance.now();
+    const step = (now) => {
+      const progress = duration ? Math.min(1, (now - startedAt) / duration) : 1;
+      setLoadingProgress(from + (100 - from) * progress);
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        setTimeout(resolve, duration ? 220 : 0);
+      }
+    };
+    requestAnimationFrame(step);
+  });
+}
+
 function showAdminAccessState(kicker, title, description, canRetry = false, detail = "") {
+  stopLoadingProgress();
+  adminAccessProgress.hidden = true;
   adminDashboard.hidden = true;
   adminAccessState.hidden = false;
   adminAccessKicker.textContent = kicker;
@@ -1497,6 +1574,7 @@ async function loadInsights() {
   showPageMessage("");
   if (adminDashboard.hidden) {
     showAdminAccessState("Checking access", "Preparing admin insights", "Checking your administrator session and loading live data.");
+    startLoadingProgress();
   }
 
   // Both requests start together, but only the account data blocks the dashboard.
@@ -1516,6 +1594,10 @@ async function loadInsights() {
     renderUserList(adminData.users || []);
     if (adminDashboard.hidden) {
       renderDatasetLoading();
+      await finishLoadingProgress();
+      if (requestId !== insightsRequestId) {
+        return;
+      }
     }
     showAdminDashboard();
   } catch (error) {

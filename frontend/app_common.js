@@ -730,6 +730,8 @@
     "Open the running app to view insights": "Buka aplikasi yang sedang berjalan untuk melihat wawasan",
     "This saved HTML file cannot verify an admin session or load live account data. Open the website through its app server and sign in with an admin account.": "Fail HTML tersimpan ini tidak dapat mengesahkan sesi pentadbir atau memuatkan data akaun langsung. Buka laman web melalui pelayan aplikasinya dan log masuk dengan akaun pentadbir.",
     "Checking your administrator session and loading live data.": "Menyemak sesi pentadbir anda dan memuatkan data langsung.",
+    "Loading admin insights": "Memuatkan wawasan pentadbir",
+    "The server is waking up. This can take up to a minute.": "Pelayan sedang dihidupkan. Ini boleh mengambil masa sehingga seminit.",
     "Insights unavailable": "Wawasan tidak tersedia",
     "We couldn't load the admin dashboard": "Kami tidak dapat memuatkan papan pemuka pentadbir",
     "Check that the application server is running and try again.": "Pastikan pelayan aplikasi sedang berjalan dan cuba lagi.",
