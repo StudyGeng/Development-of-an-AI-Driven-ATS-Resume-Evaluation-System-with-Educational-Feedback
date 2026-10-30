@@ -168,22 +168,6 @@ h1, h2, h3, .font-headline {
   .admin-summary-grid > .admin-improvement-card { grid-column: auto; }
   .admin-improvement-card #improvementGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.table-shell {
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  border: 1px solid #edf1f4;
-  border-radius: 12px;
-  scrollbar-color: #a9cbd4 #f7f9fc;
-  /* Edge shadows appear while more columns are hidden on that side. */
-  background:
-    linear-gradient(90deg, #fff 35%, rgba(255, 255, 255, 0)) left / 2.5rem 100% no-repeat local,
-    linear-gradient(270deg, #fff 35%, rgba(255, 255, 255, 0)) right / 2.5rem 100% no-repeat local,
-    radial-gradient(farthest-side at 0 50%, rgba(22, 35, 56, .16), transparent) left / .85rem 100% no-repeat scroll,
-    radial-gradient(farthest-side at 100% 50%, rgba(22, 35, 56, .16), transparent) right / .85rem 100% no-repeat scroll,
-    #fff;
-}
-.admin-table-hint { display: none; align-items: center; gap: .4rem; margin: 0 0 .6rem; color: var(--admin-muted); font-size: .78rem; font-weight: 700; }
-.admin-table-hint svg { width: 1rem; height: 1rem; flex: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .admin-people-grid { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1100px) {
   .admin-people-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
@@ -268,13 +252,6 @@ h1, h2, h3, .font-headline {
 .admin-file-pages { display: grid; gap: .9rem; justify-items: center; }
 .admin-file-pages canvas,
 .admin-file-pages img { display: block; width: 100%; max-width: 46rem; height: auto; border: 1px solid var(--admin-line); border-radius: 10px; background: #fff; box-shadow: 0 10px 26px rgba(22, 35, 56, .08); }
-thead { background: #f5f9fa; }
-th, td {
-  white-space: nowrap;
-}
-th { color: #5b6b80; letter-spacing: 0.04em; }
-tbody tr { transition: background-color .18s ease; }
-tbody tr:hover { background: #f1f8f8; }
 .pill {
   display: inline-flex;
   align-items: center;
@@ -322,7 +299,6 @@ tbody tr:hover { background: #f1f8f8; }
   .admin-overview-row { grid-template-columns: minmax(6rem, .7fr) minmax(0, 1fr); gap: 1rem; min-height: 7rem; }
   .admin-overview-row strong { font-size: clamp(2.7rem, 11vw, 4rem); }
   .admin-page .data-card { padding: 1.1rem; border-radius: 16px; }
-  .admin-table-hint { display: flex; }
   .admin-list-row { gap: .6rem; }
   .admin-list-row .admin-view-button { width: 2.25rem; padding: 0; justify-content: center; }
   .admin-list-row .admin-view-button span { display: none; }
@@ -347,7 +323,7 @@ tbody tr:hover { background: #f1f8f8; }
   .admin-hero::before { display: none; }
   .admin-skeleton { animation: none; }
   .admin-dashboard > section.is-revealed { animation: none; }
-  .admin-button, .icon-button, .metric-card, tbody tr { transition: none; }
+  .admin-button, .icon-button, .metric-card { transition: none; }
   .admin-button:hover:not(:disabled), .icon-button:hover, .metric-card:hover { transform: none; }
 }
 </style>
@@ -513,7 +489,7 @@ tbody tr:hover { background: #f1f8f8; }
     </article>
   </section>
 
-  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-2 lg:px-8">
+  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-10 sm:px-6 lg:grid-cols-2 lg:px-8">
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Top Skill Keywords</h2>
@@ -529,28 +505,6 @@ tbody tr:hover { background: #f1f8f8; }
     </article>
   </section>
 
-  <section class="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
-    <article class="data-card p-5">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-headline text-xl font-extrabold text-primary">Roles With Most Requirements</h2>
-        <span id="roleTableCount" class="text-sm font-bold text-on-surface-variant"></span>
-      </div>
-      <p class="admin-table-hint"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Swipe sideways to see every column.</span></p>
-      <div class="table-shell">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
-            <tr>
-              <th class="px-3 py-3 font-bold">Role</th>
-              <th class="px-3 py-3 font-bold">Family</th>
-              <th class="px-3 py-3 text-right font-bold">Requirements</th>
-              <th class="px-3 py-3 font-bold">Top Skills</th>
-            </tr>
-          </thead>
-          <tbody id="roleTableBody" class="divide-y divide-outline-variant"></tbody>
-        </table>
-      </div>
-    </article>
-  </section>
   </div>
 </main>
 
@@ -994,8 +948,6 @@ function renderDatasetLoading() {
     document.getElementById(id).innerHTML = [80, 62, 48, 34].map((width) => `<span class="admin-skeleton" aria-hidden="true" style="width:${width}%"></span>`).join("")
       + '<p class="sr-only">Loading dataset overview...</p>';
   });
-  document.getElementById("roleTableCount").textContent = "";
-  document.getElementById("roleTableBody").innerHTML = '<tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="4">Loading dataset overview...</td></tr>';
 }
 
 function renderDatasetError() {
@@ -1003,7 +955,6 @@ function renderDatasetError() {
   DATASET_BAR_IDS.forEach((id) => {
     document.getElementById(id).innerHTML = '<p class="text-sm font-semibold text-on-surface-variant">No data available.</p>';
   });
-  document.getElementById("roleTableBody").innerHTML = '<tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="4">No role data available.</td></tr>';
 }
 
 function renderBars(elementId, items, labelKey = "label", valueKey = "value", suffix = "") {
@@ -1156,21 +1107,6 @@ function renderEvaluationList(items) {
 function renderUserList(users) {
   adminUsers = Array.isArray(users) ? users : [];
   setAdminListItems("user", adminUsers);
-}
-
-function renderRoleTable(items) {
-  const rows = Array.isArray(items) ? items.slice(0, 12) : [];
-  document.getElementById("roleTableCount").textContent = rows.length ? `${rows.length} roles shown` : "";
-  document.getElementById("roleTableBody").innerHTML = rows.map((item) => `
-    <tr>
-      <td class="px-3 py-3 font-bold text-primary">${escapeHtml(item.role_name)}</td>
-      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml(item.role_family)}</td>
-      <td class="px-3 py-3 text-right font-bold">${formatNumber(item.requirement_count)}</td>
-      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml((item.top_skills || []).slice(0, 5).join(", ") || "None detected")}</td>
-    </tr>
-  `).join("") || `
-    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="4">No role data available.</td></tr>
-  `;
 }
 
 function openUserEditor(userId) {
@@ -1610,7 +1546,6 @@ async function loadInsights() {
     renderBars("roleFamilyBars", datasetData.chart_data?.role_family_bar || []);
     renderBars("skillBars", datasetData.top_skill_keywords || [], "skill", "role_count", " roles");
     renderBars("keywordBars", datasetData.top_text_keywords || [], "keyword", "count", "");
-    renderRoleTable(datasetData.top_roles_by_requirements || []);
   } catch (error) {
     if (requestId === insightsRequestId) {
       renderDatasetError();
