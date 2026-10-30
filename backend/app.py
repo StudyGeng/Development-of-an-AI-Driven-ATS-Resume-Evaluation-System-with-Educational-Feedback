@@ -20,7 +20,7 @@ import urllib.error
 import urllib.request
 from time import perf_counter
 from urllib.parse import urlsplit
-from typing import Any
+from typing import Any, NamedTuple
 
 from database import (
     DatabaseError,
@@ -28,6 +28,7 @@ from database import (
     get_db_connection,
     is_postgres_backend,
     is_duplicate_entry_error,
+    resume_files_table_sql,
     utc_now_sql,
 )
 from data_cleaning import (
@@ -103,6 +104,7 @@ from job_repository import (
     apply_job_data_cleaning_plan,
     fetch_job_catalog,
     fetch_job_data_for_insights,
+    get_job_catalog_version,
     fetch_job_requirements,
     fetch_job_roles,
     fetch_raw_job_data_rows,
@@ -4106,11 +4108,88 @@ def build_analysis_payload(
     }
 
 
-def persist_analysis(payload: dict[str, Any], job_description: str, target_role: str, user_id: int) -> int:
+RESUME_FILE_CONTENT_TYPES = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+}
+_resume_file_table_ready = False
+
+
+class ResumeUpload(NamedTuple):
+    file_name: str
+    content_type: str
+    data: bytes
+
+
+def read_resume_upload(file_storage) -> ResumeUpload | None:
+    """Return the uploaded bytes after text extraction has already validated them."""
+    content_type = RESUME_FILE_CONTENT_TYPES.get(get_file_extension(file_storage.filename or ""))
+    if not content_type:
+        return None
+    try:
+        file_storage.stream.seek(0)
+        data = file_storage.stream.read()
+    except (OSError, ValueError):
+        return None
+    if not data:
+        return None
+    return ResumeUpload(str(file_storage.filename)[:255], content_type, bytes(data))
+
+
+def ensure_resume_file_table(connection) -> bool:
+    """Create the original-file table on first use.
+
+    Render Free has no pre-deploy step, so a deployment can start before
+    `manage.py migrate` has been run against the hosted database.
+    """
+    global _resume_file_table_ready
+    if _resume_file_table_ready:
+        return True
+    cursor = connection.cursor()
+    try:
+        cursor.execute(resume_files_table_sql())
+        connection.commit()
+        _resume_file_table_ready = True
+    except DatabaseErrors:
+        connection.rollback()
+        app.logger.warning("Original resume file storage is unavailable.", exc_info=True)
+    finally:
+        cursor.close()
+    return _resume_file_table_ready
+
+
+def insert_resume_file(cursor, analysis_id: int, upload: ResumeUpload) -> None:
+    # A savepoint keeps the analysis when only the file insert fails.
+    cursor.execute("SAVEPOINT resume_file_upload")
+    try:
+        cursor.execute(
+            """
+            INSERT INTO resume_files (analysis_id, file_name, content_type, file_size, file_data)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (analysis_id, upload.file_name, upload.content_type, len(upload.data), upload.data),
+        )
+    except DatabaseErrors:
+        cursor.execute("ROLLBACK TO SAVEPOINT resume_file_upload")
+        app.logger.warning("Could not store the original resume file for analysis %s.", analysis_id, exc_info=True)
+    else:
+        cursor.execute("RELEASE SAVEPOINT resume_file_upload")
+
+
+def persist_analysis(
+    payload: dict[str, Any],
+    job_description: str,
+    target_role: str,
+    user_id: int,
+    resume_upload: ResumeUpload | None = None,
+) -> int:
     connection = None
     cursor = None
     try:
         connection = get_db_connection()
+        store_file = resume_upload is not None and ensure_resume_file_table(connection)
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -4137,6 +4216,8 @@ def persist_analysis(payload: dict[str, Any], job_description: str, target_role:
             ),
         )
         analysis_id = int(cursor.fetchone()[0] if is_postgres_backend() else cursor.lastrowid)
+        if store_file:
+            insert_resume_file(cursor, analysis_id, resume_upload)
         connection.commit()
         return analysis_id
     except Exception:
@@ -9373,6 +9454,127 @@ def delete_admin_user(user_id: int):
     return jsonify({"message": "User deleted"})
 
 
+@app.get("/admin/analyses/<int:analysis_id>")
+def get_admin_analysis_report(analysis_id: int):
+    """Return any user's saved report for administrator review."""
+    admin_error = require_admin_json_response()
+    if admin_error:
+        return admin_error
+
+    connection = None
+    cursor = None
+    file_row = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT
+                ra.id,
+                ra.uploaded_resume_name,
+                ra.target_role,
+                ra.matching_percentage,
+                ra.resume_excerpt,
+                ra.analysis_json,
+                ra.created_at,
+                u.full_name,
+                u.email
+            FROM resume_analyses ra
+            LEFT JOIN users u ON u.id = ra.user_id
+            WHERE ra.id = %s
+            """,
+            (analysis_id,),
+        )
+        row = cursor.fetchone()
+        if row and ensure_resume_file_table(connection):
+            cursor.execute(
+                "SELECT file_name, content_type, file_size FROM resume_files WHERE analysis_id = %s",
+                (analysis_id,),
+            )
+            file_row = cursor.fetchone()
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while loading the saved analysis"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    if not row:
+        return jsonify({"detail": "Analysis not found"}), 404
+
+    analysis = parse_stored_analysis_json(row.get("analysis_json"))
+    if not analysis.get("resume_excerpt") and row.get("resume_excerpt"):
+        analysis["resume_excerpt"] = str(row["resume_excerpt"])
+    response = jsonify(
+        {
+            "analysis_id": int(row["id"]),
+            "user_name": row.get("full_name") or "Deleted user",
+            "user_email": row.get("email") or "",
+            "uploaded_resume_name": row.get("uploaded_resume_name") or "resume.pdf",
+            "target_role": normalize_text(str(row.get("target_role") or "")),
+            "score": clamp_admin_score(row.get("matching_percentage")),
+            "created_at": isoformat_datetime(row.get("created_at")),
+            "resume_file": (
+                {
+                    "file_name": file_row["file_name"],
+                    "content_type": file_row["content_type"],
+                    "file_size": int(file_row["file_size"]),
+                }
+                if file_row
+                else None
+            ),
+            "analysis": analysis,
+        }
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@app.get("/admin/analyses/<int:analysis_id>/resume-file")
+def get_admin_resume_file(analysis_id: int):
+    """Send a user's original upload to an administrator as a download."""
+    admin_error = require_admin_json_response()
+    if admin_error:
+        return admin_error
+
+    connection = None
+    cursor = None
+    row = None
+    try:
+        connection = get_db_connection()
+        if ensure_resume_file_table(connection):
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT file_name, content_type, file_data FROM resume_files WHERE analysis_id = %s",
+                (analysis_id,),
+            )
+            row = cursor.fetchone()
+    except DatabaseErrors:
+        return jsonify({"detail": "Database error while loading the resume file"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    if not row:
+        return jsonify({"detail": "The original file was not stored for this evaluation."}), 404
+
+    content_type = row["content_type"]
+    if content_type not in RESUME_FILE_CONTENT_TYPES.values():
+        content_type = "application/octet-stream"
+    response = send_file(
+        BytesIO(bytes(row["file_data"])),
+        mimetype=content_type,
+        as_attachment=True,
+        download_name=row["file_name"] or "resume",
+        max_age=0,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @app.get("/analyses")
 def list_resume_analyses():
     try:
@@ -9896,6 +10098,27 @@ def run_job_data_cleaning():
     )
 
 
+_job_data_insights_cache: tuple[object, dict[str, Any]] | None = None
+
+
+def get_cached_job_data_insights() -> dict[str, Any]:
+    """Build the dataset insights once per loaded job catalogue."""
+    global _job_data_insights_cache
+    catalog_version = get_job_catalog_version()
+    cached = _job_data_insights_cache
+    if cached is not None and cached[0] is catalog_version:
+        return cached[1]
+    roles, requirements_by_role = fetch_job_data_for_insights()
+    insights = build_job_data_insights(
+        roles,
+        requirements_by_role,
+        skill_vocabulary=DEFAULT_SKILL_DICTIONARY,
+        stopwords=KEYWORD_STOPWORDS,
+    )
+    _job_data_insights_cache = (catalog_version, insights)
+    return insights
+
+
 @app.get("/job-data-insights")
 def get_job_data_insights():
     admin_error = require_admin_json_response()
@@ -9903,13 +10126,7 @@ def get_job_data_insights():
         return admin_error
 
     try:
-        roles, requirements_by_role = fetch_job_data_for_insights()
-        insights = build_job_data_insights(
-            roles,
-            requirements_by_role,
-            skill_vocabulary=DEFAULT_SKILL_DICTIONARY,
-            stopwords=KEYWORD_STOPWORDS,
-        )
+        insights = get_cached_job_data_insights()
     except DatabaseErrors:
         return jsonify({"detail": "Database error while building job data insights"}), 500
 
@@ -10224,6 +10441,7 @@ def _analyze_file():
             job_description,
             target_role,
             session_user_id,
+            resume_upload=read_resume_upload(resume_file),
         )
         analysis["history_saved"] = True
     except DatabaseErrors:

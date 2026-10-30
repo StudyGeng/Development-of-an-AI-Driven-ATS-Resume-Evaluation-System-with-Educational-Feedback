@@ -125,6 +125,11 @@ def _get_job_catalog_snapshot() -> JobCatalogSnapshot:
         return _job_catalog_cache
 
 
+def get_job_catalog_version() -> object:
+    """Return a token that is a new object whenever the catalogue is reloaded."""
+    return _get_job_catalog_snapshot()
+
+
 def invalidate_job_catalog_cache() -> None:
     """Discard this process's catalogue snapshot after a committed admin change."""
     global _job_catalog_cache
