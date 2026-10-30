@@ -68,7 +68,13 @@ h1, h2, h3, .font-headline {
 .admin-nav a[aria-current="page"] { border-bottom-color: var(--admin-teal); }
 .admin-main { padding-top: 0; background: var(--admin-canvas); }
 .admin-hero { position: relative; overflow: hidden; background: #fff; border-bottom: 1px solid var(--admin-line); }
-.admin-hero::after { position: absolute; right: max(2rem, calc((100vw - 80rem) / 2)); bottom: -4rem; width: 16rem; height: 16rem; border: 1px solid rgba(8, 127, 236, .14); border-radius: 50%; box-shadow: 0 0 0 4rem rgba(8, 127, 236, .025), 0 0 0 8rem rgba(8, 127, 236, .015); content: ""; pointer-events: none; }
+.admin-hero::before,
+.admin-hero::after { position: absolute; right: max(2rem, calc((100vw - 80rem) / 2)); bottom: -4rem; width: 16rem; height: 16rem; border-radius: 50%; content: ""; pointer-events: none; }
+/* Radar ring: the beam's bright edge and its dot sit at 90deg, so a clockwise turn leads with them. */
+.admin-hero::after { border: 1px solid rgba(8, 127, 236, .14); background: radial-gradient(circle at calc(100% - .45rem) 50%, rgba(8, 127, 236, .55) 0 .22rem, rgba(8, 127, 236, .12) .26rem .5rem, transparent .55rem), conic-gradient(transparent 0deg, rgba(8, 127, 236, .02) 30deg, rgba(8, 127, 236, .11) 89deg, transparent 90deg); box-shadow: 0 0 0 4rem rgba(8, 127, 236, .025), 0 0 0 8rem rgba(8, 127, 236, .015); animation: adminHeroSweep 10s linear infinite; }
+.admin-hero::before { border: 1px solid rgba(8, 127, 236, .2); opacity: 0; animation: adminHeroPing 5s cubic-bezier(.2, .6, .3, 1) infinite; }
+@keyframes adminHeroSweep { to { transform: rotate(360deg); } }
+@keyframes adminHeroPing { 0% { opacity: 0; transform: scale(1); } 8% { opacity: .7; transform: scale(1.05); } 70%, 100% { opacity: 0; transform: scale(2); } }
 .admin-hero > div { position: relative; z-index: 1; max-width: 80rem; margin: 0 auto; padding: clamp(2.5rem, 5vw, 4.25rem) 1rem; }
 .admin-hero h1 { max-width: 46rem; letter-spacing: -.05em; line-height: 1.12; font-size: clamp(2.5rem, 5vw, 4rem); }
 .admin-hero h1 span { color: var(--admin-teal); }
@@ -211,6 +217,8 @@ tbody tr:hover { background: #f1f8f8; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar-fill { transition: none; }
+  .admin-hero::after { animation: none; }
+  .admin-hero::before { display: none; }
   .admin-dashboard > section.is-revealed { animation: none; }
   .admin-button, .icon-button, .metric-card, tbody tr { transition: none; }
   .admin-button:hover:not(:disabled), .icon-button:hover, .metric-card:hover { transform: none; }
