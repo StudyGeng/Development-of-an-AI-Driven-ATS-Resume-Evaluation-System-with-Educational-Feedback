@@ -181,9 +181,50 @@ h1, h2, h3, .font-headline {
     radial-gradient(farthest-side at 100% 50%, rgba(22, 35, 56, .16), transparent) right / .85rem 100% no-repeat scroll,
     #fff;
 }
-.admin-file-name { display: block; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; }
 .admin-table-hint { display: none; align-items: center; gap: .4rem; margin: 0 0 .6rem; color: var(--admin-muted); font-size: .78rem; font-weight: 700; }
 .admin-table-hint svg { width: 1rem; height: 1rem; flex: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.admin-people-grid { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) {
+  .admin-people-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+}
+.admin-list-card { display: flex; flex-direction: column; }
+.admin-list-head { display: flex; align-items: center; gap: .6rem; margin-bottom: 1rem; }
+.admin-count { padding: .15rem .55rem; border-radius: 999px; background: #e8f4ff; color: var(--admin-teal-deep); font-size: .75rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.admin-list-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-bottom: .85rem; }
+.admin-search { position: relative; flex: 1 1 12rem; min-width: 0; }
+.admin-search svg { position: absolute; top: 50%; left: .75rem; width: 1rem; height: 1rem; color: var(--admin-muted); stroke-width: 1.9; stroke-linecap: round; transform: translateY(-50%); pointer-events: none; }
+.admin-search input { width: 100%; height: 2.5rem; padding: 0 .8rem 0 2.2rem; border: 1px solid var(--admin-line); border-radius: 10px; background: #fff; color: var(--admin-ink); font-size: .875rem; }
+.admin-search input:focus { border-color: var(--admin-teal); box-shadow: 0 0 0 3px rgba(8, 127, 236, .12); }
+.admin-chips { display: inline-flex; flex-wrap: wrap; gap: .2rem; padding: .2rem; border: 1px solid var(--admin-line); border-radius: 10px; background: #f6f9fc; }
+.admin-chips button { min-height: 2rem; padding: .3rem .7rem; border: 0; border-radius: 8px; background: transparent; color: var(--admin-muted); font-size: .78rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.admin-chips button:hover { color: var(--admin-teal-deep); }
+.admin-chips button[aria-pressed="true"] { background: #fff; color: var(--admin-teal-deep); box-shadow: 0 1px 4px rgba(22, 35, 56, .12); }
+.admin-list { flex: 1; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--admin-line); }
+.admin-list-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .85rem; min-height: 4.1rem; padding: .65rem .15rem; border-bottom: 1px solid #edf1f4; }
+.admin-avatar { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 999px; background: #e8f4ff; color: var(--admin-teal-deep); font-size: .74rem; font-weight: 800; }
+.admin-list-main { min-width: 0; }
+.admin-list-name { display: flex; align-items: center; gap: .45rem; min-width: 0; margin: 0; color: var(--admin-ink); font-size: .9rem; font-weight: 800; }
+.admin-list-name > span:first-child,
+.admin-list-meta > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-list-name .pill { flex: none; }
+.admin-list-meta { display: flex; gap: .35rem; min-width: 0; margin: .15rem 0 0; color: var(--admin-muted); font-size: .78rem; }
+.admin-list-meta > span[aria-hidden] { flex: none; }
+/* The role keeps its width; a long file name is the part that gets cut. */
+.admin-list-meta > span:first-child { flex: 0 1 auto; max-width: 65%; }
+.admin-list-meta > span:last-child:not(:first-child) { flex: 1 1 0; min-width: 2.5rem; }
+.admin-list-score { text-align: right; white-space: nowrap; }
+.admin-list-score strong { display: block; color: var(--admin-ink); font-size: .92rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.admin-list-score small { color: var(--admin-muted); font-size: .74rem; font-weight: 700; }
+.admin-list-score .admin-gain { color: var(--admin-teal-deep); }
+.admin-row-actions { display: flex; gap: .35rem; }
+.admin-row-actions .icon-button { width: 2.15rem; height: 2.15rem; }
+.admin-list-empty { padding: 2rem .5rem; color: var(--admin-muted); font-size: .875rem; font-weight: 700; text-align: center; }
+.admin-list-foot { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding-top: .9rem; color: var(--admin-muted); font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.admin-pager { display: flex; gap: .35rem; }
+.admin-pager button { display: grid; width: 2.1rem; height: 2.1rem; place-items: center; border: 1px solid var(--admin-line); border-radius: 9px; background: #fff; color: var(--admin-teal-deep); cursor: pointer; }
+.admin-pager button:hover:not(:disabled) { background: #f2faf9; }
+.admin-pager button:disabled { opacity: .4; cursor: default; }
+.admin-pager svg { width: 1rem; height: 1rem; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .admin-view-button { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; padding: .4rem .8rem; border: 1px solid var(--admin-line); border-radius: 999px; background: #fff; color: var(--admin-teal-deep); font-size: .8rem; font-weight: 800; cursor: pointer; transition: background-color .18s ease, border-color .18s ease; }
 .admin-view-button:hover { border-color: #9fcbd0; background: #f2faf9; }
 .admin-view-button svg { width: 1rem; height: 1rem; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
@@ -280,8 +321,12 @@ tbody tr:hover { background: #f1f8f8; }
   .admin-overview-row { grid-template-columns: minmax(6rem, .7fr) minmax(0, 1fr); gap: 1rem; min-height: 7rem; }
   .admin-overview-row strong { font-size: clamp(2.7rem, 11vw, 4rem); }
   .admin-page .data-card { padding: 1.1rem; border-radius: 16px; }
-  .admin-file-name { max-width: 8.5rem; }
   .admin-table-hint { display: flex; }
+  .admin-list-row { gap: .6rem; }
+  .admin-list-row .admin-view-button { width: 2.25rem; padding: 0; justify-content: center; }
+  .admin-list-row .admin-view-button span { display: none; }
+  .admin-list-meta > span:first-child { max-width: 100%; }
+  .admin-list-meta > span:not(:first-child) { display: none; }
   #datasetMetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
   #datasetMetricGrid .metric-card { min-height: 0; padding: 1rem; }
   #datasetMetricGrid .metric-card p:last-child { margin-top: .75rem; font-size: 1.6rem; }
@@ -290,6 +335,10 @@ tbody tr:hover { background: #f1f8f8; }
   .admin-report-body { padding: 1rem 1rem 1.25rem; }
   .admin-report-score { grid-template-columns: 1fr; gap: 1rem; }
   .admin-report-facts { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .admin-list-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .admin-avatar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar-fill { transition: none; }
@@ -385,55 +434,57 @@ tbody tr:hover { background: #f1f8f8; }
     </article>
   </section>
 
-  <section class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
-    <article class="data-card p-5">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-headline text-xl font-extrabold text-primary">Recent Resume Evaluations</h2>
-        <span id="evaluationTableCount" class="text-sm font-bold text-on-surface-variant"></span>
+  <section class="admin-people-grid mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:px-8">
+    <article class="data-card admin-list-card p-5" aria-labelledby="evaluationListTitle">
+      <div class="admin-list-head">
+        <h2 id="evaluationListTitle" class="font-headline text-xl font-extrabold text-primary">Recent Resume Evaluations</h2>
+        <span id="evaluationTotal" class="admin-count" hidden></span>
       </div>
-      <p class="admin-table-hint"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Swipe sideways to see every column.</span></p>
-      <div class="table-shell">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
-            <tr>
-              <th class="px-3 py-3 font-bold">User</th>
-              <th class="px-3 py-3 font-bold">Resume</th>
-              <th class="px-3 py-3 font-bold">Role</th>
-              <th class="px-3 py-3 text-right font-bold">Before</th>
-              <th class="px-3 py-3 text-right font-bold">Est. After</th>
-              <th class="px-3 py-3 text-right font-bold">Gain</th>
-              <th class="px-3 py-3 font-bold">Date</th>
-              <th class="px-3 py-3 text-right font-bold">Report</th>
-            </tr>
-          </thead>
-          <tbody id="evaluationTableBody" class="divide-y divide-outline-variant"></tbody>
-        </table>
+      <div class="admin-list-tools">
+        <label class="admin-search">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+          <input id="evaluationSearch" type="search" placeholder="Search name, role or file" aria-label="Search evaluations" autocomplete="off" data-list="evaluation">
+        </label>
+        <div class="admin-chips" role="group" aria-label="Filter by date" data-list="evaluation">
+          <button type="button" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" data-filter="today" aria-pressed="false">Today</button>
+          <button type="button" data-filter="7d" aria-pressed="false">7 days</button>
+          <button type="button" data-filter="30d" aria-pressed="false">30 days</button>
+        </div>
+      </div>
+      <ul id="evaluationList" class="admin-list"></ul>
+      <div class="admin-list-foot">
+        <span id="evaluationRange" aria-live="polite"></span>
+        <div class="admin-pager">
+          <button id="evaluationPrev" type="button" aria-label="Previous page" data-list="evaluation" data-step="-1"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></button>
+          <button id="evaluationNext" type="button" aria-label="Next page" data-list="evaluation" data-step="1"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
       </div>
     </article>
-  </section>
 
-  <section class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
-    <article class="data-card p-5">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-headline text-xl font-extrabold text-primary">Registered Users</h2>
-        <span id="userTableCount" class="text-sm font-bold text-on-surface-variant"></span>
+    <article class="data-card admin-list-card p-5" aria-labelledby="userListTitle">
+      <div class="admin-list-head">
+        <h2 id="userListTitle" class="font-headline text-xl font-extrabold text-primary">Registered Users</h2>
+        <span id="userTotal" class="admin-count" hidden></span>
       </div>
-      <p class="admin-table-hint"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Swipe sideways to see every column.</span></p>
-      <div class="table-shell">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
-            <tr>
-              <th class="px-3 py-3 font-bold">Name</th>
-              <th class="px-3 py-3 font-bold">Email</th>
-              <th class="px-3 py-3 text-center font-bold">Role</th>
-              <th class="px-3 py-3 text-right font-bold">Evaluations</th>
-              <th class="px-3 py-3 text-right font-bold">Latest Score</th>
-              <th class="px-3 py-3 font-bold">Last Evaluation</th>
-              <th class="px-3 py-3 text-right font-bold">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="userTableBody" class="divide-y divide-outline-variant"></tbody>
-        </table>
+      <div class="admin-list-tools">
+        <label class="admin-search">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+          <input id="userSearch" type="search" placeholder="Search name or email" aria-label="Search users" autocomplete="off" data-list="user">
+        </label>
+        <div class="admin-chips" role="group" aria-label="Filter by role" data-list="user">
+          <button type="button" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" data-filter="admin" aria-pressed="false">Admins</button>
+          <button type="button" data-filter="user" aria-pressed="false">Users</button>
+        </div>
+      </div>
+      <ul id="userList" class="admin-list"></ul>
+      <div class="admin-list-foot">
+        <span id="userRange" aria-live="polite"></span>
+        <div class="admin-pager">
+          <button id="userPrev" type="button" aria-label="Previous page" data-list="user" data-step="-1"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></button>
+          <button id="userNext" type="button" aria-label="Next page" data-list="user" data-step="1"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
       </div>
     </article>
   </section>
@@ -778,17 +829,26 @@ function formatPercent(value) {
   return scoreFormatter.format(Number(value || 0)) + "%";
 }
 
-// A numeric date reads the same in English and Bahasa Melayu.
-function formatDate(value) {
+// The database stores UTC without a zone marker, so read such timestamps as UTC.
+function parseServerDate(value) {
   if (!value) {
-    return "N/A";
+    return null;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const text = String(value);
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(text);
+  const date = new Date(text.includes("T") && !hasZone ? text + "Z" : text);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+// A numeric date reads the same in English and Bahasa Melayu.
+function formatDate(value, includeTime = true) {
+  const date = parseServerDate(value);
+  if (!date) {
     return "N/A";
   }
   const pad = (number) => String(number).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return includeTime ? `${day} ${pad(date.getHours())}:${pad(date.getMinutes())}` : day;
 }
 
 function getStoredUser() {
@@ -970,60 +1030,133 @@ function renderBars(elementId, items, labelKey = "label", valueKey = "value", su
   }).join("") || `<p class="text-sm font-semibold text-on-surface-variant">No data available.</p>`;
 }
 
-function renderEvaluationTable(items) {
-  const rows = Array.isArray(items) ? items.slice(0, 20) : [];
-  document.getElementById("evaluationTableCount").textContent = rows.length ? `${rows.length} shown` : "";
-  document.getElementById("evaluationTableBody").innerHTML = rows.map((item) => `
-    <tr>
-      <td class="px-3 py-3">
-        <div class="font-bold text-primary">${escapeHtml(item.user_name || "Deleted user")}</div>
-        <div class="text-xs text-on-surface-variant">${escapeHtml(item.user_email || "")}</div>
-      </td>
-      <td class="px-3 py-3 text-on-surface-variant"><span class="admin-file-name" title="${escapeHtml(item.uploaded_resume_name)}" data-no-translate>${escapeHtml(item.uploaded_resume_name)}</span></td>
-      <td class="px-3 py-3 font-bold text-on-surface">${escapeHtml(item.target_role)}</td>
-      <td class="px-3 py-3 text-right font-bold">${formatScore(item.before_score)}</td>
-      <td class="px-3 py-3 text-right font-bold text-primary">${formatScore(item.estimated_after_score)}</td>
-      <td class="px-3 py-3 text-right font-bold text-secondary">+${scoreFormatter.format(Number(item.estimated_gain || 0))}</td>
-      <td class="px-3 py-3 text-on-surface-variant">${formatDate(item.created_at)}</td>
-      <td class="px-3 py-3 text-right">
-        <button class="admin-view-button" type="button" data-action="view-report" data-analysis-id="${escapeHtml(item.id)}" aria-label="View report for ${escapeHtml(item.user_name || "Deleted user")}">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>
-          <span>View</span>
-        </button>
-      </td>
-    </tr>
-  `).join("") || `
-    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="8">No evaluations yet.</td></tr>
+const LIST_PAGE_SIZE = 5;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function initials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) {
+    return "?";
+  }
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+function matchesSearch(fields, query) {
+  const needle = query.trim().toLowerCase();
+  return !needle || fields.some((field) => String(field || "").toLowerCase().includes(needle));
+}
+
+function matchesDateFilter(value, filter) {
+  if (filter === "all") {
+    return true;
+  }
+  const date = parseServerDate(value);
+  if (!date) {
+    return false;
+  }
+  const now = new Date();
+  if (filter === "today") {
+    return date.toDateString() === now.toDateString();
+  }
+  return now - date <= (filter === "7d" ? 7 : 30) * DAY_MS;
+}
+
+function evaluationRow(item) {
+  const isDeleted = item.user_id === null || item.user_id === undefined;
+  const name = isDeleted ? "Deleted user" : item.user_name;
+  return `
+    <li class="admin-list-row">
+      <span class="admin-avatar" aria-hidden="true">${escapeHtml(isDeleted ? "?" : initials(name))}</span>
+      <div class="admin-list-main">
+        <p class="admin-list-name"><span ${isDeleted ? "" : "data-no-translate"} title="${escapeHtml(item.user_email || "")}">${escapeHtml(name)}</span></p>
+        <p class="admin-list-meta"><span>${escapeHtml(item.target_role)}</span><span aria-hidden="true">·</span><span title="${escapeHtml(item.uploaded_resume_name)}" data-no-translate>${escapeHtml(item.uploaded_resume_name)}</span></p>
+      </div>
+      <div class="admin-list-score" title="${escapeHtml(formatDate(item.created_at))}">
+        <strong>${formatScore(item.before_score)}</strong>
+        <small><span class="admin-gain">+${scoreFormatter.format(Number(item.estimated_gain || 0))}</span> · ${formatDate(item.created_at, false)}</small>
+      </div>
+      <button class="admin-view-button" type="button" data-action="view-report" data-analysis-id="${escapeHtml(item.id)}" aria-label="View report for ${escapeHtml(name)}">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>
+        <span>View</span>
+      </button>
+    </li>
   `;
 }
 
-function renderUserTable(users) {
-  adminUsers = Array.isArray(users) ? users : [];
-  document.getElementById("userTableCount").textContent = adminUsers.length ? `${adminUsers.length} users` : "";
-  document.getElementById("userTableBody").innerHTML = adminUsers.map((user) => `
-    <tr>
-      <td class="px-3 py-3 font-bold text-primary">${escapeHtml(user.full_name)}</td>
-      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml(user.email)}</td>
-      <td class="px-3 py-3 text-center">
-        <span class="pill ${user.is_admin ? "bg-primary-fixed text-primary" : "bg-surface-container text-on-surface-variant"}">${user.is_admin ? "Admin" : "User"}</span>
-      </td>
-      <td class="px-3 py-3 text-right font-bold">${formatNumber(user.evaluation_count)}</td>
-      <td class="px-3 py-3 text-right font-bold">${formatScore(user.latest_score)}</td>
-      <td class="px-3 py-3 text-on-surface-variant">${formatDate(user.last_evaluation_at)}</td>
-      <td class="px-3 py-3">
-        <div class="flex justify-end gap-2">
-          <button class="icon-button bg-surface-container-low text-primary hover:bg-surface-container-high" type="button" data-action="edit-user" data-user-id="${escapeHtml(user.id)}" title="Edit user" aria-label="Edit user">
-            <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4"/></svg>
-          </button>
-          <button class="icon-button bg-error-container text-error hover:opacity-90" type="button" data-action="delete-user" data-user-id="${escapeHtml(user.id)}" title="Delete user" aria-label="Delete user">
-            <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 10v7M14 10v7"/></svg>
-          </button>
-        </div>
-      </td>
-    </tr>
-  `).join("") || `
-    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="7">No registered users yet.</td></tr>
+function userRow(user) {
+  const count = Number(user.evaluation_count || 0);
+  return `
+    <li class="admin-list-row">
+      <span class="admin-avatar" aria-hidden="true">${escapeHtml(initials(user.full_name))}</span>
+      <div class="admin-list-main">
+        <p class="admin-list-name"><span data-no-translate>${escapeHtml(user.full_name)}</span>${user.is_admin ? '<span class="pill bg-primary-fixed text-primary">Admin</span>' : ""}</p>
+        <p class="admin-list-meta"><span data-no-translate>${escapeHtml(user.email)}</span></p>
+      </div>
+      <div class="admin-list-score" title="${escapeHtml(count ? formatDate(user.last_evaluation_at) : "")}">
+        <strong>${count ? formatScore(user.latest_score) : "–"}</strong>
+        <small>${count === 1 ? "1 evaluation" : `${formatNumber(count)} evaluations`}</small>
+      </div>
+      <div class="admin-row-actions">
+        <button class="icon-button bg-surface-container-low text-primary hover:bg-surface-container-high" type="button" data-action="edit-user" data-user-id="${escapeHtml(user.id)}" title="Edit user" aria-label="Edit user">
+          <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4"/></svg>
+        </button>
+        <button class="icon-button bg-error-container text-error hover:opacity-90" type="button" data-action="delete-user" data-user-id="${escapeHtml(user.id)}" title="Delete user" aria-label="Delete user">
+          <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 10v7M14 10v7"/></svg>
+        </button>
+      </div>
+    </li>
   `;
+}
+
+// Each list keeps its own search text, filter and page; rows are filtered in the browser.
+const adminLists = {
+  evaluation: {
+    items: [], query: "", filter: "all", page: 1,
+    empty: "No evaluations yet.", noMatch: "No matching evaluations.",
+    matches: (item, state) => matchesDateFilter(item.created_at, state.filter)
+      && matchesSearch([item.user_name, item.user_email, item.target_role, item.uploaded_resume_name], state.query),
+    row: evaluationRow
+  },
+  user: {
+    items: [], query: "", filter: "all", page: 1,
+    empty: "No registered users yet.", noMatch: "No matching users.",
+    matches: (user, state) => (state.filter === "all" || (state.filter === "admin") === Boolean(user.is_admin))
+      && matchesSearch([user.full_name, user.email], state.query),
+    row: userRow
+  }
+};
+
+function renderAdminList(key) {
+  const state = adminLists[key];
+  const matches = state.items.filter((item) => state.matches(item, state));
+  const pageCount = Math.max(1, Math.ceil(matches.length / LIST_PAGE_SIZE));
+  state.page = Math.min(Math.max(1, state.page), pageCount);
+  const start = (state.page - 1) * LIST_PAGE_SIZE;
+  const pageItems = matches.slice(start, start + LIST_PAGE_SIZE);
+  document.getElementById(`${key}List`).innerHTML = pageItems.map(state.row).join("")
+    || `<li class="admin-list-empty">${escapeHtml(state.items.length ? state.noMatch : state.empty)}</li>`;
+  document.getElementById(`${key}Range`).textContent = matches.length
+    ? `${start + 1}–${start + pageItems.length} of ${matches.length}`
+    : "";
+  document.getElementById(`${key}Prev`).disabled = state.page <= 1;
+  document.getElementById(`${key}Next`).disabled = state.page >= pageCount;
+  const total = document.getElementById(`${key}Total`);
+  total.textContent = formatNumber(state.items.length);
+  total.hidden = !state.items.length;
+}
+
+function setAdminListItems(key, items) {
+  adminLists[key].items = Array.isArray(items) ? items : [];
+  renderAdminList(key);
+}
+
+function renderEvaluationList(items) {
+  setAdminListItems("evaluation", items);
+}
+
+function renderUserList(users) {
+  adminUsers = Array.isArray(users) ? users : [];
+  setAdminListItems("user", adminUsers);
 }
 
 function renderRoleTable(items) {
@@ -1444,8 +1577,8 @@ async function loadInsights() {
     renderImprovement(adminData.summary || {});
     renderBars("scoreDistributionBars", adminData.score_distribution || []);
     renderBars("evaluatedRoleBars", adminData.top_evaluated_roles || []);
-    renderEvaluationTable(adminData.recent_evaluations || []);
-    renderUserTable(adminData.users || []);
+    renderEvaluationList(adminData.recent_evaluations || []);
+    renderUserList(adminData.users || []);
     if (adminDashboard.hidden) {
       renderDatasetLoading();
     }
@@ -1650,7 +1783,7 @@ if (logoutBtn) logoutBtn.addEventListener("click", () => {
   window.location.href = "home_page.html";
 });
 
-document.getElementById("userTableBody").addEventListener("click", (event) => {
+document.getElementById("userList").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-action]");
   if (!button) {
     return;
@@ -1673,7 +1806,34 @@ userEditModal.addEventListener("click", (event) => {
   }
 });
 userEditForm.addEventListener("submit", saveUserChanges);
-document.getElementById("evaluationTableBody").addEventListener("click", (event) => {
+document.querySelectorAll(".admin-search input[data-list]").forEach((input) => {
+  input.addEventListener("input", () => {
+    const state = adminLists[input.dataset.list];
+    state.query = input.value;
+    state.page = 1;
+    renderAdminList(input.dataset.list);
+  });
+});
+document.querySelectorAll(".admin-chips[data-list]").forEach((group) => {
+  group.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-filter]");
+    if (!button) {
+      return;
+    }
+    group.querySelectorAll("button[data-filter]").forEach((chip) => chip.setAttribute("aria-pressed", String(chip === button)));
+    const state = adminLists[group.dataset.list];
+    state.filter = button.dataset.filter;
+    state.page = 1;
+    renderAdminList(group.dataset.list);
+  });
+});
+document.querySelectorAll(".admin-pager button[data-list]").forEach((button) => {
+  button.addEventListener("click", () => {
+    adminLists[button.dataset.list].page += Number(button.dataset.step);
+    renderAdminList(button.dataset.list);
+  });
+});
+document.getElementById("evaluationList").addEventListener("click", (event) => {
   const button = event.target.closest('button[data-action="view-report"]');
   if (button) {
     openReport(button.getAttribute("data-analysis-id"));

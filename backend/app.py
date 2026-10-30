@@ -9166,21 +9166,21 @@ def build_admin_dashboard_payload() -> dict[str, Any]:
             role_counter[target_role] += 1
         score_values.append(before_score)
         estimated_after_values.append(estimated_after)
-        if len(recent_evaluations) < 40:
-            recent_evaluations.append(
-                {
-                    "id": row["id"],
-                    "user_id": user_id,
-                    "user_name": row.get("full_name") or "Deleted user",
-                    "user_email": row.get("email") or "",
-                    "uploaded_resume_name": row.get("uploaded_resume_name") or "resume.pdf",
-                    "target_role": target_role,
-                    "before_score": before_score,
-                    "estimated_after_score": estimated_after,
-                    "estimated_gain": gain,
-                    "created_at": isoformat_datetime(row.get("created_at")),
-                }
-            )
+        # The admin page searches, filters and pages these in the browser.
+        recent_evaluations.append(
+            {
+                "id": row["id"],
+                "user_id": user_id,
+                "user_name": row.get("full_name") or "Deleted user",
+                "user_email": row.get("email") or "",
+                "uploaded_resume_name": row.get("uploaded_resume_name") or "resume.pdf",
+                "target_role": target_role,
+                "before_score": before_score,
+                "estimated_after_score": estimated_after,
+                "estimated_gain": gain,
+                "created_at": isoformat_datetime(row.get("created_at")),
+            }
+        )
 
     users: list[dict[str, Any]] = []
     for row in user_rows:
