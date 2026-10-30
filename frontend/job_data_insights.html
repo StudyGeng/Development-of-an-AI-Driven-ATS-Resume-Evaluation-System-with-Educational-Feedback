@@ -155,12 +155,78 @@ h1, h2, h3, .font-headline {
   border-radius: 999px;
   transition: width 0.4s cubic-bezier(.2, .8, .2, 1);
 }
+/* Grid items default to min-width: auto, which let wide tables push cards past the viewport. */
+.data-card { min-width: 0; }
+.admin-summary-grid { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1024px) {
+  .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-summary-grid > .admin-improvement-card { grid-column: 1 / -1; }
+  .admin-improvement-card #improvementGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1280px) {
+  .admin-summary-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, 1fr); }
+  .admin-summary-grid > .admin-improvement-card { grid-column: auto; }
+  .admin-improvement-card #improvementGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .table-shell {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   border: 1px solid #edf1f4;
   border-radius: 12px;
   scrollbar-color: #a9cbd4 #f7f9fc;
+  /* Edge shadows appear while more columns are hidden on that side. */
+  background:
+    linear-gradient(90deg, #fff 35%, rgba(255, 255, 255, 0)) left / 2.5rem 100% no-repeat local,
+    linear-gradient(270deg, #fff 35%, rgba(255, 255, 255, 0)) right / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(22, 35, 56, .16), transparent) left / .85rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(22, 35, 56, .16), transparent) right / .85rem 100% no-repeat scroll,
+    #fff;
 }
+.admin-file-name { display: block; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; }
+.admin-table-hint { display: none; align-items: center; gap: .4rem; margin: 0 0 .6rem; color: var(--admin-muted); font-size: .78rem; font-weight: 700; }
+.admin-table-hint svg { width: 1rem; height: 1rem; flex: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.admin-view-button { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; padding: .4rem .8rem; border: 1px solid var(--admin-line); border-radius: 999px; background: #fff; color: var(--admin-teal-deep); font-size: .8rem; font-weight: 800; cursor: pointer; transition: background-color .18s ease, border-color .18s ease; }
+.admin-view-button:hover { border-color: #9fcbd0; background: #f2faf9; }
+.admin-view-button svg { width: 1rem; height: 1rem; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.admin-skeleton { display: block; height: .75rem; border-radius: 999px; background: linear-gradient(90deg, #edf3f8 25%, #f8fbfd 45%, #edf3f8 65%) 0 0 / 300% 100%; animation: adminSkeleton 1.4s ease-in-out infinite; }
+.admin-skeleton + .admin-skeleton { margin-top: .6rem; }
+@keyframes adminSkeleton { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.admin-report-dialog { display: flex; flex-direction: column; width: 100%; max-width: 56rem; max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow: hidden; background: #fff; box-shadow: 0 30px 80px rgba(15, 23, 42, .28); }
+.admin-report-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.4rem 1.5rem 1rem; }
+.admin-report-kicker { margin: 0; color: var(--admin-teal-deep); font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.admin-report-head h2 { margin: .35rem 0 0; color: var(--admin-ink); font-size: clamp(1.25rem, 3vw, 1.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.25; overflow-wrap: anywhere; }
+.admin-report-meta { margin: .35rem 0 0; color: var(--admin-muted); font-size: .85rem; overflow-wrap: anywhere; }
+.admin-report-tabs { display: flex; gap: .35rem; padding: 0 1.5rem; border-bottom: 1px solid var(--admin-line); }
+.admin-report-tabs button { margin-bottom: -1px; padding: .6rem .9rem; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--admin-muted); font-size: .875rem; font-weight: 800; cursor: pointer; }
+.admin-report-tabs button[aria-selected="true"] { border-bottom-color: var(--admin-teal); color: var(--admin-teal-deep); }
+.admin-report-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 1.25rem 1.5rem 1.6rem; }
+.admin-report-score + .admin-report-section,
+.admin-report-section + .admin-report-section { margin-top: 1.6rem; }
+.admin-report-section h3 { margin: 0 0 .75rem; color: var(--admin-muted); font-size: .76rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.admin-report-score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1.5rem; align-items: center; padding: 1.1rem 1.25rem; border-radius: 16px; background: #f3f9ff; }
+.admin-report-score > strong { color: var(--admin-ink); font-family: Manrope, Inter, sans-serif; font-size: 3rem; font-weight: 800; letter-spacing: -.06em; line-height: 1; font-variant-numeric: tabular-nums; }
+.admin-report-score > strong small { color: var(--admin-muted); font-size: 1rem; letter-spacing: 0; }
+.admin-report-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem 1.25rem; margin: 0; }
+.admin-report-facts dt { color: var(--admin-muted); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.admin-report-facts dd { margin: .15rem 0 0; color: var(--admin-ink); font-size: .9rem; font-weight: 700; overflow-wrap: anywhere; }
+.admin-report-bars { display: grid; gap: .85rem; }
+.admin-report-bars div > span { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: .3rem; color: var(--admin-ink); font-size: .85rem; font-weight: 700; }
+.admin-report-bars small { color: var(--admin-muted); font-weight: 700; }
+.admin-chip-list { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.admin-chip-list li { padding: .3rem .65rem; border-radius: 999px; background: #e8f4ff; color: var(--admin-teal-deep); font-size: .8rem; font-weight: 700; }
+.admin-chip-list.is-missing li { background: #fff3e6; color: #8f4700; }
+.admin-report-list { margin: 0; padding-left: 1.1rem; color: var(--admin-ink); font-size: .9rem; line-height: 1.65; }
+.admin-report-list li + li { margin-top: .35rem; }
+.admin-report-excerpt { margin: 0; padding: .9rem 1rem; border-left: 3px solid var(--admin-teal); border-radius: 0 12px 12px 0; background: #f7fafc; color: var(--admin-muted); font-size: .9rem; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
+.admin-report-empty { margin: 0; color: var(--admin-muted); font-size: .875rem; line-height: 1.6; }
+.admin-report-empty.is-error { color: #b42318; font-weight: 700; }
+.admin-file-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.admin-file-toolbar p { margin: 0; color: var(--admin-ink); font-size: .875rem; font-weight: 700; overflow-wrap: anywhere; }
+.admin-file-toolbar small { display: block; color: var(--admin-muted); font-weight: 600; }
+.admin-file-toolbar a { text-decoration: none; }
+.admin-file-pages { display: grid; gap: .9rem; justify-items: center; }
+.admin-file-pages canvas,
+.admin-file-pages img { display: block; width: 100%; max-width: 46rem; height: auto; border: 1px solid var(--admin-line); border-radius: 10px; background: #fff; box-shadow: 0 10px 26px rgba(22, 35, 56, .08); }
 thead { background: #f5f9fa; }
 th, td {
   white-space: nowrap;
@@ -214,11 +280,23 @@ tbody tr:hover { background: #f1f8f8; }
   .admin-overview { padding-top: 4rem; padding-bottom: 4rem; }
   .admin-overview-row { grid-template-columns: minmax(6rem, .7fr) minmax(0, 1fr); gap: 1rem; min-height: 7rem; }
   .admin-overview-row strong { font-size: clamp(2.7rem, 11vw, 4rem); }
+  .admin-page .data-card { padding: 1.1rem; border-radius: 16px; }
+  .admin-file-name { max-width: 8.5rem; }
+  .admin-table-hint { display: flex; }
+  #datasetMetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+  #datasetMetricGrid .metric-card { min-height: 0; padding: 1rem; }
+  #datasetMetricGrid .metric-card p:last-child { margin-top: .75rem; font-size: 1.6rem; }
+  .admin-report-head { padding: 1.1rem 1rem .9rem; }
+  .admin-report-tabs { padding: 0 1rem; }
+  .admin-report-body { padding: 1rem 1rem 1.25rem; }
+  .admin-report-score { grid-template-columns: 1fr; gap: 1rem; }
+  .admin-report-facts { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar-fill { transition: none; }
   .admin-hero::after { animation: none; }
   .admin-hero::before { display: none; }
+  .admin-skeleton { animation: none; }
   .admin-dashboard > section.is-revealed { animation: none; }
   .admin-button, .icon-button, .metric-card, tbody tr { transition: none; }
   .admin-button:hover:not(:disabled), .icon-button:hover, .metric-card:hover { transform: none; }
@@ -284,8 +362,8 @@ tbody tr:hover { background: #f1f8f8; }
     <div id="adminMetricGrid" class="admin-overview-rows" aria-label="Live system activity totals"></div>
   </section>
 
-  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-    <article class="data-card p-5">
+  <section class="admin-summary-grid mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:px-8">
+    <article class="data-card admin-improvement-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Estimated resume improvement</h2>
       </div>
@@ -299,31 +377,6 @@ tbody tr:hover { background: #f1f8f8; }
       </div>
       <div id="scoreDistributionBars" class="space-y-4"></div>
     </article>
-  </section>
-
-  <section class="mx-auto grid max-w-7xl gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
-    <article class="data-card p-5">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-headline text-xl font-extrabold text-primary">Recent Resume Evaluations</h2>
-        <span id="evaluationTableCount" class="text-sm font-bold text-on-surface-variant"></span>
-      </div>
-      <div class="table-shell">
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
-            <tr>
-              <th class="px-3 py-3 font-bold">User</th>
-              <th class="px-3 py-3 font-bold">Resume</th>
-              <th class="px-3 py-3 font-bold">Role</th>
-              <th class="px-3 py-3 text-right font-bold">Before</th>
-              <th class="px-3 py-3 text-right font-bold">Est. After</th>
-              <th class="px-3 py-3 text-right font-bold">Gain</th>
-              <th class="px-3 py-3 font-bold">Date</th>
-            </tr>
-          </thead>
-          <tbody id="evaluationTableBody" class="divide-y divide-outline-variant"></tbody>
-        </table>
-      </div>
-    </article>
 
     <article class="data-card p-5">
       <div class="mb-5 flex items-center justify-between gap-3">
@@ -336,9 +389,37 @@ tbody tr:hover { background: #f1f8f8; }
   <section class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
     <article class="data-card p-5">
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-headline text-xl font-extrabold text-primary">Recent Resume Evaluations</h2>
+        <span id="evaluationTableCount" class="text-sm font-bold text-on-surface-variant"></span>
+      </div>
+      <p class="admin-table-hint"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Swipe sideways to see every column.</span></p>
+      <div class="table-shell">
+        <table class="min-w-full text-left text-sm">
+          <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
+            <tr>
+              <th class="px-3 py-3 font-bold">User</th>
+              <th class="px-3 py-3 font-bold">Resume</th>
+              <th class="px-3 py-3 font-bold">Role</th>
+              <th class="px-3 py-3 text-right font-bold">Before</th>
+              <th class="px-3 py-3 text-right font-bold">Est. After</th>
+              <th class="px-3 py-3 text-right font-bold">Gain</th>
+              <th class="px-3 py-3 font-bold">Date</th>
+              <th class="px-3 py-3 text-right font-bold">Report</th>
+            </tr>
+          </thead>
+          <tbody id="evaluationTableBody" class="divide-y divide-outline-variant"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
+    <article class="data-card p-5">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h2 class="font-headline text-xl font-extrabold text-primary">Registered Users</h2>
         <span id="userTableCount" class="text-sm font-bold text-on-surface-variant"></span>
       </div>
+      <p class="admin-table-hint"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Swipe sideways to see every column.</span></p>
       <div class="table-shell">
         <table class="min-w-full text-left text-sm">
           <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
@@ -403,6 +484,7 @@ tbody tr:hover { background: #f1f8f8; }
         <h2 class="font-headline text-xl font-extrabold text-primary">Roles With Most Requirements</h2>
         <span id="roleTableCount" class="text-sm font-bold text-on-surface-variant"></span>
       </div>
+      <p class="admin-table-hint"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Swipe sideways to see every column.</span></p>
       <div class="table-shell">
         <table class="min-w-full text-left text-sm">
           <thead class="border-b border-outline-variant text-xs uppercase text-on-surface-variant">
@@ -456,6 +538,29 @@ tbody tr:hover { background: #f1f8f8; }
         <button id="saveUserBtn" type="submit" class="admin-button admin-button-primary h-10 bg-primary px-5 text-sm text-on-primary">Save User</button>
       </div>
     </form>
+  </section>
+</div>
+
+<div id="reportModal" class="fixed inset-0 z-[75] hidden items-center justify-center modal-backdrop px-3 py-4 sm:px-4 sm:py-6" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle" aria-hidden="true">
+  <section class="admin-report-dialog">
+    <header class="admin-report-head">
+      <div>
+        <p class="admin-report-kicker">Saved evaluation</p>
+        <h2 id="reportModalTitle">Resume report</h2>
+        <p id="reportModalMeta" class="admin-report-meta"></p>
+      </div>
+      <button id="closeReportModalBtn" class="icon-button text-on-surface-variant hover:bg-surface-container" type="button" aria-label="Close report">
+        <svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+    <div class="admin-report-tabs" role="tablist" aria-label="Report views">
+      <button id="reportTabSummary" type="button" role="tab" aria-selected="true" aria-controls="reportPanelSummary" data-report-tab="summary">Report</button>
+      <button id="reportTabFile" type="button" role="tab" aria-selected="false" aria-controls="reportPanelFile" data-report-tab="file" tabindex="-1">Original file</button>
+    </div>
+    <div class="admin-report-body">
+      <div id="reportPanelSummary" role="tabpanel" aria-labelledby="reportTabSummary" tabindex="0"></div>
+      <div id="reportPanelFile" role="tabpanel" aria-labelledby="reportTabFile" tabindex="0" hidden></div>
+    </div>
   </section>
 </div>
 
@@ -582,12 +687,83 @@ const editEmailInput = document.getElementById("editEmailInput");
 const editPasswordInput = document.getElementById("editPasswordInput");
 const editIsAdminInput = document.getElementById("editIsAdminInput");
 const userEditMessage = document.getElementById("userEditMessage");
+const reportModal = document.getElementById("reportModal");
+const reportModalTitle = document.getElementById("reportModalTitle");
+const reportModalMeta = document.getElementById("reportModalMeta");
+const reportPanelSummary = document.getElementById("reportPanelSummary");
+const reportPanelFile = document.getElementById("reportPanelFile");
+const closeReportModalBtn = document.getElementById("closeReportModalBtn");
+const reportTabs = Array.from(document.querySelectorAll("[data-report-tab]"));
+const prefersReducedMotion = Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 let adminUsers = [];
 
 const escapeHtml = window.CareerNavigatorCommon.escapeHtml;
+const translateUiText = (text) => window.CareerNavigatorCommon.translateUiText(text);
 
 function formatNumber(value) {
   return numberFormatter.format(Number(value || 0));
+}
+
+function formatCount(value, decimals) {
+  return decimals ? scoreFormatter.format(value) : numberFormatter.format(Math.round(value));
+}
+
+function countUpAttributes(value, decimals = 0) {
+  return `data-count-to="${Number(value) || 0}" data-count-decimals="${decimals}"`;
+}
+
+let countUpObserver = null;
+
+function runCountUp(element) {
+  const target = Number(element.dataset.countTo);
+  const decimals = Number(element.dataset.countDecimals || 0);
+  const startedAt = performance.now();
+  const step = (now) => {
+    const progress = Math.min(1, (now - startedAt) / 1100);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    element.textContent = formatCount(target * eased, decimals);
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  };
+  requestAnimationFrame(step);
+}
+
+// Numbers are rendered at their final value, then count up from zero once
+// they scroll into view.
+function startCountUps(container) {
+  if (prefersReducedMotion || !("IntersectionObserver" in window) || !container) {
+    return;
+  }
+  if (!countUpObserver) {
+    countUpObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          countUpObserver.unobserve(entry.target);
+          runCountUp(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+  }
+  container.querySelectorAll("[data-count-to]").forEach((element) => {
+    if (Number(element.dataset.countTo) > 0) {
+      element.textContent = formatCount(0, Number(element.dataset.countDecimals || 0));
+      countUpObserver.observe(element);
+    }
+  });
+}
+
+function toTitleCase(value) {
+  const text = String(value || "");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes || 0);
+  if (size >= 1024 * 1024) {
+    return scoreFormatter.format(size / (1024 * 1024)) + " MB";
+  }
+  return Math.max(1, Math.round(size / 1024)) + " KB";
 }
 
 function formatScore(value) {
@@ -601,12 +777,17 @@ function formatPercent(value) {
   return scoreFormatter.format(Number(value || 0)) + "%";
 }
 
+// A numeric date reads the same in English and Bahasa Melayu.
 function formatDate(value) {
   if (!value) {
     return "N/A";
   }
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) {
+    return "N/A";
+  }
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function getStoredUser() {
@@ -645,12 +826,16 @@ function showPageMessage(message, type = "info") {
   element.className = "mt-3 text-sm font-semibold " + (type === "error" ? "text-error" : "text-on-surface-variant") + (message ? "" : " hidden");
 }
 
-function showAdminAccessState(kicker, title, description, canRetry = false) {
+function showAdminAccessState(kicker, title, description, canRetry = false, detail = "") {
   adminDashboard.hidden = true;
   adminAccessState.hidden = false;
   adminAccessKicker.textContent = kicker;
   adminAccessTitle.textContent = title;
-  adminAccessDescription.textContent = description;
+  // Separate text nodes let the fixed sentence translate while the server detail stays as sent.
+  adminAccessDescription.replaceChildren(
+    document.createTextNode(description),
+    ...(detail ? [document.createTextNode(" " + detail)] : [])
+  );
   adminAccessActions.hidden = !canRetry;
   refreshBtn.hidden = true;
 }
@@ -683,27 +868,31 @@ async function fetchAdminJson(path, options = {}) {
 }
 
 function renderMetricCards(containerId, metrics) {
-  document.getElementById(containerId).innerHTML = metrics.map((item) => `
+  const container = document.getElementById(containerId);
+  container.innerHTML = metrics.map((item) => `
     <article class="metric-card p-5">
       <p class="text-sm font-bold text-on-surface-variant">${escapeHtml(item.label)}</p>
-      <p class="mt-5 font-headline text-3xl font-extrabold text-primary">${escapeHtml(item.value)}</p>
+      <p class="mt-5 font-headline text-3xl font-extrabold text-primary" ${countUpAttributes(item.value, item.decimals || 0)}>${escapeHtml(formatCount(Number(item.value || 0), item.decimals || 0))}</p>
     </article>
   `).join("");
+  startCountUps(container);
 }
 
 function renderAdminMetrics(summary) {
   const metrics = [
-    { label: "Registered users", value: formatNumber(summary.registered_users), detail: "Accounts currently registered." },
-    { label: "Resume evaluations", value: formatNumber(summary.resume_evaluations), detail: "Analyses recorded by the system." },
-    { label: "Users evaluated", value: formatNumber(summary.evaluating_users), detail: "Accounts with at least one analysis." },
-    { label: "Download records", value: formatNumber(summary.download_records), detail: "Saved download activity records." }
+    { label: "Registered users", value: summary.registered_users, detail: "Accounts currently registered." },
+    { label: "Resume evaluations", value: summary.resume_evaluations, detail: "Analyses recorded by the system." },
+    { label: "Users evaluated", value: summary.evaluating_users, detail: "Accounts with at least one analysis." },
+    { label: "Download records", value: summary.download_records, detail: "Saved download activity records." }
   ];
-  document.getElementById("adminMetricGrid").innerHTML = metrics.map((item) => `
+  const container = document.getElementById("adminMetricGrid");
+  container.innerHTML = metrics.map((item) => `
     <article class="admin-overview-row">
-      <strong>${escapeHtml(item.value)}</strong>
+      <strong ${countUpAttributes(item.value)}>${escapeHtml(formatNumber(item.value))}</strong>
       <div><h3>${escapeHtml(item.label)}</h3><p>${escapeHtml(item.detail)}</p></div>
     </article>
   `).join("");
+  startCountUps(container);
 }
 
 function renderImprovement(summary) {
@@ -727,11 +916,34 @@ function renderImprovement(summary) {
 
 function renderDatasetMetrics(summary) {
   renderMetricCards("datasetMetricGrid", [
-    { label: "Job Roles", value: formatNumber(summary.total_roles) },
-    { label: "Requirements", value: formatNumber(summary.total_requirements) },
-    { label: "Avg. Requirements", value: scoreFormatter.format(Number(summary.average_requirements_per_role || 0)) },
-    { label: "Detected Skills", value: formatNumber(summary.distinct_detected_skill_keywords) }
+    { label: "Job Roles", value: summary.total_roles },
+    { label: "Requirements", value: summary.total_requirements },
+    { label: "Avg. Requirements", value: summary.average_requirements_per_role, decimals: 1 },
+    { label: "Detected Skills", value: summary.distinct_detected_skill_keywords }
   ]);
+}
+
+const DATASET_BAR_IDS = ["requirementTypeBars", "roleFamilyBars", "skillBars", "keywordBars"];
+
+// The dashboard opens as soon as account data arrives; the dataset fills in after.
+function renderDatasetLoading() {
+  document.getElementById("datasetMetricGrid").innerHTML = Array.from({ length: 4 }, () => `
+    <article class="metric-card p-5" aria-hidden="true"><span class="admin-skeleton" style="width:55%"></span><span class="admin-skeleton" style="width:35%;height:1.6rem;margin-top:1.5rem"></span></article>
+  `).join("");
+  DATASET_BAR_IDS.forEach((id) => {
+    document.getElementById(id).innerHTML = [80, 62, 48, 34].map((width) => `<span class="admin-skeleton" aria-hidden="true" style="width:${width}%"></span>`).join("")
+      + '<p class="sr-only">Loading dataset overview...</p>';
+  });
+  document.getElementById("roleTableCount").textContent = "";
+  document.getElementById("roleTableBody").innerHTML = '<tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="4">Loading dataset overview...</td></tr>';
+}
+
+function renderDatasetError() {
+  document.getElementById("datasetMetricGrid").innerHTML = '<p class="col-span-full rounded-xl bg-surface-container-low p-4 text-sm font-semibold text-on-surface-variant">Could not load the dataset overview. Use refresh to try again.</p>';
+  DATASET_BAR_IDS.forEach((id) => {
+    document.getElementById(id).innerHTML = '<p class="text-sm font-semibold text-on-surface-variant">No data available.</p>';
+  });
+  document.getElementById("roleTableBody").innerHTML = '<tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="4">No role data available.</td></tr>';
 }
 
 function renderBars(elementId, items, labelKey = "label", valueKey = "value", suffix = "") {
@@ -766,15 +978,21 @@ function renderEvaluationTable(items) {
         <div class="font-bold text-primary">${escapeHtml(item.user_name || "Deleted user")}</div>
         <div class="text-xs text-on-surface-variant">${escapeHtml(item.user_email || "")}</div>
       </td>
-      <td class="px-3 py-3 text-on-surface-variant">${escapeHtml(item.uploaded_resume_name)}</td>
+      <td class="px-3 py-3 text-on-surface-variant"><span class="admin-file-name" title="${escapeHtml(item.uploaded_resume_name)}" data-no-translate>${escapeHtml(item.uploaded_resume_name)}</span></td>
       <td class="px-3 py-3 font-bold text-on-surface">${escapeHtml(item.target_role)}</td>
       <td class="px-3 py-3 text-right font-bold">${formatScore(item.before_score)}</td>
       <td class="px-3 py-3 text-right font-bold text-primary">${formatScore(item.estimated_after_score)}</td>
       <td class="px-3 py-3 text-right font-bold text-secondary">+${scoreFormatter.format(Number(item.estimated_gain || 0))}</td>
       <td class="px-3 py-3 text-on-surface-variant">${formatDate(item.created_at)}</td>
+      <td class="px-3 py-3 text-right">
+        <button class="admin-view-button" type="button" data-action="view-report" data-analysis-id="${escapeHtml(item.id)}" aria-label="View report for ${escapeHtml(item.user_name || "Deleted user")}">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>
+          <span>View</span>
+        </button>
+      </td>
     </tr>
   `).join("") || `
-    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="7">No evaluations yet.</td></tr>
+    <tr><td class="px-3 py-6 text-center text-sm font-semibold text-on-surface-variant" colspan="8">No evaluations yet.</td></tr>
   `;
 }
 
@@ -891,7 +1109,7 @@ async function deleteUser(userId) {
   if (!user) {
     return;
   }
-  const confirmed = window.confirm(`Delete user account for ${user.full_name}?`);
+  const confirmed = window.confirm(translateUiText(`Delete user account for ${user.full_name}?`));
   if (!confirmed) {
     return;
   }
@@ -904,6 +1122,295 @@ async function deleteUser(userId) {
   }
 }
 
+// Labels and weights match the score breakdown on the results page.
+const REPORT_SCORE_COMPONENTS = [
+  ["Database requirements", "30%", "keyword_coverage", "keyword_match"],
+  ["Role evidence", "25%", "role_evidence", "role_evidence"],
+  ["Experience evidence", "15%", "experience_alignment", "experience_alignment"],
+  ["ATS format quality", "20%", "resume_quality", "resume_quality"],
+  ["Education / skills evidence", "7%", "academic_rigor", "academic_rigor"]
+];
+let activeReport = null;
+let reportFileUrl = "";
+let reportRequestId = 0;
+let pdfJsLoaderPromise = null;
+
+function readComponentScore(analysis, breakdownKey, compatibilityKey) {
+  const value = analysis.score_breakdown?.[breakdownKey] ?? analysis.compatibility?.[compatibilityKey];
+  const numeric = Number(value);
+  if (value === null || value === undefined || value === "" || !Number.isFinite(numeric)) {
+    return null;
+  }
+  return Math.max(0, Math.min(100, numeric));
+}
+
+function textList(items, limit = 24) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => typeof item === "string" ? item : item && (item.keyword || item.skill || item.label || item.name || item.requirement_text))
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function reportSection(title, body) {
+  return `<section class="admin-report-section"><h3>${escapeHtml(title)}</h3>${body}</section>`;
+}
+
+function reportEmpty(message) {
+  return `<p class="admin-report-empty">${escapeHtml(message)}</p>`;
+}
+
+function chipList(items, extraClass = "") {
+  const values = textList(items);
+  return values.length
+    ? `<ul class="admin-chip-list ${extraClass}" data-no-translate>${values.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>`
+    : reportEmpty("None recorded.");
+}
+
+function renderReportSummary(report) {
+  const analysis = report.analysis || {};
+  const jobAnalysis = analysis.job_description_analysis || {};
+  const contact = analysis.resume_contact || {};
+  const components = REPORT_SCORE_COMPONENTS.map(([label, weight, breakdownKey, compatibilityKey]) => {
+    const value = readComponentScore(analysis, breakdownKey, compatibilityKey);
+    return `
+      <div>
+        <span><span>${escapeHtml(label)} <small>${weight}</small></span><small>${value === null ? "N/A" : escapeHtml(scoreFormatter.format(value))}</small></span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(value || 0).toFixed(2)}%; background:${barColors[0]};"></div></div>
+      </div>`;
+  }).join("");
+  const topMatches = (analysis.top_role_matches?.length ? analysis.top_role_matches : analysis.role_recommendation?.top_role_matches || []).slice(0, 3);
+  const feedback = textList(analysis.structured_feedback?.length ? analysis.structured_feedback : [analysis.feedback], 8);
+  const contactRows = [["Name", contact.name], ["Email", contact.email], ["Phone", contact.phone]]
+    .filter(([, value]) => value && value !== "Candidate Name");
+  const links = textList(contact.links, 6);
+  if (links.length) {
+    contactRows.push(["Links", links.join("\n")]);
+  }
+
+  reportPanelSummary.innerHTML = [
+    `<div class="admin-report-score">
+      <strong>${escapeHtml(scoreFormatter.format(Number(report.score || 0)))}<small>/100</small></strong>
+      <dl class="admin-report-facts">
+        <div><dt>Compared role</dt><dd>${escapeHtml(report.target_role || "N/A")}</dd></div>
+        <div><dt>Review status</dt><dd>${escapeHtml(analysis.review_status || "N/A")}</dd></div>
+        <div><dt>Resume file</dt><dd data-no-translate>${escapeHtml(report.uploaded_resume_name)}</dd></div>
+        <div><dt>Evaluated</dt><dd>${escapeHtml(formatDate(report.created_at))}</dd></div>
+      </dl>
+    </div>`,
+    reportSection("Score breakdown", `<div class="admin-report-bars">${components}</div>`),
+    reportSection("Skills found", chipList(analysis.resume_summary?.skills)),
+    reportSection("Matched keywords", chipList(jobAnalysis.matched_keywords)),
+    reportSection("Missing keywords", chipList(jobAnalysis.missing_keywords, "is-missing")),
+    topMatches.length
+      ? reportSection("Closest roles", `<ol class="admin-report-list">${topMatches.map((match) => `
+          <li><strong>${escapeHtml(match.role || match.database_role || "")}</strong> · ${escapeHtml(scoreFormatter.format(Number(match.score || 0)))}/100</li>`).join("")}</ol>`)
+      : "",
+    reportSection("Feedback", feedback.length
+      ? `<ul class="admin-report-list">${feedback.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+      : reportEmpty("None recorded.")),
+    reportSection("Contact details found", contactRows.length
+      ? `<dl class="admin-report-facts">${contactRows.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd class="whitespace-pre-line" data-no-translate>${escapeHtml(value)}</dd></div>`).join("")}</dl>`
+      : reportEmpty("None recorded.")),
+    reportSection("Resume excerpt", analysis.resume_excerpt
+      ? `<p class="admin-report-excerpt" data-no-translate>${escapeHtml(analysis.resume_excerpt)}</p>`
+      : reportEmpty("None recorded."))
+  ].join("");
+}
+
+function setReportTab(name) {
+  reportTabs.forEach((tab) => {
+    const selected = tab.dataset.reportTab === name;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  });
+  reportPanelSummary.hidden = name !== "summary";
+  reportPanelFile.hidden = name !== "file";
+  if (name === "file") {
+    loadReportFile();
+  }
+}
+
+function releaseReportFile() {
+  if (reportFileUrl) {
+    URL.revokeObjectURL(reportFileUrl);
+    reportFileUrl = "";
+  }
+  reportPanelFile.innerHTML = "";
+  delete reportPanelFile.dataset.loaded;
+}
+
+async function openReport(analysisId) {
+  const requestId = ++reportRequestId;
+  activeReport = null;
+  releaseReportFile();
+  reportModalTitle.removeAttribute("data-no-translate");
+  reportModalTitle.textContent = "Resume report";
+  reportModalMeta.textContent = "";
+  reportPanelSummary.innerHTML = reportEmpty("Loading report...");
+  setReportTab("summary");
+  reportModal._focusBeforeOpen = document.activeElement;
+  reportModal.classList.add("flex");
+  window.CareerNavigatorCommon.setModalOpen(reportModal, true);
+  closeReportModalBtn.focus({ preventScroll: true });
+
+  try {
+    const report = await fetchAdminJson(`/admin/analyses/${encodeURIComponent(analysisId)}`);
+    if (!report || requestId !== reportRequestId) {
+      return;
+    }
+    activeReport = report;
+    // Names come from user input, so they are never run through the translator.
+    reportModalTitle.setAttribute("data-no-translate", "");
+    reportModalTitle.textContent = report.user_name || "Deleted user";
+    reportModalMeta.textContent = [report.user_email, report.uploaded_resume_name].filter(Boolean).join(" · ");
+    renderReportSummary(report);
+    if (!reportPanelFile.hidden) {
+      loadReportFile();
+    }
+  } catch (error) {
+    if (requestId === reportRequestId) {
+      reportPanelSummary.innerHTML = `<p class="admin-report-empty is-error">${escapeHtml(error.message || "Could not load this report.")}</p>`;
+    }
+  }
+}
+
+function closeReportModal() {
+  reportRequestId += 1;
+  activeReport = null;
+  window.CareerNavigatorCommon.setModalOpen(reportModal, false);
+  reportModal.classList.remove("flex");
+  releaseReportFile();
+  if (reportModal._focusBeforeOpen && document.contains(reportModal._focusBeforeOpen)) {
+    reportModal._focusBeforeOpen.focus({ preventScroll: true });
+  }
+}
+
+function loadPdfJs() {
+  if (window.pdfjsLib) {
+    return Promise.resolve(window.pdfjsLib);
+  }
+  if (!pdfJsLoaderPromise) {
+    pdfJsLoaderPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      script.async = true;
+      script.onload = () => {
+        if (!window.pdfjsLib) {
+          reject(new Error("PDF preview renderer did not load."));
+          return;
+        }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        resolve(window.pdfjsLib);
+      };
+      script.onerror = () => {
+        pdfJsLoaderPromise = null;
+        reject(new Error("Could not load PDF preview renderer."));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return pdfJsLoaderPromise;
+}
+
+const MAX_PREVIEW_PAGES = 6;
+
+async function renderPdfPages(target, data, requestId) {
+  const pdfjsLib = await loadPdfJs();
+  // These PDFs come from other users. Disabling eval closes the font path
+  // abused by CVE-2024-4367 in this pdf.js version.
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(data), isEvalSupported: false }).promise;
+  if (requestId !== reportRequestId) {
+    return;
+  }
+  target.innerHTML = "";
+  const pageCount = Math.min(pdf.numPages, MAX_PREVIEW_PAGES);
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    if (requestId !== reportRequestId) {
+      return;
+    }
+    const viewport = page.getViewport({ scale: 1.6 });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", `Resume page ${pageNumber} of ${pdf.numPages}`);
+    target.appendChild(canvas);
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+  }
+  if (pdf.numPages > pageCount) {
+    const note = document.createElement("p");
+    note.className = "admin-report-empty";
+    note.textContent = `Showing the first ${pageCount} of ${pdf.numPages} pages. Download the file to see the rest.`;
+    target.appendChild(note);
+  }
+}
+
+async function loadReportFile() {
+  if (!activeReport) {
+    reportPanelFile.innerHTML = reportEmpty("Loading report...");
+    return;
+  }
+  if (reportPanelFile.dataset.loaded) {
+    return;
+  }
+  reportPanelFile.dataset.loaded = "true";
+  const report = activeReport;
+  const file = report.resume_file;
+  if (!file) {
+    reportPanelFile.innerHTML = reportEmpty("The original file was not saved for this evaluation. Files are kept for analyses made after file saving was added.");
+    return;
+  }
+  reportPanelFile.innerHTML = `
+    <div class="admin-file-toolbar">
+      <p><span data-no-translate>${escapeHtml(file.file_name)}</span><small>${escapeHtml(formatFileSize(file.file_size))}</small></p>
+      <a id="reportFileDownload" class="admin-button admin-button-secondary inline-flex h-10 items-center px-4 text-sm" aria-disabled="true">Download file</a>
+    </div>
+    <div id="reportFilePages" class="admin-file-pages">${reportEmpty("Loading file...")}</div>
+  `;
+  const requestId = reportRequestId;
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/analyses/${encodeURIComponent(report.analysis_id)}/resume-file`, {
+      credentials: "same-origin"
+    });
+    if (response.status === 401 || response.status === 403) {
+      window.location.href = "home_page.html?admin_required=1";
+      return;
+    }
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || "Could not load the resume file.");
+    }
+    const blob = await response.blob();
+    if (requestId !== reportRequestId) {
+      return;
+    }
+    reportFileUrl = URL.createObjectURL(blob);
+    const download = document.getElementById("reportFileDownload");
+    download.href = reportFileUrl;
+    download.download = file.file_name;
+    download.removeAttribute("aria-disabled");
+    const pages = document.getElementById("reportFilePages");
+    if (file.content_type === "application/pdf") {
+      await renderPdfPages(pages, await blob.arrayBuffer(), requestId);
+    } else {
+      const image = new Image();
+      image.alt = "Original resume image";
+      image.src = reportFileUrl;
+      pages.replaceChildren(image);
+    }
+  } catch (error) {
+    const pages = document.getElementById("reportFilePages");
+    if (requestId === reportRequestId && pages) {
+      pages.innerHTML = `<p class="admin-report-empty is-error">${escapeHtml(error.message || "Could not load the resume file.")}</p>`;
+    }
+  }
+}
+
+// A newer refresh supersedes an older one that is still waiting for data.
+let insightsRequestId = 0;
+
 async function loadInsights() {
   if (window.location.protocol === "file:") {
     openAuthModalBtn.hidden = true;
@@ -915,48 +1422,76 @@ async function loadInsights() {
     return;
   }
 
+  const requestId = ++insightsRequestId;
   refreshBtn.disabled = true;
   refreshBtn.classList.add("opacity-70");
   showPageMessage("");
-  showAdminAccessState("Checking access", "Preparing admin insights", "Checking your administrator session and loading live data.");
+  if (adminDashboard.hidden) {
+    showAdminAccessState("Checking access", "Preparing admin insights", "Checking your administrator session and loading live data.");
+  }
+
+  // Both requests start together, but only the account data blocks the dashboard.
+  const datasetRequest = fetchAdminJson("/job-data-insights");
+  datasetRequest.catch(() => {});
 
   try {
-    const [adminData, datasetData] = await Promise.all([
-      fetchAdminJson("/admin/dashboard-insights"),
-      fetchAdminJson("/job-data-insights")
-    ]);
-    if (!adminData || !datasetData) {
+    const adminData = await fetchAdminJson("/admin/dashboard-insights");
+    if (!adminData || requestId !== insightsRequestId) {
       return;
     }
-
     renderAdminMetrics(adminData.summary || {});
     renderImprovement(adminData.summary || {});
     renderBars("scoreDistributionBars", adminData.score_distribution || []);
     renderBars("evaluatedRoleBars", adminData.top_evaluated_roles || []);
     renderEvaluationTable(adminData.recent_evaluations || []);
     renderUserTable(adminData.users || []);
+    if (adminDashboard.hidden) {
+      renderDatasetLoading();
+    }
+    showAdminDashboard();
+  } catch (error) {
+    if (requestId === insightsRequestId) {
+      finishInsightsRequest();
+      const detail = error && error.message && error.message !== "Failed to fetch" ? error.message : "";
+      showAdminAccessState(
+        "Insights unavailable",
+        "We couldn't load the admin dashboard",
+        "Check that the application server is running and try again.",
+        true,
+        detail
+      );
+    }
+    return;
+  }
 
+  try {
+    const datasetData = await datasetRequest;
+    if (!datasetData || requestId !== insightsRequestId) {
+      return;
+    }
     renderDatasetMetrics(datasetData.summary || {});
-    renderBars("requirementTypeBars", datasetData.chart_data?.requirement_type_bar || [], "label", "value", "");
-    renderBars("roleFamilyBars", datasetData.chart_data?.role_family_bar || [], "label", "value", "");
+    renderBars(
+      "requirementTypeBars",
+      (datasetData.chart_data?.requirement_type_bar || []).map((item) => ({ ...item, label: toTitleCase(item.label) }))
+    );
+    renderBars("roleFamilyBars", datasetData.chart_data?.role_family_bar || []);
     renderBars("skillBars", datasetData.top_skill_keywords || [], "skill", "role_count", " roles");
     renderBars("keywordBars", datasetData.top_text_keywords || [], "keyword", "count", "");
     renderRoleTable(datasetData.top_roles_by_requirements || []);
-    showAdminDashboard();
   } catch (error) {
-    const detail = error && error.message && error.message !== "Failed to fetch"
-      ? ` ${error.message}`
-      : "";
-    showAdminAccessState(
-      "Insights unavailable",
-      "We couldn't load the admin dashboard",
-      `Check that the application server is running and try again.${detail}`,
-      true
-    );
+    if (requestId === insightsRequestId) {
+      renderDatasetError();
+    }
   } finally {
-    refreshBtn.disabled = false;
-    refreshBtn.classList.remove("opacity-70");
+    if (requestId === insightsRequestId) {
+      finishInsightsRequest();
+    }
   }
+}
+
+function finishInsightsRequest() {
+  refreshBtn.disabled = false;
+  refreshBtn.classList.remove("opacity-70");
 }
 
 function setProfileMessage(message, isError = false) {
@@ -1137,6 +1672,35 @@ userEditModal.addEventListener("click", (event) => {
   }
 });
 userEditForm.addEventListener("submit", saveUserChanges);
+document.getElementById("evaluationTableBody").addEventListener("click", (event) => {
+  const button = event.target.closest('button[data-action="view-report"]');
+  if (button) {
+    openReport(button.getAttribute("data-analysis-id"));
+  }
+});
+closeReportModalBtn.addEventListener("click", closeReportModal);
+reportModal.addEventListener("click", (event) => {
+  if (event.target === reportModal) {
+    closeReportModal();
+  }
+});
+reportTabs.forEach((tab, index) => {
+  tab.addEventListener("click", () => setReportTab(tab.dataset.reportTab));
+  tab.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+    event.preventDefault();
+    const next = reportTabs[(index + (event.key === "ArrowRight" ? 1 : reportTabs.length - 1)) % reportTabs.length];
+    setReportTab(next.dataset.reportTab);
+    next.focus();
+  });
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !reportModal.classList.contains("hidden")) {
+    closeReportModal();
+  }
+});
 refreshBtn.addEventListener("click", loadInsights);
 retryAdminBtn.addEventListener("click", loadInsights);
 
